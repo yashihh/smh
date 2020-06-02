@@ -17,6 +17,7 @@ import (
 	"free5gc/src/smf/logger"
 	"free5gc/src/smf/oam"
 	"free5gc/src/smf/pdusession"
+	"free5gc/src/smf/pfcp"
 	"free5gc/src/smf/pfcp/message"
 	"free5gc/src/smf/pfcp/udp"
 	"free5gc/src/smf/util"
@@ -158,7 +159,7 @@ func (smf *SMF) Start() {
 			eventexposure.AddService(router)
 		}
 	}
-	udp.Run()
+	udp.Run(pfcp.Dispatch)
 
 	for _, upf := range context.SMF_Self().UserPlaneInformation.UPFs {
 		addr := new(net.UDPAddr)

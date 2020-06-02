@@ -11,6 +11,7 @@ import (
 	"free5gc/lib/pfcp/pfcpType"
 	"free5gc/lib/pfcp/pfcpUdp"
 	"free5gc/src/smf/handler"
+	"free5gc/src/smf/pfcp"
 	"free5gc/src/smf/pfcp/udp"
 )
 
@@ -22,7 +23,7 @@ func init() {
 		NodeIdValue: net.ParseIP("127.0.0.1").To4(),
 	}
 
-	udp.Run()
+	udp.Run(pfcp.Dispatch)
 
 	// Reset start time of PFCP server
 	udp.ServerStartTime = time.Date(1972, time.January, 1, 0, 0, 0, 0, time.UTC)

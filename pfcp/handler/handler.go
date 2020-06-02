@@ -158,7 +158,7 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 		n2Pdu, _ := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext)
 		n1n2Request := models.N1N2MessageTransferRequest{}
 
-		smContext.SMContextLock.RLock()
+		//smContext.SMContextLock.RLock()
 		n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
 			PduSessionId: smContext.PDUSessionID,
 			N1MessageContainer: &models.N1MessageContainer{
@@ -182,6 +182,9 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 		n1n2Request.BinaryDataN1Message = smNasBuf
 		n1n2Request.BinaryDataN2Information = n2Pdu
 
+		//smContext.SMContextLock.RUnlock()
+		fmt.Println("smContext.CommunicationClient: ", smContext.CommunicationClient)
+		fmt.Println("smContext: %v", smContext)
 		rspData, _, err := smContext.CommunicationClient.N1N2MessageCollectionDocumentApi.N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
 		smContext.SMContextState = smf_context.Active
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())

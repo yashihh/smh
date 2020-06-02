@@ -2,7 +2,6 @@ package message
 
 import (
 	"free5gc/lib/http_wrapper"
-	"free5gc/src/smf/logger"
 	"sync"
 )
 
