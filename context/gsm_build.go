@@ -82,7 +82,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 		pDUSessionEstablishmentAccept.PDUAddress.SetPDUSessionTypeValue(smContext.SelectedPDUSessionType)
 		pDUSessionEstablishmentAccept.PDUAddress.SetPDUAddressInformation(addr)
 	}
-	//smContext.SMContextLock.RUnlock()
+	smContext.SMContextLock.RUnlock()
 
 	// pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions = nasType.NewAuthorizedQosFlowDescriptions(nasMessage.PDUSessionEstablishmentAcceptAuthorizedQosFlowDescriptionsType)
 	// pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions.SetLen(6)
