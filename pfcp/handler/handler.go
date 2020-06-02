@@ -147,7 +147,9 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 	if rsp.UPFSEID != nil {
 		NodeIDtoIP := rsp.NodeID.ResolveNodeIdToIp().String()
 		pfcpSessionCtx := smContext.PFCPContext[NodeIDtoIP]
+		pfcpSessionCtx.Lock.Lock()
 		pfcpSessionCtx.RemoteSEID = rsp.UPFSEID.Seid
+		pfcpSessionCtx.Lock.Unlock()
 	}
 
 	ANUPF := smContext.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
@@ -155,6 +157,8 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 		smNasBuf, _ := smf_context.BuildGSMPDUSessionEstablishmentAccept(smContext)
 		n2Pdu, _ := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext)
 		n1n2Request := models.N1N2MessageTransferRequest{}
+
+		smContext.SMContextLock.RLock()
 		n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
 			PduSessionId: smContext.PDUSessionID,
 			N1MessageContainer: &models.N1MessageContainer{
@@ -229,6 +233,7 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 				smContext.SBIPFCPCommunicationChan <- smf_context.SessionUpdateSuccess
 			}
 
+			smContext.SMContextLock.RLock()
 			if smf_context.SMF_Self().ULCLSupport && smContext.BPManager != nil {
 				if smContext.BPManager.BPStatus == smf_context.UnInitialized {
 					logger.PfcpLog.Infoln("Add PSAAndULCL")
@@ -236,6 +241,8 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 					producer.AddPDUSessionAnchorAndULCL(smContext, upfNodeID)
 					smContext.BPManager.BPStatus = smf_context.AddingPSA
 				}
+			} else {
+				smContext.SMContextLock.RUnlock()
 			}
 		}
 
@@ -347,6 +354,8 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 			// TS 23.502 4.2.3.3 3a. Send Namf_Communication_N1N2MessageTransfer Request, SMF->AMF
 			n2SmBuf, _ := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext)
 			n1n2Request := models.N1N2MessageTransferRequest{}
+
+			smContext.SMContextLock.RLock()
 			n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
 				PduSessionId: smContext.PDUSessionID,
 				// Temporarily assign SMF itself, TODO: TS 23.502 4.2.3.3 5. Namf_Communication_N1N2TransferFailureNotification
@@ -365,9 +374,14 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 					},
 				},
 			}
+			smContext.SMContextLock.RUnlock()
+
 			n1n2Request.BinaryDataN2Information = n2SmBuf
 
+			smContext.SMContextLock.RLock()
 			rspData, _, err := smContext.CommunicationClient.N1N2MessageCollectionDocumentApi.N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+			smContext.SMContextLock.RUnlock()
+
 			if err != nil {
 				logger.PfcpLog.Warnf("Send N1N2Transfer failed")
 			}

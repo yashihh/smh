@@ -145,6 +145,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 				nodeAfterULCL = true
 			}
 		}
+		smContext.SMContextLock.RUnlock()
 
 	}
 

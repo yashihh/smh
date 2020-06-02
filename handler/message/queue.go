@@ -30,10 +30,7 @@ func (rq *ResponseQueue) PutItem(seqNum uint32, rspChan chan HandlerResponseMess
 }
 
 func (rq *ResponseQueue) GetItem(seqNum uint32) *ResponseQueueItem {
-	item, exist := rq.RspQueue.Load(seqNum)
-	if !exist {
-		logger.CtxLog.Warnln("Http Response Queue has no ", seqNum, "'s item")
-	}
+	item, _ := rq.RspQueue.Load(seqNum)
 
 	return item.(*ResponseQueueItem)
 }
