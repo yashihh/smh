@@ -13,12 +13,7 @@ import (
 	"sync"
 )
 
-var upfPool map[string]*UPF
-var upfPoolLock sync.RWMutex
-
-func init() {
-	upfPool = make(map[string]*UPF)
-}
+var upfPool sync.Map
 
 type UPTunnel struct {
 	PathIDGenerator *idgenerator.IDGenerator
@@ -87,7 +82,7 @@ func NewUPF(nodeID *pfcpType.NodeID) (upf *UPF) {
 	upf = new(UPF)
 	upf.uuid = uuid.New()
 
-	upfPool[upf.UUID()] = upf
+	upfPool.Store(upf.UUID(), upf)
 
 	// Initialize context
 	upf.UPFStatus = NotAssociated
@@ -127,45 +122,55 @@ func (upf *UPF) PFCPAddr() *net.UDPAddr {
 }
 
 func RetrieveUPFNodeByNodeID(nodeID pfcpType.NodeID) (upf *UPF) {
-	upfPoolLock.RLock()
-	for _, upf := range upfPool {
+	upfPool.Range(func(key, value interface{}) bool {
+		upf = value.(*UPF)
 		upf.Lock.RLock()
 		if reflect.DeepEqual(upf.NodeID, nodeID) {
 			upf.Lock.RUnlock()
-			return upf
+			return false
+		} else {
+			upf.Lock.RUnlock()
+			upf = nil
+			return true
 		}
-		upf.Lock.RUnlock()
-	}
-	upfPoolLock.RUnlock()
-	return nil
+	})
+
+	return upf
 }
 
 func RemoveUPFNodeByNodeId(nodeID pfcpType.NodeID) {
-	upfPoolLock.Lock()
-	for upfID, upf := range upfPool {
+
+	upfPool.Range(func(key, value interface{}) bool {
+		upfID := key.(string)
+		upf := value.(*UPF)
 		upf.Lock.RLock()
 		if reflect.DeepEqual(upf.NodeID, nodeID) {
 			upf.Lock.RUnlock()
-			delete(upfPool, upfID)
-			break
+			upfPool.Delete(upfID)
+			return false
+		} else {
+			upf.Lock.RUnlock()
+			return true
 		}
-		upf.Lock.RUnlock()
-	}
-	upfPoolLock.Unlock()
+	})
+
 }
 
-func SelectUPFByDnn(Dnn string) *UPF {
-	upfPoolLock.RLock()
-	for _, upf := range upfPool {
+func SelectUPFByDnn(Dnn string) (upf *UPF) {
+
+	upfPool.Range(func(key, value interface{}) bool {
+		upf := value.(*UPF)
 		upf.Lock.RLock()
 		if upf.UPIPInfo.Assoni && string(upf.UPIPInfo.NetworkInstance) == Dnn {
 			upf.Lock.RUnlock()
-			return upf
+			return false
+		} else {
+			upf.Lock.RUnlock()
+			upf = nil
+			return true
 		}
-		upf.Lock.RUnlock()
-	}
-	upfPoolLock.RUnlock()
-	return nil
+	})
+	return upf
 }
 
 func (upf *UPF) GetUPFIP() string {
