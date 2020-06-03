@@ -138,7 +138,6 @@ func HandlePfcpSessionSetDeletionResponse(msg *pfcpUdp.Message) {
 }
 
 func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
-	time.Sleep(1 * time.Second)
 	rsp := msg.PfcpMessage.Body.(pfcp.PFCPSessionEstablishmentResponse)
 	logger.PfcpLog.Infoln("In HandlePfcpSessionEstablishmentResponse")
 

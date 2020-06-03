@@ -166,7 +166,6 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	consumer.SendNFDiscoveryServingAMF(smContext)
 
-	fmt.Println("[Debug SMF]: After SendNFDiscoveryServingAMF")
 	for _, service := range *smContext.AMFProfile.NfServices {
 		if service.ServiceName == models.ServiceName_NAMF_COMM {
 			communicationConf := Namf_Communication.NewConfiguration()
