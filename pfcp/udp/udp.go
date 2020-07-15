@@ -9,7 +9,6 @@ import (
 	"free5gc/src/smf/context"
 	"free5gc/src/smf/handler/message"
 	"free5gc/src/smf/logger"
-	"free5gc/src/smf/pfcp/util"
 )
 
 const MaxPfcpUdpDataSize = 1024
@@ -17,12 +16,6 @@ const MaxPfcpUdpDataSize = 1024
 var Server pfcpUdp.PfcpServer
 
 var ServerStartTime time.Time
-
-var SeqNumTable *util.SeqNumTable
-
-func init() {
-	SeqNumTable = util.NewSeqNumTable()
-}
 
 func Run() {
 	CPNodeID := context.SMF_Self().CPNodeID
@@ -48,12 +41,6 @@ func Run() {
 				continue
 			}
 
-			// seq_num_check_pass := SeqNumTable.RecvCheckAndPutItem(&pfcpMessage)
-			// if !seq_num_check_pass {
-			// 	logger.PfcpLog.Warnf("\nSequence Number checking error.\n")
-			// 	continue
-			// }
-
 			pfcpUdpMessage := pfcpUdp.NewMessage(remoteAddr, &pfcpMessage)
 
 			msg := message.NewPfcpMessage(&pfcpUdpMessage)
@@ -65,11 +52,6 @@ func Run() {
 }
 
 func SendPfcp(msg pfcp.Message, addr *net.UDPAddr) {
-	// seq_num_check_pass := SeqNumTable.SendCheckAndPutItem(&msg)
-	// if !seq_num_check_pass {
-	// 	logger.PfcpLog.Errorf("\nSequence Number checking error.\n")
-	// 	return
-	// }
 
 	err := Server.WriteTo(msg, addr)
 	if err != nil {
