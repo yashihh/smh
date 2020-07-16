@@ -166,6 +166,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				} else { //No sourceTcData, get related info from SMContext
 					//TODO: Get the source DNAI
 					sourceTraRouting.Dnai = ""
+					sourceTraRouting.RouteInfo = new(models.RouteInformation)
 					sourceTraRouting.RouteInfo.Ipv4Addr = smContext.PDUAddress.String()
 					//TODO: Get the port from API
 					sourceTraRouting.RouteInfo.PortNumber = 2152
