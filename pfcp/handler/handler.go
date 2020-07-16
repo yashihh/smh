@@ -173,6 +173,7 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 		n1n2Request.BinaryDataN2Information = n2Pdu
 
 		rspData, _, err := smContext.CommunicationClient.N1N2MessageCollectionDocumentApi.N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+		smContext.SMContextState = smf_context.Active
 		if err != nil {
 			logger.PfcpLog.Warnf("Send N1N2Transfer failed")
 		}
@@ -282,6 +283,7 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 				// TODO fix: SEID should be the value sent by UPF but now the SEID value is from sm context
 			} else {
 
+				smContext.SMContextState = smf_context.InActive
 				resQueueItem.RspChan <- smf_message.HandlerResponseMessage{HTTPResponse: &resQueueItem.Response}
 				HttpResponseQueue.DeleteItem(seqNum)
 				logger.PfcpLog.Infof("PFCP Session Deletion Success[%d]\n", SEID)
@@ -299,6 +301,7 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 		if resQueueItem.Response.Status == http.StatusOK {
 			// Update SmContext Request(N1 PDU Session Release Request)
 			// Send PDU Session Release Reject
+			smContext.SMContextState = smf_context.Active
 			errResponse := models.UpdateSmContextErrorResponse{
 				JsonData: &models.SmContextUpdateError{
 					Error: &problemDetail,
