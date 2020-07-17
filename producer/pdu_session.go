@@ -51,6 +51,7 @@ func HandlePDUSessionSMContextCreate(rspChan chan smf_message.HandlerResponseMes
 	createData := request.JsonData
 	smContext := smf_context.NewSMContext(createData.Supi, createData.PduSessionId)
 	smContext.SMContextState = smf_context.ActivePending
+	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 	smContext.SetCreateData(createData)
 	smContext.SmStatusNotifyUri = createData.SmContextStatusUri
 
@@ -148,6 +149,7 @@ func HandlePDUSessionSMContextCreate(rspChan chan smf_message.HandlerResponseMes
 
 	if defaultPath == nil {
 		smContext.SMContextState = smf_context.InActive
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		logger.PduSessLog.Errorf("Path for serve DNN[%s] not found\n", createData.Dnn)
 		rspChan <- smf_message.HandlerResponseMessage{
 			HTTPResponse: &http_wrapper.Response{
@@ -246,6 +248,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		switch m.GsmHeader.GetMessageType() {
 		case nas.MsgTypePDUSessionReleaseRequest:
 			smContext.SMContextState = smf_context.InActivePending
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 			smContext.HandlePDUSessionReleaseRequest(m.PDUSessionReleaseRequest)
 			buf, _ := smf_context.BuildGSMPDUSessionReleaseCommand(smContext)
 			response.BinaryDataN1SmMessage = buf
@@ -278,6 +281,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			// Send Release Notify to AMF
 			logger.PduSessLog.Infoln("[SMF] Send Update SmContext Response")
 			smContext.SMContextState = smf_context.InActive
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
 			SMContextUpdateResponse := http_wrapper.Response{
 				Status: http.StatusOK,
@@ -303,6 +307,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	switch smContextUpdateData.UpCnxState {
 	case models.UpCnxState_ACTIVATING:
 		smContext.SMContextState = smf_context.ModificationPending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUSessionResourceSetupRequestTransfer"}
 		response.JsonData.UpCnxState = models.UpCnxState_ACTIVATING
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_SETUP_REQ
@@ -315,6 +320,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_SETUP_REQ
 	case models.UpCnxState_DEACTIVATED:
 		smContext.SMContextState = smf_context.ModificationPending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
 		smContext.UpCnxState = body.JsonData.UpCnxState
 		smContext.UeLocation = body.JsonData.UeLocation
@@ -345,6 +351,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	switch smContextUpdateData.N2SmInfoType {
 	case models.N2SmInfoType_PDU_RES_SETUP_RSP:
 		smContext.SMContextState = smf_context.ModificationPending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		pdrList = []*smf_context.PDR{}
 		farList = []*smf_context.FAR{}
 
@@ -377,6 +384,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		logger.PduSessLog.Infoln("[SMF] N2 PDUSession Release Complete ")
 		if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
 			smContext.SMContextState = smf_context.InActive
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 			logger.PduSessLog.Infoln("[SMF] Send Update SmContext Response")
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
 			SMContextUpdateResponse := http_wrapper.Response{
@@ -401,8 +409,10 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			return
 		}
 	case models.N2SmInfoType_PATH_SWITCH_REQ:
-		smContext.SMContextState = smf_context.ModificationPending
 		logger.PduSessLog.Traceln("Handle Path Switch Request")
+		smContext.SMContextState = smf_context.ModificationPending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
+
 		err = smf_context.HandlePathSwitchRequestTransfer(body.BinaryDataN2SmInformation, smContext)
 		n2Buf, err := smf_context.BuildPathSwitchRequestAcknowledgeTransfer(smContext)
 		if err != nil {
@@ -428,6 +438,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 
 	case models.N2SmInfoType_PATH_SWITCH_SETUP_FAIL:
 		smContext.SMContextState = smf_context.ModificationPending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		err = smf_context.HandlePathSwitchRequestSetupFailedTransfer(body.BinaryDataN2SmInformation, smContext)
 	case models.N2SmInfoType_HANDOVER_REQUIRED:
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "Handover"}
@@ -436,6 +447,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	switch smContextUpdateData.HoState {
 	case models.HoState_PREPARING:
 		smContext.SMContextState = smf_context.ModificationPending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		smContext.HoState = models.HoState_PREPARING
 		err = smf_context.HandleHandoverRequiredTransfer(body.BinaryDataN2SmInformation, smContext)
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_SETUP_REQ
@@ -452,6 +464,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		response.JsonData.HoState = models.HoState_PREPARING
 	case models.HoState_PREPARED:
 		smContext.SMContextState = smf_context.ModificationPending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		smContext.HoState = models.HoState_PREPARED
 		response.JsonData.HoState = models.HoState_PREPARED
 		err = smf_context.HandleHandoverRequestAcknowledgeTransfer(body.BinaryDataN2SmInformation, smContext)
@@ -467,6 +480,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		response.JsonData.HoState = models.HoState_PREPARING
 	case models.HoState_COMPLETED:
 		smContext.SMContextState = smf_context.ModificationPending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		smContext.HoState = models.HoState_COMPLETED
 		response.JsonData.HoState = models.HoState_COMPLETED
 	}
@@ -476,6 +490,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	case models.Cause_REL_DUE_TO_DUPLICATE_SESSION_ID:
 		//* release PDU Session Here
 		smContext.SMContextState = smf_context.InActivePending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
 		smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
@@ -513,6 +528,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	seqNum = pfcp_message.SendPfcpSessionModificationRequest(ANUPF.UPF.NodeID, smContext, pdrList, farList, barList)
 	//TODO: Move line 515 to HandlePfcpSessionModificationResponse after FR5GC-1282 is solved
 	smContext.SMContextState = smf_context.Active
+	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 	return seqNum, response
 }
 
@@ -520,6 +536,7 @@ func HandlePDUSessionSMContextRelease(rspChan chan smf_message.HandlerResponseMe
 	smContext := smf_context.GetSMContext(smContextRef)
 	// smf_context.RemoveSMContext(smContext.Ref)
 	smContext.SMContextState = smf_context.InActivePending
+	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 	deletedPFCPNode := make(map[string]bool)
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
 

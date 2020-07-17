@@ -174,6 +174,7 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 
 		rspData, _, err := smContext.CommunicationClient.N1N2MessageCollectionDocumentApi.N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
 		smContext.SMContextState = smf_context.Active
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		if err != nil {
 			logger.PfcpLog.Warnf("Send N1N2Transfer failed")
 		}
@@ -284,6 +285,7 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 			} else {
 
 				smContext.SMContextState = smf_context.InActive
+				logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 				resQueueItem.RspChan <- smf_message.HandlerResponseMessage{HTTPResponse: &resQueueItem.Response}
 				HttpResponseQueue.DeleteItem(seqNum)
 				logger.PfcpLog.Infof("PFCP Session Deletion Success[%d]\n", SEID)
@@ -302,6 +304,7 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 			// Update SmContext Request(N1 PDU Session Release Request)
 			// Send PDU Session Release Reject
 			smContext.SMContextState = smf_context.Active
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 			errResponse := models.UpdateSmContextErrorResponse{
 				JsonData: &models.SmContextUpdateError{
 					Error: &problemDetail,
