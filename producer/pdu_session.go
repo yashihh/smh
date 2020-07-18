@@ -23,7 +23,7 @@ import (
 	"github.com/antihax/optional"
 )
 
-func HandlePDUSessionSMContextCreate(rspChan chan smf_message.HandlerResponseMessage, request models.PostSmContextsRequest) {
+func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http_wrapper.Response {
 	//GSM State
 	//PDU Session Establishment Accept/Reject
 	var err error
@@ -34,18 +34,17 @@ func HandlePDUSessionSMContextCreate(rspChan chan smf_message.HandlerResponseMes
 	m := nas.NewMessage()
 	err = m.GsmMessageDecode(&request.BinaryDataN1SmMessage)
 	if err != nil || m.GsmHeader.GetMessageType() != nas.MsgTypePDUSessionEstablishmentRequest {
-		rspChan <- smf_message.HandlerResponseMessage{
-			HTTPResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error: &Nsmf_PDUSession.N1SmError,
-					},
+		logger.PduSessLog.Warnln("GsmMessageDecode Error: ", err)
+		httpResponse := &http_wrapper.Response{
+			Header: nil,
+			Status: http.StatusForbidden,
+			Body: models.PostSmContextsErrorResponse{
+				JsonData: &models.SmContextCreateError{
+					Error: &Nsmf_PDUSession.N1SmError,
 				},
 			},
 		}
-		return
+		return httpResponse
 	}
 
 	createData := request.JsonData
@@ -150,35 +149,20 @@ func HandlePDUSessionSMContextCreate(rspChan chan smf_message.HandlerResponseMes
 	if defaultPath == nil {
 		smContext.SMContextState = smf_context.InActive
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
-		logger.PduSessLog.Errorf("Path for serve DNN[%s] not found\n", createData.Dnn)
-		rspChan <- smf_message.HandlerResponseMessage{
-			HTTPResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error:   &Nsmf_PDUSession.DnnNotSupported,
-						N1SmMsg: &models.RefToBinaryData{ContentId: "N1Msg"},
-					},
+		logger.PduSessLog.Warnln("Path for serve DNN[%s] not found\n", createData.Dnn)
+		httpResponse := &http_wrapper.Response{
+			Header: nil,
+			Status: http.StatusForbidden,
+			Body: models.PostSmContextsErrorResponse{
+				JsonData: &models.SmContextCreateError{
+					Error:   &Nsmf_PDUSession.DnnNotSupported,
+					N1SmMsg: &models.RefToBinaryData{ContentId: "N1Msg"},
 				},
 			},
 		}
+		return httpResponse
 
 	}
-
-	response.JsonData = smContext.BuildCreatedData()
-	rspChan <- smf_message.HandlerResponseMessage{HTTPResponse: &http_wrapper.Response{
-		Header: http.Header{
-			"Location": {smContext.Ref},
-		},
-		Status: http.StatusCreated,
-		Body:   response,
-	}}
-
-	// TODO: UECM registration
-
-	SendPFCPRule(smContext, defaultPath)
-	logger.PduSessLog.Infof("SendPFCPRule Finshed")
 
 	consumer.SendNFDiscoveryServingAMF(smContext)
 
@@ -189,8 +173,19 @@ func HandlePDUSessionSMContextCreate(rspChan chan smf_message.HandlerResponseMes
 			smContext.CommunicationClient = Namf_Communication.NewAPIClient(communicationConf)
 		}
 	}
+	SendPFCPRule(smContext, defaultPath)
 
-	logger.PduSessLog.Infof("HandlePDUSessionSMContextUpdate Finshed")
+	response.JsonData = smContext.BuildCreatedData()
+	httpResponse := &http_wrapper.Response{
+		Header: http.Header{
+			"Location": {smContext.Ref},
+		},
+		Status: http.StatusCreated,
+		Body:   response,
+	}
+
+	return httpResponse
+	// TODO: UECM registration
 
 }
 

@@ -115,6 +115,6 @@ var routes = Routes{
 		"PostSmContexts",
 		strings.ToUpper("Post"),
 		"/sm-contexts",
-		PostSmContexts,
+		HTTPPostSmContexts,
 	},
 }

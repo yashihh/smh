@@ -19,8 +19,6 @@ func Handle() {
 				switch msg.Event {
 				case message.PFCPMessage:
 					pfcp.Dispatch(msg.PFCPRequest)
-				case message.PDUSessionSMContextCreate:
-					producer.HandlePDUSessionSMContextCreate(msg.ResponseChan, msg.HTTPRequest.Body.(models.PostSmContextsRequest))
 				case message.PDUSessionSMContextUpdate:
 					smContextRef := msg.HTTPRequest.Params["smContextRef"]
 					seqNum, ResBody := producer.HandlePDUSessionSMContextUpdate(
