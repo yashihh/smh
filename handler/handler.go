@@ -19,15 +19,6 @@ func Handle() {
 				switch msg.Event {
 				case message.PFCPMessage:
 					pfcp.Dispatch(msg.PFCPRequest)
-				case message.PDUSessionSMContextUpdate:
-					smContextRef := msg.HTTPRequest.Params["smContextRef"]
-					seqNum, ResBody := producer.HandlePDUSessionSMContextUpdate(
-						msg.ResponseChan, smContextRef, msg.HTTPRequest.Body.(models.UpdateSmContextRequest))
-					response := http_wrapper.Response{
-						Status: http.StatusOK,
-						Body:   ResBody,
-					}
-					message.RspQueue.PutItem(seqNum, msg.ResponseChan, response)
 				case message.PDUSessionSMContextRelease:
 					smContextRef := msg.HTTPRequest.Params["smContextRef"]
 					seqNum := producer.HandlePDUSessionSMContextRelease(

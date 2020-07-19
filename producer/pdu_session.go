@@ -193,6 +193,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	//GSM State
 	//PDU Session Modification Reject(Cause Value == 43 || Cause Value != 43)/Complete
 	//PDU Session Release Command/Complete
+	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextUpdate")
 	smContext := smf_context.GetSMContext(smContextRef)
 
 	logger.PduSessLog.Infoln("[SMF] PDUSession SMContext Update")
@@ -262,7 +263,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 				dataPath.DeactivateTunnelAndPDR(smContext)
-				for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode.Next() {
+				for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 					curUPFID, _ := curDataPathNode.GetUPFID()
 					if _, exist := deletedPFCPNode[curUPFID]; !exist {
 						seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
@@ -573,7 +574,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 			dataPath.DeactivateTunnelAndPDR(smContext)
-			for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode.Next() {
+			for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 				curUPFID, _ := curDataPathNode.GetUPFID()
 				if _, exist := deletedPFCPNode[curUPFID]; !exist {
 					seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
@@ -601,6 +602,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 }
 
 func HandlePDUSessionSMContextRelease(rspChan chan smf_message.HandlerResponseMessage, smContextRef string, body models.ReleaseSmContextRequest) (seqNum uint32) {
+	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextRelease")
 	smContext := smf_context.GetSMContext(smContextRef)
 	// smf_context.RemoveSMContext(smContext.Ref)
 	smContext.SMContextState = smf_context.InActivePending
@@ -609,7 +611,7 @@ func HandlePDUSessionSMContextRelease(rspChan chan smf_message.HandlerResponseMe
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 		dataPath.DeactivateTunnelAndPDR(smContext)
-		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode.Next() {
+		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 			curUPFID, _ := curDataPathNode.GetUPFID()
 			if _, exist := deletedPFCPNode[curUPFID]; !exist {
 				seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)

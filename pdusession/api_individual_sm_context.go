@@ -15,9 +15,11 @@ import (
 	"free5gc/lib/openapi/models"
 	"free5gc/src/smf/handler/message"
 	"free5gc/src/smf/logger"
+	"free5gc/src/smf/producer"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -80,7 +82,16 @@ func UpdateSmContext(c *gin.Context) {
 	req.Params["smContextRef"] = c.Params.ByName("smContextRef")
 
 	msg := message.NewHandlerMessage(message.PDUSessionSMContextUpdate, req)
-	message.SendMessage(msg)
+	smContextRef := msg.HTTPRequest.Params["smContextRef"]
+	seqNum, ResBody := producer.HandlePDUSessionSMContextUpdate(
+		msg.ResponseChan, smContextRef, msg.HTTPRequest.Body.(models.UpdateSmContextRequest))
+	response := http_wrapper.Response{
+		Status: http.StatusOK,
+		Body:   ResBody,
+	}
+	logger.PduSessLog.Infoln("In UpdateSmContext")
+	logger.PduSessLog.Infoln("Seq num: ", strconv.Itoa(int(seqNum)))
+	message.RspQueue.PutItem(seqNum, msg.ResponseChan, response)
 
 	rsp := <-msg.ResponseChan
 
