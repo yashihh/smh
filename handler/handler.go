@@ -1,10 +1,8 @@
 package handler
 
 import (
-	"free5gc/lib/openapi/models"
 	"free5gc/src/smf/handler/message"
 	"free5gc/src/smf/pfcp"
-	"free5gc/src/smf/producer"
 	"time"
 )
 
@@ -17,9 +15,6 @@ func Handle() {
 				switch msg.Event {
 				case message.PFCPMessage:
 					pfcp.Dispatch(msg.PFCPRequest)
-				case message.SMPolicyUpdateNotify:
-					smContextRef := msg.HTTPRequest.Params["smContextRef"]
-					producer.HandleSMPolicyUpdateNotify(msg.ResponseChan, smContextRef, msg.HTTPRequest.Body.(models.SmPolicyNotification))
 				}
 			}
 		case <-time.After(time.Second * 1):

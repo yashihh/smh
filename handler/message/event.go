@@ -6,5 +6,4 @@ const (
 	PFCPMessage Event = iota
 	PDUSessionSMContextUpdate
 	PDUSessionSMContextRelease
-	SMPolicyUpdateNotify
 )
