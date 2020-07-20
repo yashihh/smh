@@ -283,9 +283,6 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 				logger.PfcpLog.Warnf("PFCP Session Deletion Response Found SM Context NULL, Request Rejected")
 				// TODO fix: SEID should be the value sent by UPF but now the SEID value is from sm context
 			} else {
-
-				smContext.SMContextState = smf_context.InActive
-				logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 				resQueueItem.RspChan <- smf_message.HandlerResponseMessage{HTTPResponse: &resQueueItem.Response}
 				HttpResponseQueue.DeleteItem(seqNum)
 				logger.PfcpLog.Infof("PFCP Session Deletion Success[%d]\n", SEID)

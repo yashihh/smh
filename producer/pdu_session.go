@@ -200,13 +200,6 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	//PDU Session Release Command/Complete
 	smContext := smf_context.GetSMContext(smContextRef)
 
-	if smContext.SMContextState != smf_context.Active {
-		//Wait till the state becomes Active again
-		//TODO: implement sleep wait in concurrent architecture
-		logger.PduSessLog.Infoln("The SMContext State isn't Active State in HandlePDUSessionSMContextUpdate")
-		logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
-	}
-
 	logger.PduSessLog.Infoln("[SMF] PDUSession SMContext Update")
 	if smContext == nil {
 		rspChan <- smf_message.HandlerResponseMessage{
@@ -247,6 +240,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 		switch m.GsmHeader.GetMessageType() {
 		case nas.MsgTypePDUSessionReleaseRequest:
+			if smContext.SMContextState != smf_context.Active {
+				//Wait till the state becomes Active again
+				//TODO: implement sleep wait in concurrent architecture
+				logger.PduSessLog.Infoln("The SMContext State should be Active State")
+				logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+			}
 			smContext.SMContextState = smf_context.InActivePending
 			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 			smContext.HandlePDUSessionReleaseRequest(m.PDUSessionReleaseRequest)
@@ -278,6 +277,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			}
 			return seqNum, response
 		case nas.MsgTypePDUSessionReleaseComplete:
+			if smContext.SMContextState != smf_context.InActivePending {
+				//Wait till the state becomes Active again
+				//TODO: implement sleep wait in concurrent architecture
+				logger.PduSessLog.Infoln("The SMContext State should be InActivePending State")
+				logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+			}
 			// Send Release Notify to AMF
 			logger.PduSessLog.Infoln("[SMF] Send Update SmContext Response")
 			smContext.SMContextState = smf_context.InActive
@@ -306,6 +311,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 
 	switch smContextUpdateData.UpCnxState {
 	case models.UpCnxState_ACTIVATING:
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUSessionResourceSetupRequestTransfer"}
@@ -319,6 +330,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		response.BinaryDataN2SmInformation = n2Buf
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_SETUP_REQ
 	case models.UpCnxState_DEACTIVATED:
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
@@ -350,6 +367,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 
 	switch smContextUpdateData.N2SmInfoType {
 	case models.N2SmInfoType_PDU_RES_SETUP_RSP:
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		pdrList = []*smf_context.PDR{}
@@ -383,6 +406,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	case models.N2SmInfoType_PDU_RES_REL_RSP:
 		logger.PduSessLog.Infoln("[SMF] N2 PDUSession Release Complete ")
 		if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
+			if smContext.SMContextState != smf_context.InActivePending {
+				//Wait till the state becomes Active again
+				//TODO: implement sleep wait in concurrent architecture
+				logger.PduSessLog.Infoln("The SMContext State should be InActivePending State")
+				logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+			}
 			smContext.SMContextState = smf_context.InActive
 			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 			logger.PduSessLog.Infoln("[SMF] Send Update SmContext Response")
@@ -399,7 +428,15 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			return
 
 		} else { // normal case
+			if smContext.SMContextState != smf_context.InActivePending {
+				//Wait till the state becomes Active again
+				//TODO: implement sleep wait in concurrent architecture
+				logger.PduSessLog.Infoln("The SMContext State should be InActivePending State")
+				logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+			}
 			logger.PduSessLog.Infoln("[SMF] Send Update SmContext Response")
+			smContext.SMContextState = smf_context.InActive
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 			SMContextUpdateResponse := http_wrapper.Response{
 				Status: http.StatusOK,
 				Body:   response,
@@ -410,6 +447,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 	case models.N2SmInfoType_PATH_SWITCH_REQ:
 		logger.PduSessLog.Traceln("Handle Path Switch Request")
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 
@@ -437,6 +480,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 
 	case models.N2SmInfoType_PATH_SWITCH_SETUP_FAIL:
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		err = smf_context.HandlePathSwitchRequestSetupFailedTransfer(body.BinaryDataN2SmInformation, smContext)
@@ -446,6 +495,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 
 	switch smContextUpdateData.HoState {
 	case models.HoState_PREPARING:
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		smContext.HoState = models.HoState_PREPARING
@@ -463,6 +518,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 		response.JsonData.HoState = models.HoState_PREPARING
 	case models.HoState_PREPARED:
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		smContext.HoState = models.HoState_PREPARED
@@ -479,6 +540,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 		response.JsonData.HoState = models.HoState_PREPARING
 	case models.HoState_COMPLETED:
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		smContext.HoState = models.HoState_COMPLETED
@@ -489,6 +556,12 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 
 	case models.Cause_REL_DUE_TO_DUPLICATE_SESSION_ID:
 		//* release PDU Session Here
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+		}
 		smContext.SMContextState = smf_context.InActivePending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.ToString())
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
