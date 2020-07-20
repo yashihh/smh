@@ -87,7 +87,7 @@ var routes = Routes{
 		"ReleaseSmContext",
 		strings.ToUpper("Post"),
 		"/sm-contexts/:smContextRef/release",
-		ReleaseSmContext,
+		HTTPReleaseSmContext,
 	},
 
 	{
@@ -101,7 +101,7 @@ var routes = Routes{
 		"UpdateSmContext",
 		strings.ToUpper("Post"),
 		"/sm-contexts/:smContextRef/modify",
-		UpdateSmContext,
+		HTTPUpdateSmContext,
 	},
 
 	{
