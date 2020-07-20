@@ -25,10 +25,18 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 		return httpResponse
 	}
 
+	if smContext.SMContextState != smf_context.Active {
+		//Wait till the state becomes Active again
+		//TODO: implement waiting in concurrent architecture
+		logger.PduSessLog.Infoln("The SMContext State should be Active State")
+		logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
+	}
+
 	//TODO: Response data type -
 	//[200 OK] UeCampingRep
 	//[200 OK] array(PartialSuccessReport)
 	//[400 Bad Request] ErrorReport
+
 	httpResponse := http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
 	ApplySmPolicyFromDecision(smContext, decision)
 
@@ -96,6 +104,7 @@ func handleSessionRule(smContext *smf_context.SMContext, id string, sessionRuleM
 
 func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *models.SmPolicyDecision) error {
 	logger.PduSessLog.Traceln("In ApplySmPolicyFromDecision")
+	smContext.SMContextState = smf_context.ModificationPending
 	selectedSessionRule := smContext.SelectedSessionRule()
 	if selectedSessionRule == nil { //No active session rule
 		//Update session rules from decision
@@ -261,6 +270,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 		}
 	}
 
+	smContext.SMContextState = smf_context.Active
 	logger.PduSessLog.Traceln("End of ApplySmPolicyFromDecision")
 	return nil
 }

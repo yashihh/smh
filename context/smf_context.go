@@ -3,6 +3,7 @@ package context
 import (
 	"fmt"
 	"net"
+	"sync"
 
 	"free5gc/lib/openapi/Nnrf_NFDiscovery"
 	"free5gc/lib/openapi/Nnrf_NFManagement"
@@ -13,8 +14,8 @@ import (
 	"free5gc/lib/openapi/models"
 	"free5gc/lib/pfcp/pfcpType"
 	"free5gc/lib/pfcp/pfcpUdp"
-
 	"github.com/google/uuid"
+	"sync/atomic"
 )
 
 func init() {
@@ -43,6 +44,7 @@ type SMFContext struct {
 
 	UESubNet      *net.IPNet
 	UEAddressTemp net.IP
+	UEAddressLock sync.Mutex
 
 	NrfUri                         string
 	NFManagementClient             *Nnrf_NFManagement.APIClient
@@ -60,12 +62,14 @@ type SMFContext struct {
 }
 
 func AllocUEIP() net.IP {
+	smfContext.UEAddressLock.Lock()
+	defer smfContext.UEAddressLock.Unlock()
 	smfContext.UEAddressTemp[3]++
 	return smfContext.UEAddressTemp
 }
 
 func AllocateLocalSEID() uint64 {
-	smfContext.LocalSEIDCount++
+	atomic.AddUint64(&smfContext.LocalSEIDCount, 1)
 	return smfContext.LocalSEIDCount
 }
 

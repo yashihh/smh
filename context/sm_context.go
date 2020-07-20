@@ -15,13 +15,15 @@ import (
 	"free5gc/src/smf/logger"
 	"net"
 	"net/http"
+	"sync"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 )
 
-var smContextPool map[string]*SMContext
-var canonicalRef map[string]string
-var seidSMContextMap map[uint64]*SMContext
+var smContextPool sync.Map
+var canonicalRef sync.Map
+var seidSMContextMap sync.Map
 
 var smContextCount uint64
 
@@ -36,13 +38,10 @@ const (
 )
 
 func init() {
-	smContextPool = make(map[string]*SMContext)
-	seidSMContextMap = make(map[uint64]*SMContext)
-	canonicalRef = make(map[string]string)
 }
 
 func GetSMContextCount() uint64 {
-	smContextCount++
+	atomic.AddUint64(&smContextCount, 1)
 	return smContextCount
 }
 
@@ -111,10 +110,12 @@ func canonicalName(identifier string, pduSessID int32) (canonical string) {
 }
 
 func ResolveRef(identifier string, pduSessID int32) (ref string, err error) {
-	ref, ok := canonicalRef[canonicalName(identifier, pduSessID)]
-	if ok {
+
+	if value, ok := canonicalRef.Load(canonicalName(identifier, pduSessID)); ok {
+		ref = value.(string)
 		err = nil
 	} else {
+		ref = ""
 		err = fmt.Errorf(
 			"UE '%s' - PDUSessionID '%d' not found in SMContext", identifier, pduSessID)
 	}
@@ -125,8 +126,8 @@ func NewSMContext(identifier string, pduSessID int32) (smContext *SMContext) {
 	smContext = new(SMContext)
 	// Create Ref and identifier
 	smContext.Ref = uuid.New().URN()
-	smContextPool[smContext.Ref] = smContext
-	canonicalRef[canonicalName(identifier, pduSessID)] = smContext.Ref
+	smContextPool.Store(smContext.Ref, smContext)
+	canonicalRef.Store(canonicalName(identifier, pduSessID), smContext.Ref)
 
 	smContext.SMContextState = InActive
 	smContext.Identifier = identifier
@@ -148,25 +149,33 @@ func NewSMContext(identifier string, pduSessID int32) (smContext *SMContext) {
 }
 
 func GetSMContext(ref string) (smContext *SMContext) {
-	smContext = smContextPool[ref]
-	return smContext
+	if value, ok := smContextPool.Load(ref); ok {
+		smContext = value.(*SMContext)
+	}
+
+	return
 }
 
 func RemoveSMContext(ref string) {
 
-	smContext := smContextPool[ref]
+	var smContext *SMContext
+	if value, ok := smContextPool.Load(ref); ok {
+		smContext = value.(*SMContext)
+	}
 
 	for _, pfcpSessionContext := range smContext.PFCPContext {
 
-		delete(seidSMContextMap, pfcpSessionContext.LocalSEID)
+		seidSMContextMap.Delete(pfcpSessionContext.LocalSEID)
 	}
 
-	delete(smContextPool, ref)
+	smContextPool.Delete(ref)
 }
 
 func GetSMContextBySEID(SEID uint64) (smContext *SMContext) {
-	smContext = seidSMContextMap[SEID]
-	return smContext
+	if value, ok := seidSMContextMap.Load(SEID); ok {
+		smContext = value.(*SMContext)
+	}
+	return
 }
 
 func (smContext *SMContext) SetCreateData(createData *models.SmContextCreateData) {
@@ -270,7 +279,7 @@ func (smContext *SMContext) AllocateLocalSEIDForUPPath(path UPPath) {
 				LocalSEID: allocatedSEID,
 			}
 
-			seidSMContextMap[allocatedSEID] = smContext
+			seidSMContextMap.Store(allocatedSEID, smContext)
 		}
 	}
 }
@@ -290,7 +299,7 @@ func (smContext *SMContext) AllocateLocalSEIDForDataPath(dataPath *DataPath) {
 				LocalSEID: allocatedSEID,
 			}
 
-			seidSMContextMap[allocatedSEID] = smContext
+			seidSMContextMap.Store(allocatedSEID, smContext)
 		}
 	}
 }

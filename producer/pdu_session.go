@@ -29,6 +29,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	var err error
 	var response models.PostSmContextsResponse
 	response.JsonData = new(models.SmContextCreatedData)
+	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextCreate")
 
 	// Check has PDU Session Establishment Request
 	m := nas.NewMessage()
@@ -196,8 +197,8 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextUpdate")
 	smContext := smf_context.GetSMContext(smContextRef)
 
-	logger.PduSessLog.Infoln("[SMF] PDUSession SMContext Update")
 	if smContext == nil {
+		logger.PduSessLog.Warnln("SMContext is nil")
 		rspChan <- smf_message.HandlerResponseMessage{
 			HTTPResponse: &http_wrapper.Response{
 				Header: nil,
@@ -595,7 +596,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	ANUPF := defaultPath.FirstDPNode
 
 	seqNum = pfcp_message.SendPfcpSessionModificationRequest(ANUPF.UPF.NodeID, smContext, pdrList, farList, barList)
-	//TODO: Move line 515 to HandlePfcpSessionModificationResponse after FR5GC-1282 is solved
+	//TODO: Move line 600 to HandlePfcpSessionModificationResponse after FR5GC-1282 is solved
 	smContext.SMContextState = smf_context.Active
 	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 	return seqNum, response
