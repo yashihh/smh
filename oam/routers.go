@@ -56,6 +56,6 @@ var routes = Routes{
 		"Get UE PDU Session Info",
 		"GET",
 		"/ue-pdu-session-info/:smContextRef",
-		GetUEPDUSessionInfo,
+		HTTPGetUEPDUSessionInfo,
 	},
 }
