@@ -36,7 +36,6 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	//[200 OK] UeCampingRep
 	//[200 OK] array(PartialSuccessReport)
 	//[400 Bad Request] ErrorReport
-
 	httpResponse := http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
 	ApplySmPolicyFromDecision(smContext, decision)
 
