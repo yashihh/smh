@@ -32,8 +32,6 @@ type DataPathNode struct {
 	IsBranchingPoint bool
 	//DLDataPathLinkForPSA *DataPathUpLink
 	//BPUpLinkPDRs         map[string]*DataPathDownLink // uuid to UpLink
-
-	HaveSession bool
 }
 
 type DataPath struct {

@@ -524,7 +524,9 @@ func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPa
 	for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		pdrList := make([]*smf_context.PDR, 0, 2)
 		farList := make([]*smf_context.FAR, 0, 2)
-		if !curDataPathNode.HaveSession {
+
+		sessionContext, exist := smContext.PFCPContext[curDataPathNode.GetNodeIP()]
+		if !exist || sessionContext.RemoteSEID == 0 {
 			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
 				pdrList = append(pdrList, curDataPathNode.UpLinkTunnel.PDR)
 				farList = append(farList, curDataPathNode.UpLinkTunnel.PDR.FAR)
@@ -535,7 +537,6 @@ func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPa
 			}
 
 			pfcp_message.SendPfcpSessionEstablishmentRequest(curDataPathNode.UPF.NodeID, smContext, pdrList, farList, nil)
-			curDataPathNode.HaveSession = true
 		} else {
 			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
 				pdrList = append(pdrList, curDataPathNode.UpLinkTunnel.PDR)
