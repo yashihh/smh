@@ -91,19 +91,9 @@ func HTTPUpdateSmContext(c *gin.Context) {
 
 	msg := message.NewHandlerMessage(message.PDUSessionSMContextUpdate, req)
 	smContextRef := msg.HTTPRequest.Params["smContextRef"]
-	seqNum, ResBody := producer.HandlePDUSessionSMContextUpdate(
-		msg.ResponseChan, smContextRef, msg.HTTPRequest.Body.(models.UpdateSmContextRequest))
-	response := http_wrapper.Response{
-		Status: http.StatusOK,
-		Body:   ResBody,
-	}
-	logger.PduSessLog.Traceln("In HTTPUpdateSmContext")
-	logger.PduSessLog.Traceln("Seq num: ", seqNum)
-	message.RspQueue.PutItem(seqNum, msg.ResponseChan, response)
+	HTTPResponse := producer.HandlePDUSessionSMContextUpdate(
+		smContextRef, msg.HTTPRequest.Body.(models.UpdateSmContextRequest))
 
-	rsp := <-msg.ResponseChan
-
-	HTTPResponse := rsp.HTTPResponse
 	if HTTPResponse.Status < 300 {
 		c.Render(HTTPResponse.Status, openapi.MultipartRelatedRender{Data: HTTPResponse.Body})
 	} else {

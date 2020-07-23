@@ -5,6 +5,15 @@ import (
 	"free5gc/lib/pfcp/pfcpType"
 )
 
+type PFCPSessionResponseStatus int
+
+const (
+	SessionUpdateSuccess PFCPSessionResponseStatus = iota
+	SessionUpdateFailed
+	SessionReleaseSuccess
+	SessionReleaseFailed
+)
+
 type PFCPSessionContext struct {
 	PDRs       map[uint16]*PDR
 	NodeID     pfcpType.NodeID

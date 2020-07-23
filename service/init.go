@@ -104,7 +104,7 @@ func (*SMF) Initialize(c *cli.Context) {
 		initLog.Infoln("Log level is default set to [info] level")
 		logger.SetLogLevel(logrus.InfoLevel)
 	}
-
+	logger.SetLogLevel(logrus.TraceLevel)
 	logger.SetReportCaller(app.ContextSelf().Logger.SMF.ReportCaller)
 }
 

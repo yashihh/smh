@@ -35,6 +35,7 @@ const (
 	Active
 	InActivePending
 	ModificationPending
+	PFCPModification
 )
 
 func init() {
@@ -94,6 +95,8 @@ type SMContext struct {
 	BPManager *BPManager
 	//NodeID(string form) to PFCP Session Context
 	PFCPContext                         map[string]*PFCPSessionContext
+	SBIPFCPCommunicationChan            chan PFCPSessionResponseStatus
+	PendingUPF                          PendingUPF
 	PDUSessionRelease_DUE_TO_DUP_PDU_ID bool
 
 	// SM Policy related
@@ -139,6 +142,7 @@ func NewSMContext(identifier string, pduSessID int32) (smContext *SMContext) {
 	smContext.PCCRules = make(map[string]*PCCRule)
 	smContext.SessionRules = make(map[string]*SessionRule)
 	smContext.TrafficControlPool = make(map[string]*TrafficControlData)
+	smContext.SBIPFCPCommunicationChan = make(chan PFCPSessionResponseStatus, 1)
 
 	smContext.ProtocolConfigurationOptions = &ProtocolConfigurationOptions{
 		DNSIPv4Request: false,
@@ -400,6 +404,8 @@ func (smContextState SMContextState) String() string {
 		return "InActivePending"
 	case ModificationPending:
 		return "ModificationPending"
+	case PFCPModification:
+		return "PFCPModification"
 	default:
 		return "Unknown State"
 	}
