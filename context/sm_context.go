@@ -486,7 +486,7 @@ func (smContext *SMContext) SelectedSessionRule() *SessionRule {
 	return nil
 }
 
-func (smContextState SMContextState) ToString() string {
+func (smContextState SMContextState) String() string {
 	switch smContextState {
 	case InActive:
 		return "InActive"
