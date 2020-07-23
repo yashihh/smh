@@ -492,6 +492,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 
 	switch smContextUpdateData.HoState {
 	case models.HoState_PREPARING:
+		logger.PduSessLog.Traceln("In HoState_PREPARING")
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
@@ -515,6 +516,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 		response.JsonData.HoState = models.HoState_PREPARING
 	case models.HoState_PREPARED:
+		logger.PduSessLog.Traceln("In HoState_PREPARED")
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
@@ -537,6 +539,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 		response.JsonData.HoState = models.HoState_PREPARING
 	case models.HoState_COMPLETED:
+		logger.PduSessLog.Traceln("In HoState_COMPLETED")
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
