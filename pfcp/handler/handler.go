@@ -56,6 +56,7 @@ func HandlePfcpAssociationSetupRequest(msg *pfcpUdp.Message) {
 
 func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
 	req := msg.PfcpMessage.Body.(pfcp.PFCPAssociationSetupResponse)
+	logger.PfcpLog.Infoln("In HandlePfcpAssociationSetupResponse")
 
 	nodeID := req.NodeID
 	if req.Cause.CauseValue == pfcpType.CauseRequestAccepted {
