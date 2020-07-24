@@ -33,7 +33,6 @@ type UPF struct {
 	NodeID    pfcpType.NodeID
 	UPIPInfo  pfcpType.UserPlaneIPResourceInformation
 	UPFStatus UPFStatus
-	Lock      sync.RWMutex
 
 	pdrPool        sync.Map
 	farPool        sync.Map
@@ -97,7 +96,6 @@ func NewUPF(nodeID *pfcpType.NodeID) (upf *UPF) {
 
 func (upf *UPF) GenerateTEID() (id uint32, err error) {
 
-	upf.Lock.RLock()
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
@@ -122,13 +120,9 @@ func (upf *UPF) PFCPAddr() *net.UDPAddr {
 func RetrieveUPFNodeByNodeID(nodeID pfcpType.NodeID) (upf *UPF) {
 	upfPool.Range(func(key, value interface{}) bool {
 		upf = value.(*UPF)
-		upf.Lock.RLock()
 		if reflect.DeepEqual(upf.NodeID, nodeID) {
-			upf.Lock.RUnlock()
 			return false
 		} else {
-			upf.Lock.RUnlock()
-			upf = nil
 			return true
 		}
 	})
@@ -141,13 +135,10 @@ func RemoveUPFNodeByNodeId(nodeID pfcpType.NodeID) {
 	upfPool.Range(func(key, value interface{}) bool {
 		upfID := key.(string)
 		upf := value.(*UPF)
-		upf.Lock.RLock()
 		if reflect.DeepEqual(upf.NodeID, nodeID) {
-			upf.Lock.RUnlock()
 			upfPool.Delete(upfID)
 			return false
 		} else {
-			upf.Lock.RUnlock()
 			return true
 		}
 	})
@@ -158,12 +149,9 @@ func SelectUPFByDnn(Dnn string) (upf *UPF) {
 
 	upfPool.Range(func(key, value interface{}) bool {
 		upf := value.(*UPF)
-		upf.Lock.RLock()
 		if upf.UPIPInfo.Assoni && string(upf.UPIPInfo.NetworkInstance) == Dnn {
-			upf.Lock.RUnlock()
 			return false
 		} else {
-			upf.Lock.RUnlock()
 			upf = nil
 			return true
 		}
@@ -172,29 +160,23 @@ func SelectUPFByDnn(Dnn string) (upf *UPF) {
 }
 
 func (upf *UPF) GetUPFIP() string {
-	upf.Lock.RLock()
 	upfIP := upf.NodeID.ResolveNodeIdToIp().String()
-	upf.Lock.RUnlock()
 	return upfIP
 }
 
 func (upf *UPF) GetUPFID() string {
 
 	upInfo := GetUserPlaneInformation()
-	upf.Lock.RLock()
 	upfIP := upf.NodeID.ResolveNodeIdToIp().String()
-	upf.Lock.RUnlock()
 	return upInfo.GetUPFIDByIP(upfIP)
 
 }
 
 func (upf *UPF) pdrID() (pdrID uint16, err error) {
-	upf.Lock.RLock()
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
 	}
-	upf.Lock.RUnlock()
 
 	var tmpID int64
 	tmpID, err = upf.pdrIDGenerator.Allocate()
@@ -207,12 +189,10 @@ func (upf *UPF) pdrID() (pdrID uint16, err error) {
 }
 
 func (upf *UPF) farID() (farID uint32, err error) {
-	upf.Lock.RLock()
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
 	}
-	upf.Lock.RUnlock()
 
 	var tmpID int64
 	tmpID, err = upf.farIDGenerator.Allocate()
@@ -225,12 +205,10 @@ func (upf *UPF) farID() (farID uint32, err error) {
 }
 
 func (upf *UPF) barID() (barID uint8, err error) {
-	upf.Lock.RLock()
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
 	}
-	upf.Lock.RUnlock()
 
 	var tmpID int64
 	tmpID, err = upf.barIDGenerator.Allocate()
@@ -243,12 +221,10 @@ func (upf *UPF) barID() (barID uint8, err error) {
 }
 
 func (upf *UPF) AddPDR() (pdr *PDR, err error) {
-	upf.Lock.RLock()
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err = fmt.Errorf("this upf do not associate with smf")
 		return nil, err
 	}
-	upf.Lock.RUnlock()
 
 	pdr = new(PDR)
 	PDRID, _ := upf.pdrID()
@@ -260,12 +236,11 @@ func (upf *UPF) AddPDR() (pdr *PDR, err error) {
 }
 
 func (upf *UPF) AddFAR() (far *FAR, err error) {
-	upf.Lock.RLock()
+
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err = fmt.Errorf("this upf do not associate with smf")
 		return nil, err
 	}
-	upf.Lock.RUnlock()
 
 	far = new(FAR)
 	far.FARID, _ = upf.farID()
@@ -274,12 +249,11 @@ func (upf *UPF) AddFAR() (far *FAR, err error) {
 }
 
 func (upf *UPF) AddBAR() (bar *BAR, err error) {
-	upf.Lock.RLock()
+
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err = fmt.Errorf("this upf do not associate with smf")
 		return nil, err
 	}
-	upf.Lock.RUnlock()
 
 	bar = new(BAR)
 	BARID, _ := upf.barID()
@@ -289,12 +263,11 @@ func (upf *UPF) AddBAR() (bar *BAR, err error) {
 }
 
 func (upf *UPF) RemovePDR(pdr *PDR) (err error) {
-	upf.Lock.RLock()
+
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err = fmt.Errorf("this upf not associate with smf")
 		return err
 	}
-	upf.Lock.RUnlock()
 
 	upf.pdrIDGenerator.FreeID(int64(pdr.PDRID))
 	upf.pdrPool.Delete(pdr.PDRID)
@@ -307,7 +280,6 @@ func (upf *UPF) RemoveFAR(far *FAR) (err error) {
 		err = fmt.Errorf("this upf not associate with smf")
 		return err
 	}
-	upf.Lock.RUnlock()
 
 	upf.farIDGenerator.FreeID(int64(far.FARID))
 	upf.farPool.Delete(far.FARID)

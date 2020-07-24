@@ -45,9 +45,7 @@ func HandlePfcpAssociationSetupRequest(msg *pfcpUdp.Message) {
 		return
 	}
 
-	upf.Lock.Lock()
 	upf.UPIPInfo = *req.UserPlaneIPResourceInformation
-	upf.Lock.Unlock()
 
 	// Response with PFCP Association Setup Response
 	cause := pfcpType.Cause{
@@ -68,14 +66,12 @@ func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
 
 		upf := smf_context.RetrieveUPFNodeByNodeID(*req.NodeID)
 
-		upf.Lock.Lock()
 		upf.UPFStatus = smf_context.AssociatedSetUpSuccess
-		upf.Lock.Unlock()
 
 		if req.UserPlaneIPResourceInformation != nil {
-			upf.Lock.Lock()
+
 			upf.UPIPInfo = *req.UserPlaneIPResourceInformation
-			upf.Lock.Unlock()
+
 			logger.PfcpLog.Infof("UPF(%s)[%s] setup association", upf.NodeID.ResolveNodeIdToIp().String(), upf.UPIPInfo.NetworkInstance)
 		} else {
 			logger.PfcpLog.Errorln("pfcp association setup response has no UserPlane IP Resource Information")
@@ -147,9 +143,7 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 	if rsp.UPFSEID != nil {
 		NodeIDtoIP := rsp.NodeID.ResolveNodeIdToIp().String()
 		pfcpSessionCtx := smContext.PFCPContext[NodeIDtoIP]
-		pfcpSessionCtx.Lock.Lock()
 		pfcpSessionCtx.RemoteSEID = rsp.UPFSEID.Seid
-		pfcpSessionCtx.Lock.Unlock()
 	}
 
 	ANUPF := smContext.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode

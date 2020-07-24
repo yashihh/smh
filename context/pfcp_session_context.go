@@ -3,7 +3,6 @@ package context
 import (
 	"fmt"
 	"free5gc/lib/pfcp/pfcpType"
-	"sync"
 )
 
 type PFCPSessionResponseStatus int
@@ -20,7 +19,6 @@ type PFCPSessionContext struct {
 	NodeID     pfcpType.NodeID
 	LocalSEID  uint64
 	RemoteSEID uint64
-	Lock       sync.RWMutex
 }
 
 func (pfcpSessionContext *PFCPSessionContext) ToString() (str string) {
