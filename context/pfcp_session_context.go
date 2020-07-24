@@ -37,3 +37,18 @@ func (pfcpSessionContext *PFCPSessionContext) ToString() (str string) {
 
 	return
 }
+
+func (pfcpSessionResponseStatus PFCPSessionResponseStatus) String() string {
+	switch pfcpSessionResponseStatus {
+	case SessionUpdateSuccess:
+		return "SessionUpdateSuccess"
+	case SessionUpdateFailed:
+		return "SessionUpdateFailed"
+	case SessionReleaseSuccess:
+		return "SessionReleaseSuccess"
+	case SessionReleaseFailed:
+		return "SessionReleaseFailed"
+	default:
+		return "Unknown PFCP Session Response Status"
+	}
+}

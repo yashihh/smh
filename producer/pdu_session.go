@@ -15,7 +15,6 @@ import (
 	"free5gc/lib/pfcp/pfcpType"
 	"free5gc/src/smf/consumer"
 	smf_context "free5gc/src/smf/context"
-	smf_message "free5gc/src/smf/handler/message"
 	"free5gc/src/smf/logger"
 	pfcp_message "free5gc/src/smf/pfcp/message"
 	"net/http"
@@ -715,25 +714,90 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	return httpResponse
 }
 
-func HandlePDUSessionSMContextRelease(rspChan chan smf_message.HandlerResponseMessage, smContextRef string, body models.ReleaseSmContextRequest) (seqNum uint32) {
+func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSmContextRequest) *http_wrapper.Response {
 	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextRelease")
 	smContext := smf_context.GetSMContext(smContextRef)
 	// smf_context.RemoveSMContext(smContext.Ref)
-	smContext.SMContextState = smf_context.InActivePending
-	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+
 	deletedPFCPNode := make(map[string]bool)
+	smContext.PendingUPF = make(smf_context.PendingUPF)
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 		dataPath.DeactivateTunnelAndPDR(smContext)
 		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 			curUPFID, _ := curDataPathNode.GetUPFID()
 			if _, exist := deletedPFCPNode[curUPFID]; !exist {
-				seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
+				pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
 				deletedPFCPNode[curUPFID] = true
+				smContext.PendingUPF[curDataPathNode.GetNodeIP()] = true
 			}
 		}
 	}
-	return seqNum
+
+	smContext.SMContextState = smf_context.PFCPModification
+	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+
+	var httpResponse *http_wrapper.Response
+	PFCPResponseStatus := <-smContext.SBIPFCPCommunicationChan
+
+	switch PFCPResponseStatus {
+	case smf_context.SessionReleaseSuccess:
+		logger.CtxLog.Traceln("In case SessionReleaseSuccess")
+		smContext.SMContextState = smf_context.InActivePending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+		httpResponse = &http_wrapper.Response{
+			Status: http.StatusNoContent,
+			Body:   nil,
+		}
+
+	case smf_context.SessionReleaseFailed:
+		// Update SmContext Request(N1 PDU Session Release Request)
+		// Send PDU Session Release Reject
+		logger.CtxLog.Traceln("In case SessionReleaseFailed")
+		problemDetail := models.ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILULE",
+		}
+		httpResponse = &http_wrapper.Response{
+			Status: int(problemDetail.Status),
+		}
+		smContext.SMContextState = smf_context.Active
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+		errResponse := models.UpdateSmContextErrorResponse{
+			JsonData: &models.SmContextUpdateError{
+				Error: &problemDetail,
+			},
+		}
+		buf, _ := smf_context.BuildGSMPDUSessionReleaseReject(smContext)
+		errResponse.BinaryDataN1SmMessage = buf
+		errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
+		httpResponse.Body = errResponse
+	default:
+		logger.CtxLog.Warnln("The state shouldn't be [%s]\n", PFCPResponseStatus)
+
+		logger.CtxLog.Traceln("In case Unkown")
+		problemDetail := models.ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILULE",
+		}
+		httpResponse = &http_wrapper.Response{
+			Status: int(problemDetail.Status),
+		}
+		smContext.SMContextState = smf_context.Active
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+		errResponse := models.UpdateSmContextErrorResponse{
+			JsonData: &models.SmContextUpdateError{
+				Error: &problemDetail,
+			},
+		}
+		buf, _ := smf_context.BuildGSMPDUSessionReleaseReject(smContext)
+		errResponse.BinaryDataN1SmMessage = buf
+		errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
+		httpResponse.Body = errResponse
+
+	}
+
+	return httpResponse
 }
 
 func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPath) {
