@@ -274,18 +274,14 @@ func (smContext *SMContext) AllocateLocalSEIDForUPPath(path UPPath) {
 	for _, upNode := range path {
 
 		NodeIDtoIP := upNode.NodeID.ResolveNodeIdToIp().String()
-		smContext.SMContextLock.RLock()
 		if _, exist := smContext.PFCPContext[NodeIDtoIP]; !exist {
-			smContext.SMContextLock.RUnlock()
 			allocatedSEID := AllocateLocalSEID()
 
-			smContext.SMContextLock.Lock()
 			smContext.PFCPContext[NodeIDtoIP] = &PFCPSessionContext{
 				PDRs:      make(map[uint16]*PDR),
 				NodeID:    upNode.NodeID,
 				LocalSEID: allocatedSEID,
 			}
-			smContext.SMContextLock.Unlock()
 
 			seidSMContextMap.Store(allocatedSEID, smContext)
 		}
@@ -315,13 +311,9 @@ func (smContext *SMContext) AllocateLocalSEIDForDataPath(dataPath *DataPath) {
 func (smContext *SMContext) PutPDRtoPFCPSession(nodeID pfcpType.NodeID, pdr *PDR) {
 
 	NodeIDtoIP := nodeID.ResolveNodeIdToIp().String()
-	smContext.SMContextLock.RLock()
 	pfcpSessionCtx := smContext.PFCPContext[NodeIDtoIP]
-	smContext.SMContextLock.RUnlock()
 
-	pfcpSessionCtx.Lock.Lock()
 	pfcpSessionCtx.PDRs[pdr.PDRID] = pdr
-	pfcpSessionCtx.Lock.Unlock()
 }
 
 func (smContext *SMContext) RemovePDRfromPFCPSession(nodeID pfcpType.NodeID, pdr *PDR) {

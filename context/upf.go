@@ -52,9 +52,7 @@ type UPF struct {
 // Maybe allocate by UPF in future
 func (upf *UPF) UUID() string {
 
-	upf.Lock.RLock()
 	uuid := upf.uuid.String()
-	upf.Lock.RUnlock()
 	return uuid
 }
 

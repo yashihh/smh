@@ -207,9 +207,7 @@ func BuildPfcpSessionEstablishmentRequest(upNodeID pfcpType.NodeID, smContext *c
 	isv4 := context.SMF_Self().CPNodeID.NodeIdType == 0
 	nodeIDtoIP := upNodeID.ResolveNodeIdToIp().String()
 
-	smContext.SMContextLock.RLock()
 	localSEID := smContext.PFCPContext[nodeIDtoIP].LocalSEID
-	smContext.SMContextLock.RUnlock()
 
 	msg.CPFSEID = &pfcpType.FSEID{
 		V4:          isv4,
@@ -296,9 +294,7 @@ func BuildPfcpSessionModificationRequest(upNodeID pfcpType.NodeID, smContext *co
 
 	nodeIDtoIP := upNodeID.ResolveNodeIdToIp().String()
 
-	smContext.SMContextLock.RLock()
 	localSEID := smContext.PFCPContext[nodeIDtoIP].LocalSEID
-	smContext.SMContextLock.RUnlock()
 
 	msg.CPFSEID = &pfcpType.FSEID{
 		V4:          true,
