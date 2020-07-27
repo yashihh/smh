@@ -49,7 +49,7 @@ func SendUpPathChgEventExposureNotification(chgEvent *models.UpPathChgEvent, chg
 	//TODO: sourceUeIpv4Addr, sourceUeIpv6Prefix, targetUeIpv4Addr, targetUeIpv6Prefix
 
 	if chgEvent.NotificationUri != "" && strings.Contains(string(chgEvent.DnaiChgType), chgType) {
-		logger.PduSessLog.Tracef("Send UpPathChg Event Exposure Notification [%s]", chgType)
+		logger.PduSessLog.Infof("Send UpPathChg Event Exposure Notification [%s] to NEF/AF", chgType)
 		configuration := Nsmf_EventExposure.NewConfiguration()
 		client := Nsmf_EventExposure.NewAPIClient(configuration)
 		_, httpResponse, err := client.DefaultCallbackApi.SmfEventExposureNotification(context.Background(), chgEvent.NotificationUri, notification)
@@ -124,7 +124,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 		pccRule, exist := smContext.PCCRules[id]
 		//TODO: Change PccRules map[string]PccRule to map[string]*PccRule
 		if &pccRuleModel == nil {
-			logger.PduSessLog.Debugf("Remove PCCRule[%s]", id)
+			logger.PduSessLog.Infof("Remove PCCRule[%s]", id)
 			if !exist {
 				logger.PduSessLog.Errorf("pcc rule [%s] not exist", id)
 				continue
@@ -134,9 +134,9 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 			delete(smContext.PCCRules, id)
 		} else {
 			if exist {
-				logger.PduSessLog.Debugf("Modify PCCRule[%s]", id)
+				logger.PduSessLog.Infof("Modify PCCRule[%s]", id)
 			} else {
-				logger.PduSessLog.Debugf("Install PCCRule[%s]", id)
+				logger.PduSessLog.Infof("Install PCCRule[%s]", id)
 			}
 
 			newPccRule := smf_context.NewPCCRuleFromModel(&pccRuleModel)

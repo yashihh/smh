@@ -55,7 +55,6 @@ type SMFContext struct {
 	OnlySupportIPv6      bool
 	//*** For ULCL ** //
 	ULCLSupport         bool
-	UERoutingPaths      map[string][]factory.Path
 	UEPreConfigPathPool map[string]*UEPreConfigPaths
 	LocalSEIDCount      uint64
 }
@@ -160,17 +159,11 @@ func InitSMFUERouting(routingConfig *factory.RoutingConfig) {
 		routingConfig.Info.Version, routingConfig.Info.Description)
 
 	UERoutingInfo := routingConfig.UERoutingInfo
-	ueRoutingPaths := make(map[string][]factory.Path)
 	smfContext.UEPreConfigPathPool = make(map[string]*UEPreConfigPaths)
 
 	for _, routingInfo := range UERoutingInfo {
 		supi := routingInfo.SUPI
-
-		ueRoutingPaths[supi] = routingInfo.PathList
-	}
-
-	for supi, paths := range ueRoutingPaths {
-		uePreConfigPaths, err := NewUEPreConfigPaths(supi, paths)
+		uePreConfigPaths, err := NewUEPreConfigPaths(supi, routingInfo.PathList)
 		if err != nil {
 			logger.CtxLog.Warnln(err)
 			continue
