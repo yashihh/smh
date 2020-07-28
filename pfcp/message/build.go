@@ -77,6 +77,12 @@ func pdrToCreatePDR(pdr *context.PDR) *pfcp.CreatePDR {
 		UEIPAddress:     pdr.PDI.UEIPAddress,
 	}
 
+	if pdr.PDI.ApplicationID != "" {
+		createPDR.PDI.ApplicationID = &pfcpType.ApplicationID{
+			ApplicationIdentifier: []byte(pdr.PDI.ApplicationID),
+		}
+	}
+
 	if pdr.PDI.SDFFilter != nil {
 		createPDR.PDI.SDFFilter = pdr.PDI.SDFFilter
 	}
@@ -142,6 +148,12 @@ func pdrToUpdatePDR(pdr *context.PDR) *pfcp.UpdatePDR {
 		LocalFTEID:      pdr.PDI.LocalFTeid,
 		NetworkInstance: &pdr.PDI.NetworkInstance,
 		UEIPAddress:     pdr.PDI.UEIPAddress,
+	}
+
+	if pdr.PDI.ApplicationID != "" {
+		updatePDR.PDI.ApplicationID = &pfcpType.ApplicationID{
+			ApplicationIdentifier: []byte(pdr.PDI.ApplicationID),
+		}
 	}
 
 	if pdr.PDI.SDFFilter != nil {

@@ -89,11 +89,13 @@ type UERoutingInfo struct {
 // RouteProfID is string providing a Route Profile identifier.
 type RouteProfID string
 
+// RouteProfile maintains the mapping between RouteProfileID and ForwardingPolicyID of UPF
 type RouteProfile struct {
-	// Identifies the name or IP of the UPF interface to route
-	UpfIf string `yaml:"upfIface,omitempty"`
+	// Forwarding Policy ID of the route profile
+	ForwardingPolicyID string `yaml:"forwarding_policy_id,omitempty"`
 }
 
+// PfdContent represents the flow of the application
 type PfdContent struct {
 	// Identifies a PFD of an application identifier.
 	PfdID string `yaml:"pfdID,omitempty"`
@@ -125,7 +127,7 @@ type RoutingConfig struct {
 
 	RouteProf map[RouteProfID]RouteProfile `yaml:"routeProfile,omitempty"`
 
-	PfdData []*PfdDataForApp `yaml:"pfdDataForApp,omitempty"`
+	PfdDatas []*PfdDataForApp `yaml:"pfdDataForApp,omitempty"`
 }
 
 // UserPlaneInformation describe core network userplane information
