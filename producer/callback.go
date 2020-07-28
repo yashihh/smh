@@ -129,9 +129,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				logger.PduSessLog.Errorf("pcc rule [%s] not exist", id)
 				continue
 			}
-			refTcData := pccRule.RefTrafficControlData
-			delete(refTcData.RefedPCCRule, pccRule.PCCRuleID)
-			delete(smContext.PCCRules, id)
+
 		} else {
 			if exist {
 				logger.PduSessLog.Infof("Modify PCCRule[%s]", id)
@@ -174,11 +172,11 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				}
 
 				if updateTcData {
-					newTcData.RefedPCCRule[id] = newPccRule
+					newPccRule.SetRefTrafficControlData(newTcData)
 					smContext.TrafficControlPool[refTcID] = newTcData
 				}
 			}
-			if updatePccRule == false && reflect.DeepEqual(pccRule, newPccRule) {
+			if updatePccRule == false && !reflect.DeepEqual(pccRule, newPccRule) {
 				updatePccRule = true
 			}
 			if trChanged {
