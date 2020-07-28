@@ -4,9 +4,12 @@ import (
 	"context"
 	"free5gc/lib/openapi/Nsmf_EventExposure"
 	"free5gc/lib/openapi/models"
+	"free5gc/lib/pfcp/pfcpType"
 	smf_context "free5gc/src/smf/context"
+	"free5gc/src/smf/factory"
 	"free5gc/src/smf/handler/message"
 	"free5gc/src/smf/logger"
+	"net"
 	"net/http"
 	"reflect"
 	"strings"
@@ -129,9 +132,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				logger.PduSessLog.Errorf("pcc rule [%s] not exist", id)
 				continue
 			}
-			refTcData := pccRule.RefTrafficControlData
-			delete(refTcData.RefedPCCRule, pccRule.PCCRuleID)
-			delete(smContext.PCCRules, id)
+
 		} else {
 			if exist {
 				logger.PduSessLog.Infof("Modify PCCRule[%s]", id)
@@ -141,15 +142,73 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 
 			newPccRule := smf_context.NewPCCRuleFromModel(&pccRuleModel)
 
+			// Create data traffic for the new PCC Rule
+			createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(smContext.Dnn)
+			createdDataPath := smf_context.GenerateDataPath(createdUpPath, smContext)
+			createdDataPath.ActivateTunnelAndPDR(smContext)
+			smContext.Tunnel.AddDataPath(createdDataPath)
+
 			updatePccRule, updateTcData, trChanged := false, false, false
 			var sourceTraRouting, targetTraRouting models.RouteToLocation
 			var tcModel models.TrafficControlData
+
+			if appID := newPccRule.AppID; appID != "" {
+				var matchedPFD *factory.PfdDataForApp
+				for _, pfdDataForApp := range factory.UERoutingConfig.PfdDatas {
+					if pfdDataForApp.AppID == appID {
+						matchedPFD = pfdDataForApp
+						break
+					}
+				}
+
+				if matchedPFD != nil && matchedPFD.Pfds != nil && matchedPFD.Pfds[0].FlowDescriptions != nil {
+					flowDesc := matchedPFD.Pfds[0].FlowDescriptions[0]
+					for curDataPathNode := createdDataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+
+						curDataPathNode.UpLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
+							Bid:                     false,
+							Fl:                      false,
+							Spi:                     false,
+							Ttc:                     false,
+							Fd:                      true,
+							LengthOfFlowDescription: uint16(len(flowDesc)),
+							FlowDescription:         []byte(flowDesc),
+						}
+					}
+				} else {
+					logger.PduSessLog.Errorln("Aplicationp ID [%s] is not support", appID)
+				}
+			}
+
 			//Set reference to traffic control data
 			if len(pccRuleModel.RefTcData) != 0 && pccRuleModel.RefTcData[0] != "" {
 				refTcID := pccRuleModel.RefTcData[0]
 				tcModel = decision.TraffContDecs[refTcID]
 				newTcData := smf_context.NewTrafficControlDataFromModel(&tcModel)
-				newPccRule.RefTrafficControlData = newTcData
+
+				routeToLoc := tcModel.RouteToLocs[0]
+
+				for curDataPathNode := createdDataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+					if curDataPathNode.IsAnchorUPF() {
+						curDataPathNode.DownLinkTunnel.PDR.FAR.ForwardingParameters = new(smf_context.ForwardingParameters)
+						// specify N6 routing information
+						if routeInfo := routeToLoc.RouteInfo; routeInfo != nil {
+							locToRouteIP := net.ParseIP(routeInfo.Ipv4Addr)
+							curDataPathNode.DownLinkTunnel.PDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
+								OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationUdpIpv4,
+								Ipv4Address:                    locToRouteIP,
+								PortNumber:                     uint16(routeInfo.PortNumber),
+							}
+						} else if routeToLoc.RouteProfId != "" {
+							routeProf, exist := factory.UERoutingConfig.RouteProf[factory.RouteProfID(routeToLoc.RouteProfId)]
+							if exist {
+								curDataPathNode.DownLinkTunnel.PDR.FAR.ForwardingParameters.ForwardingPolicyID = routeProf.ForwardingPolicyID
+							} else {
+								logger.PduSessLog.Errorln("Route Profile ID [%s] is not support", routeToLoc.RouteProfId)
+							}
+						}
+					}
+				}
 
 				//TODO: Fix always choosing the first RouteToLocs as targetTraRouting
 				targetTraRouting = newTcData.RouteToLocs[0]
@@ -158,9 +217,9 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				if exist {
 					//TODO: Fix always choosing the first RouteToLocs as sourceTraRouting
 					sourceTraRouting = sourceTcData.RouteToLocs[0]
-					if reflect.DeepEqual(sourceTraRouting, targetTraRouting) {
+					if !reflect.DeepEqual(sourceTraRouting, targetTraRouting) {
 						trChanged, updateTcData, updatePccRule = true, true, true
-					} else if reflect.DeepEqual(sourceTcData, newTcData) {
+					} else if !reflect.DeepEqual(sourceTcData, newTcData) {
 						updateTcData, updatePccRule = true, true
 					}
 				} else { //No sourceTcData, get related info from SMContext
@@ -174,11 +233,11 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				}
 
 				if updateTcData {
-					newTcData.RefedPCCRule[id] = newPccRule
+					newPccRule.SetRefTrafficControlData(newTcData)
 					smContext.TrafficControlPool[refTcID] = newTcData
 				}
 			}
-			if updatePccRule == false && reflect.DeepEqual(pccRule, newPccRule) {
+			if updatePccRule == false && !reflect.DeepEqual(pccRule, newPccRule) {
 				updatePccRule = true
 			}
 			if trChanged {
@@ -189,6 +248,9 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				smContext.PCCRules[id] = newPccRule
 				//TODO: Update to UPF
 			}
+
+			SendPFCPRule(smContext, createdDataPath)
+
 			if trChanged {
 				//Send Notification to NEF/AF if UP path change type contains "LATE"
 				SendUpPathChgEventExposureNotification(tcModel.UpPathChgEvent, "LATE", &sourceTraRouting, &targetTraRouting)
