@@ -4,7 +4,10 @@
 
 package factory
 
-import "free5gc/lib/openapi/models"
+import (
+	"free5gc/lib/openapi/models"
+	"time"
+)
 
 type Config struct {
 	Info Info `yaml:"info"`
@@ -83,10 +86,46 @@ type UERoutingInfo struct {
 	PathList []Path `yaml:"PathList,omitempty"`
 }
 
+// RouteProfID is string providing a Route Profile identifier.
+type RouteProfID string
+
+type RouteProfile struct {
+	// Identifies the name or IP of the UPF interface to route
+	UpfIf string `yaml:"upfIface,omitempty"`
+}
+
+type PfdContent struct {
+	// Identifies a PFD of an application identifier.
+	PfdID string `yaml:"pfdID,omitempty"`
+	// Represents a 3-tuple with protocol, server ip and server port for
+	// UL/DL application traffic.
+	FlowDescriptions []string `yaml:"flowDescriptions,omitempty"`
+	// Indicates a URL or a regular expression which is used to match the
+	// significant parts of the URL.
+	Urls []string `yaml:"urls,omitempty"`
+	// Indicates an FQDN or a regular expression as a domain name matching
+	// criteria.
+	DomainNames []string `yaml:"domainNames,omitempty"`
+}
+
+// PfdDataForApp represents the PFDs for an application identifier
+type PfdDataForApp struct {
+	// Identifier of an application.
+	AppID string `yaml:"applicationId"`
+	// PFDs for the application identifier.
+	Pfds []PfdContent `yaml:"pfds"`
+	// Caching time for an application identifier.
+	CachingTime *time.Time `yaml:"cachingTime,omitempty"`
+}
+
 type RoutingConfig struct {
 	Info *Info `yaml:"info"`
 
 	UERoutingInfo []*UERoutingInfo `yaml:"ueRoutingInfo"`
+
+	RouteProf map[RouteProfID]RouteProfile `yaml:"routeProfile,omitempty"`
+
+	PfdData []*PfdDataForApp `yaml:"pfdDataForApp,omitempty"`
 }
 
 // UserPlaneInformation describe core network userplane information
