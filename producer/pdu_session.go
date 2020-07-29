@@ -15,7 +15,6 @@ import (
 	"free5gc/lib/pfcp/pfcpType"
 	"free5gc/src/smf/consumer"
 	smf_context "free5gc/src/smf/context"
-	smf_message "free5gc/src/smf/handler/message"
 	"free5gc/src/smf/logger"
 	pfcp_message "free5gc/src/smf/pfcp/message"
 	"net/http"
@@ -190,7 +189,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 }
 
-func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMessage, smContextRef string, body models.UpdateSmContextRequest) (seqNum uint32, resBody models.UpdateSmContextResponse) {
+func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmContextRequest) *http_wrapper.Response {
 	//GSM State
 	//PDU Session Modification Reject(Cause Value == 43 || Cause Value != 43)/Complete
 	//PDU Session Release Command/Complete
@@ -199,25 +198,25 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 
 	if smContext == nil {
 		logger.PduSessLog.Warnln("SMContext is nil")
-		rspChan <- smf_message.HandlerResponseMessage{
-			HTTPResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: http.StatusNotFound,
-				Body: models.UpdateSmContextErrorResponse{
-					JsonData: &models.SmContextUpdateError{
-						UpCnxState: models.UpCnxState_DEACTIVATED,
-						Error: &models.ProblemDetails{
-							Type:   "Resource Not Found",
-							Title:  "SMContext Ref is not found",
-							Status: http.StatusNotFound,
-						},
+
+		httpResponse := &http_wrapper.Response{
+			Header: nil,
+			Status: http.StatusNotFound,
+			Body: models.UpdateSmContextErrorResponse{
+				JsonData: &models.SmContextUpdateError{
+					UpCnxState: models.UpCnxState_DEACTIVATED,
+					Error: &models.ProblemDetails{
+						Type:   "Resource Not Found",
+						Title:  "SMContext Ref is not found",
+						Status: http.StatusNotFound,
 					},
 				},
 			},
 		}
-		return
+		return httpResponse
 	}
 
+	var sendPFCPDelete, sendPFCPModification bool
 	var response models.UpdateSmContextResponse
 	response.JsonData = new(models.SmContextUpdatedData)
 
@@ -233,7 +232,15 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		logger.PduSessLog.Traceln("[SMF] UpdateSmContextRequest N1SmMessage: ", m)
 		if err != nil {
 			logger.PduSessLog.Error(err)
-			return
+			httpResponse := &http_wrapper.Response{
+				Status: http.StatusForbidden,
+				Body: models.UpdateSmContextErrorResponse{
+					JsonData: &models.SmContextUpdateError{
+						Error: &Nsmf_PDUSession.N1SmError,
+					},
+				}, //Depends on the reason why N4 fail
+			}
+			return httpResponse
 		}
 		switch m.GsmHeader.GetMessageType() {
 		case nas.MsgTypePDUSessionReleaseRequest:
@@ -243,8 +250,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 				logger.PduSessLog.Infoln("The SMContext State should be Active State")
 				logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
 			}
-			smContext.SMContextState = smf_context.InActivePending
-			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+
 			smContext.HandlePDUSessionReleaseRequest(m.PDUSessionReleaseRequest)
 			buf, _ := smf_context.BuildGSMPDUSessionReleaseCommand(smContext)
 			response.BinaryDataN1SmMessage = buf
@@ -260,19 +266,23 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			}
 
 			deletedPFCPNode := make(map[string]bool)
-
+			smContext.PendingUPF = make(smf_context.PendingUPF)
 			for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 				dataPath.DeactivateTunnelAndPDR(smContext)
 				for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 					curUPFID, _ := curDataPathNode.GetUPFID()
 					if _, exist := deletedPFCPNode[curUPFID]; !exist {
-						seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
+						pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
 						deletedPFCPNode[curUPFID] = true
+						smContext.PendingUPF[curDataPathNode.GetNodeIP()] = true
 					}
 				}
 			}
-			return seqNum, response
+
+			sendPFCPDelete = true
+			smContext.SMContextState = smf_context.PFCPModification
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		case nas.MsgTypePDUSessionReleaseComplete:
 			if smContext.SMContextState != smf_context.InActivePending {
 				//Wait till the state becomes Active again
@@ -285,16 +295,8 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			smContext.SMContextState = smf_context.InActive
 			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
-			SMContextUpdateResponse := http_wrapper.Response{
-				Status: http.StatusOK,
-				Body:   response,
-			}
-			rspChan <- smf_message.HandlerResponseMessage{HTTPResponse: &SMContextUpdateResponse}
-
 			smf_context.RemoveSMContext(smContext.Ref)
 			consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
-
-			return
 		}
 
 	} else {
@@ -341,7 +343,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		// TODO: Deactivate N2 downlink tunnel
 		//Set FAR and An, N3 Release Info
 		farList = []*smf_context.FAR{}
-
+		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 			ANUPF := dataPath.FirstDPNode
@@ -353,11 +355,15 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 				DLPDR.FAR.ApplyAction.Forw = false
 				DLPDR.FAR.ApplyAction.Buff = true
 				DLPDR.FAR.ApplyAction.Nocp = true
+				smContext.PendingUPF[ANUPF.GetNodeIP()] = true
 			}
 
 			farList = append(farList, DLPDR.FAR)
 		}
 
+		sendPFCPModification = true
+		smContext.SMContextState = smf_context.PFCPModification
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 	}
 
 	var err error
@@ -375,6 +381,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		pdrList = []*smf_context.PDR{}
 		farList = []*smf_context.FAR{}
 
+		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range tunnel.DataPathPool {
 
 			if dataPath.Activated {
@@ -394,12 +401,18 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 
 				pdrList = append(pdrList, DLPDR)
 				farList = append(farList, DLPDR.FAR)
+
+				if _, exist := smContext.PendingUPF[ANUPF.GetNodeIP()]; !exist {
+					smContext.PendingUPF[ANUPF.GetNodeIP()] = true
+				}
 			}
 
 		}
 
 		err = smf_context.HandlePDUSessionResourceSetupResponseTransfer(body.BinaryDataN2SmInformation, smContext)
-
+		sendPFCPModification = true
+		smContext.SMContextState = smf_context.PFCPModification
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 	case models.N2SmInfoType_PDU_RES_REL_RSP:
 		logger.PduSessLog.Infoln("[SMF] N2 PDUSession Release Complete ")
 		if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
@@ -413,16 +426,10 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 			logger.PduSessLog.Infoln("[SMF] Send Update SmContext Response")
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
-			SMContextUpdateResponse := http_wrapper.Response{
-				Status: http.StatusOK,
-				Body:   response,
-			}
-			rspChan <- smf_message.HandlerResponseMessage{HTTPResponse: &SMContextUpdateResponse}
 
 			smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = false
 			smf_context.RemoveSMContext(smContext.Ref)
 			consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
-			return
 
 		} else { // normal case
 			if smContext.SMContextState != smf_context.InActivePending {
@@ -432,15 +439,9 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 				logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
 			}
 			logger.PduSessLog.Infoln("[SMF] Send Update SmContext Response")
-			smContext.SMContextState = smf_context.InActive
+			smContext.SMContextState = smf_context.InActivePending
 			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
-			SMContextUpdateResponse := http_wrapper.Response{
-				Status: http.StatusOK,
-				Body:   response,
-			}
-			rspChan <- smf_message.HandlerResponseMessage{HTTPResponse: &SMContextUpdateResponse}
 
-			return
 		}
 	case models.N2SmInfoType_PATH_SWITCH_REQ:
 		logger.PduSessLog.Traceln("Handle Path Switch Request")
@@ -465,6 +466,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			ContentId: "PATH_SWITCH_REQ_ACK",
 		}
 
+		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range tunnel.DataPathPool {
 
 			if dataPath.Activated {
@@ -473,9 +475,16 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 
 				pdrList = append(pdrList, DLPDR)
 				farList = append(farList, DLPDR.FAR)
+
+				if _, exist := smContext.PendingUPF[ANUPF.GetNodeIP()]; !exist {
+					smContext.PendingUPF[ANUPF.GetNodeIP()] = true
+				}
 			}
 		}
 
+		sendPFCPModification = true
+		smContext.SMContextState = smf_context.PFCPModification
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 	case models.N2SmInfoType_PATH_SWITCH_SETUP_FAIL:
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
@@ -487,11 +496,20 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		err = smf_context.HandlePathSwitchRequestSetupFailedTransfer(body.BinaryDataN2SmInformation, smContext)
 	case models.N2SmInfoType_HANDOVER_REQUIRED:
+		if smContext.SMContextState != smf_context.Active {
+			//Wait till the state becomes Active again
+			//TODO: implement sleep wait in concurrent architecture
+			logger.PduSessLog.Infoln("The SMContext State should be Active State")
+			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+		}
+		smContext.SMContextState = smf_context.ModificationPending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "Handover"}
 	}
 
 	switch smContextUpdateData.HoState {
 	case models.HoState_PREPARING:
+		logger.PduSessLog.Traceln("In HoState_PREPARING")
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
@@ -515,6 +533,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 		response.JsonData.HoState = models.HoState_PREPARING
 	case models.HoState_PREPARED:
+		logger.PduSessLog.Traceln("In HoState_PREPARED")
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
@@ -537,6 +556,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 		response.JsonData.HoState = models.HoState_PREPARING
 	case models.HoState_COMPLETED:
+		logger.PduSessLog.Traceln("In HoState_COMPLETED")
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
@@ -559,8 +579,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			logger.PduSessLog.Infoln("The SMContext State should be Active State")
 			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
 		}
-		smContext.SMContextState = smf_context.InActivePending
-		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
 		smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
@@ -572,61 +591,213 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		}
 
 		deletedPFCPNode := make(map[string]bool)
+		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 			dataPath.DeactivateTunnelAndPDR(smContext)
 			for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 				curUPFID, _ := curDataPathNode.GetUPFID()
 				if _, exist := deletedPFCPNode[curUPFID]; !exist {
-					seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
+					pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
 					deletedPFCPNode[curUPFID] = true
+					smContext.PendingUPF[curDataPathNode.GetNodeIP()] = true
 				}
 			}
 		}
 
-		fmt.Println("[SMF] Cause_REL_DUE_TO_DUPLICATE_SESSION_ID")
-		return seqNum, response
+		sendPFCPDelete = true
+		smContext.SMContextState = smf_context.PFCPModification
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+		logger.CtxLog.Infoln("[SMF] Cause_REL_DUE_TO_DUPLICATE_SESSION_ID")
 	}
 
 	if err != nil {
 		logger.PduSessLog.Error(err)
 	}
 
-	defaultPath := smContext.Tunnel.DataPathPool.GetDefaultPath()
-	ANUPF := defaultPath.FirstDPNode
+	var httpResponse *http_wrapper.Response
+	//Check FSM and take corresponding action
+	switch smContext.SMContextState {
+	case smf_context.PFCPModification:
+		logger.CtxLog.Traceln("In case PFCPModification")
 
-	seqNum = pfcp_message.SendPfcpSessionModificationRequest(ANUPF.UPF.NodeID, smContext, pdrList, farList, barList)
-	//TODO: Move line 600 to HandlePfcpSessionModificationResponse after FR5GC-1282 is solved
-	smContext.SMContextState = smf_context.Active
-	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
-	return seqNum, response
+		if sendPFCPModification {
+			defaultPath := smContext.Tunnel.DataPathPool.GetDefaultPath()
+			ANUPF := defaultPath.FirstDPNode
+			pfcp_message.SendPfcpSessionModificationRequest(ANUPF.UPF.NodeID, smContext, pdrList, farList, barList)
+		}
+
+		if sendPFCPDelete {
+			logger.PduSessLog.Infoln("Send PFCP Deletion from HandlePDUSessionSMContextUpdate")
+		}
+
+		PFCPResponseStatus := <-smContext.SBIPFCPCommunicationChan
+
+		switch PFCPResponseStatus {
+		case smf_context.SessionUpdateSuccess:
+			logger.CtxLog.Traceln("In case SessionUpdateSuccess")
+			smContext.SMContextState = smf_context.Active
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+			httpResponse = &http_wrapper.Response{
+				Status: http.StatusOK,
+				Body:   response,
+			}
+		case smf_context.SessionUpdateFailed:
+			logger.CtxLog.Traceln("In case SessionUpdateFailed")
+			smContext.SMContextState = smf_context.Active
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+			//It is just a template
+			httpResponse = &http_wrapper.Response{
+				Status: http.StatusForbidden,
+				Body: models.UpdateSmContextErrorResponse{
+					JsonData: &models.SmContextUpdateError{
+						Error: &Nsmf_PDUSession.N1SmError,
+					},
+				}, //Depends on the reason why N4 fail
+			}
+
+		case smf_context.SessionReleaseSuccess:
+			logger.CtxLog.Traceln("In case SessionReleaseSuccess")
+			smContext.SMContextState = smf_context.InActivePending
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+			httpResponse = &http_wrapper.Response{
+				Status: http.StatusOK,
+				Body:   response,
+			}
+
+		case smf_context.SessionReleaseFailed:
+			// Update SmContext Request(N1 PDU Session Release Request)
+			// Send PDU Session Release Reject
+			logger.CtxLog.Traceln("In case SessionReleaseFailed")
+			problemDetail := models.ProblemDetails{
+				Status: http.StatusInternalServerError,
+				Cause:  "SYSTEM_FAILULE",
+			}
+			httpResponse = &http_wrapper.Response{
+				Status: int(problemDetail.Status),
+			}
+			smContext.SMContextState = smf_context.Active
+			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+			errResponse := models.UpdateSmContextErrorResponse{
+				JsonData: &models.SmContextUpdateError{
+					Error: &problemDetail,
+				},
+			}
+			buf, _ := smf_context.BuildGSMPDUSessionReleaseReject(smContext)
+			errResponse.BinaryDataN1SmMessage = buf
+			errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
+			httpResponse.Body = errResponse
+
+		}
+	case smf_context.ModificationPending:
+		logger.CtxLog.Traceln("In case ModificationPending")
+		smContext.SMContextState = smf_context.Active
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+		httpResponse = &http_wrapper.Response{
+			Status: http.StatusOK,
+			Body:   response,
+		}
+	case smf_context.InActive, smf_context.InActivePending:
+		logger.CtxLog.Traceln("In case InActive, InActivePending")
+		httpResponse = &http_wrapper.Response{
+			Status: http.StatusOK,
+			Body:   response,
+		}
+	default:
+		logger.PduSessLog.Warnf("SM Context State [%s] shouldn't be here\n", smContext.SMContextState)
+		httpResponse = &http_wrapper.Response{
+			Status: http.StatusOK,
+			Body:   response,
+		}
+	}
+
+	return httpResponse
 }
 
-func HandlePDUSessionSMContextRelease(rspChan chan smf_message.HandlerResponseMessage, smContextRef string, body models.ReleaseSmContextRequest) (seqNum uint32) {
+func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSmContextRequest) *http_wrapper.Response {
 	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextRelease")
 	smContext := smf_context.GetSMContext(smContextRef)
 	// smf_context.RemoveSMContext(smContext.Ref)
-	smContext.SMContextState = smf_context.InActivePending
-	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+
 	deletedPFCPNode := make(map[string]bool)
+	smContext.PendingUPF = make(smf_context.PendingUPF)
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 		dataPath.DeactivateTunnelAndPDR(smContext)
 		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 			curUPFID, _ := curDataPathNode.GetUPFID()
 			if _, exist := deletedPFCPNode[curUPFID]; !exist {
-				seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
+				pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
 				deletedPFCPNode[curUPFID] = true
+				smContext.PendingUPF[curDataPathNode.GetNodeIP()] = true
 			}
 		}
 	}
-	return seqNum
 
-	// rspChan <- smf_message.HandlerResponseMessage{HTTPResponse: &http_wrapper.Response{
-	// 	Header: nil,
-	// 	Status: http.StatusNoContent,
-	// 	Body:   nil,
-	// }}
+	smContext.SMContextState = smf_context.PFCPModification
+	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+
+	var httpResponse *http_wrapper.Response
+	PFCPResponseStatus := <-smContext.SBIPFCPCommunicationChan
+
+	switch PFCPResponseStatus {
+	case smf_context.SessionReleaseSuccess:
+		logger.CtxLog.Traceln("In case SessionReleaseSuccess")
+		smContext.SMContextState = smf_context.InActivePending
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+		httpResponse = &http_wrapper.Response{
+			Status: http.StatusNoContent,
+			Body:   nil,
+		}
+
+	case smf_context.SessionReleaseFailed:
+		// Update SmContext Request(N1 PDU Session Release Request)
+		// Send PDU Session Release Reject
+		logger.CtxLog.Traceln("In case SessionReleaseFailed")
+		problemDetail := models.ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILULE",
+		}
+		httpResponse = &http_wrapper.Response{
+			Status: int(problemDetail.Status),
+		}
+		smContext.SMContextState = smf_context.Active
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+		errResponse := models.UpdateSmContextErrorResponse{
+			JsonData: &models.SmContextUpdateError{
+				Error: &problemDetail,
+			},
+		}
+		buf, _ := smf_context.BuildGSMPDUSessionReleaseReject(smContext)
+		errResponse.BinaryDataN1SmMessage = buf
+		errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
+		httpResponse.Body = errResponse
+	default:
+		logger.CtxLog.Warnln("The state shouldn't be [%s]\n", PFCPResponseStatus)
+
+		logger.CtxLog.Traceln("In case Unkown")
+		problemDetail := models.ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILULE",
+		}
+		httpResponse = &http_wrapper.Response{
+			Status: int(problemDetail.Status),
+		}
+		smContext.SMContextState = smf_context.Active
+		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+		errResponse := models.UpdateSmContextErrorResponse{
+			JsonData: &models.SmContextUpdateError{
+				Error: &problemDetail,
+			},
+		}
+		buf, _ := smf_context.BuildGSMPDUSessionReleaseReject(smContext)
+		errResponse.BinaryDataN1SmMessage = buf
+		errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
+		httpResponse.Body = errResponse
+
+	}
+
+	return httpResponse
 }
 
 func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPath) {

@@ -13,7 +13,6 @@ import (
 	"free5gc/lib/http_wrapper"
 	"free5gc/lib/openapi"
 	"free5gc/lib/openapi/models"
-	"free5gc/src/smf/handler/message"
 	"free5gc/src/smf/logger"
 	"free5gc/src/smf/producer"
 	"github.com/gin-gonic/gin"
@@ -44,19 +43,9 @@ func HTTPReleaseSmContext(c *gin.Context) {
 	req := http_wrapper.NewRequest(c.Request, request)
 	req.Params["smContextRef"] = c.Params.ByName("smContextRef")
 
-	msg := message.NewHandlerMessage(message.PDUSessionSMContextRelease, req)
-	smContextRef := msg.HTTPRequest.Params["smContextRef"]
-	seqNum := producer.HandlePDUSessionSMContextRelease(
-		msg.ResponseChan, smContextRef, msg.HTTPRequest.Body.(models.ReleaseSmContextRequest))
-	response := http_wrapper.Response{
-		Status: http.StatusNoContent,
-		Body:   nil,
-	}
-	logger.PduSessLog.Traceln("In HTTPReleaseSmContext")
-	logger.PduSessLog.Traceln("Seq num: ", seqNum)
-	message.RspQueue.PutItem(seqNum, msg.ResponseChan, response)
-
-	_ = <-msg.ResponseChan
+	smContextRef := req.Params["smContextRef"]
+	producer.HandlePDUSessionSMContextRelease(
+		smContextRef, req.Body.(models.ReleaseSmContextRequest))
 
 	c.Status(http.StatusNoContent)
 
@@ -89,21 +78,10 @@ func HTTPUpdateSmContext(c *gin.Context) {
 	req := http_wrapper.NewRequest(c.Request, request)
 	req.Params["smContextRef"] = c.Params.ByName("smContextRef")
 
-	msg := message.NewHandlerMessage(message.PDUSessionSMContextUpdate, req)
-	smContextRef := msg.HTTPRequest.Params["smContextRef"]
-	seqNum, ResBody := producer.HandlePDUSessionSMContextUpdate(
-		msg.ResponseChan, smContextRef, msg.HTTPRequest.Body.(models.UpdateSmContextRequest))
-	response := http_wrapper.Response{
-		Status: http.StatusOK,
-		Body:   ResBody,
-	}
-	logger.PduSessLog.Traceln("In HTTPUpdateSmContext")
-	logger.PduSessLog.Traceln("Seq num: ", seqNum)
-	message.RspQueue.PutItem(seqNum, msg.ResponseChan, response)
+	smContextRef := req.Params["smContextRef"]
+	HTTPResponse := producer.HandlePDUSessionSMContextUpdate(
+		smContextRef, req.Body.(models.UpdateSmContextRequest))
 
-	rsp := <-msg.ResponseChan
-
-	HTTPResponse := rsp.HTTPResponse
 	if HTTPResponse.Status < 300 {
 		c.Render(HTTPResponse.Status, openapi.MultipartRelatedRender{Data: HTTPResponse.Body})
 	} else {
