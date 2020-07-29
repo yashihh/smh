@@ -45,12 +45,10 @@ func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (er
 	return nil
 }
 
-func HandlePathSwitchRequestTransfer(b []byte, ctx *SMContext) (err error) {
+func HandlePathSwitchRequestTransfer(b []byte, ctx *SMContext) error {
 	pathSwitchRequestTransfer := ngapType.PathSwitchRequestTransfer{}
 
-	err = aper.UnmarshalWithParams(b, &pathSwitchRequestTransfer, "valueExt")
-
-	if err != nil {
+	if err := aper.UnmarshalWithParams(b, &pathSwitchRequestTransfer, "valueExt"); err != nil {
 		return err
 	}
 
@@ -82,7 +80,7 @@ func HandlePathSwitchRequestTransfer(b []byte, ctx *SMContext) (err error) {
 
 	}
 
-	return
+	return nil
 }
 
 func HandlePathSwitchRequestSetupFailedTransfer(b []byte, ctx *SMContext) (err error) {

@@ -80,7 +80,6 @@ func SendPfcpAssociationReleaseRequest(addr *net.UDPAddr) {
 	udp.SendPfcp(message, addr)
 }
 
-// Deprecated: PFCP Association Release Procedure should be initiated by the CP function
 func SendPfcpAssociationReleaseResponse(addr *net.UDPAddr, cause pfcpType.Cause) {
 	pfcpMsg, err := BuildPfcpAssociationReleaseResponse(cause)
 	if err != nil {

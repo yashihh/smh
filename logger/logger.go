@@ -2,10 +2,11 @@ package logger
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"runtime"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 
 	"free5gc/lib/logger_conf"
 	"free5gc/lib/logger_util"
@@ -36,8 +37,10 @@ func init() {
 		QuoteEmptyFields:          false,
 		FieldMap:                  nil,
 		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			orgFilename, _ := os.Getwd()
-			repopath := orgFilename
+			repopath, wdErr := os.Getwd()
+			if wdErr != nil {
+				return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("[filename error: %s]:%d", wdErr, f.Line)
+			}
 			repopath = strings.Replace(repopath, "/bin", "", 1)
 			filename := strings.Replace(f.File, repopath, "", -1)
 			return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)

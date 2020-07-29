@@ -37,7 +37,9 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	//[200 OK] array(PartialSuccessReport)
 	//[400 Bad Request] ErrorReport
 	httpResponse := http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
-	ApplySmPolicyFromDecision(smContext, decision)
+	if err := ApplySmPolicyFromDecision(smContext, decision); err != nil {
+		return nil
+	}
 
 	return httpResponse
 }
@@ -137,7 +139,9 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 	for id, pccRuleModel := range decision.PccRules {
 		pccRule, exist := smContext.PCCRules[id]
 		//TODO: Change PccRules map[string]PccRule to map[string]*PccRule
-		if &pccRuleModel == nil {
+
+		pccRulePtr := &pccRuleModel
+		if pccRulePtr == nil {
 			logger.PduSessLog.Infof("Remove PCCRule[%s]", id)
 			if !exist {
 				logger.PduSessLog.Errorf("pcc rule [%s] not exist", id)
@@ -248,7 +252,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 					smContext.TrafficControlPool[refTcID] = newTcData
 				}
 			}
-			if updatePccRule == false && !reflect.DeepEqual(pccRule, newPccRule) {
+			if !updatePccRule && !reflect.DeepEqual(pccRule, newPccRule) {
 				updatePccRule = true
 			}
 			if trChanged {

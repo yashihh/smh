@@ -77,30 +77,24 @@ func RetrySendNFRegistration(MaxRetry int) error {
 	return fmt.Errorf("[SMF] Retry NF Registration has meet maximum")
 }
 
-func SendNFDeregistration() (err error) {
+func SendNFDeregistration() error {
 
 	// Check data (Use RESTful DELETE)
 	res, localErr := smf_context.SMF_Self().NFManagementClient.NFInstanceIDDocumentApi.DeregisterNFInstance(context.TODO(), smf_context.SMF_Self().NfInstanceID)
 	if localErr != nil {
 		logger.AppLog.Warnln(localErr)
-		err = localErr
-		return
+		return localErr
 	}
 	if res != nil {
 		if status := res.StatusCode; status != http.StatusNoContent {
 			logger.AppLog.Warnln("handler returned wrong status code ", status)
-			err = openapi.ReportError("handler returned wrong status code ", status)
+			return openapi.ReportError("handler returned wrong status code %d", status)
 		}
 	}
-
-	return
-
+	return nil
 }
 
-func SendNFDiscoveryUDM() (problemDetails *models.ProblemDetails, err error) {
-	if smf_context.SMF_Self().SubscriberDataManagementClient != nil {
-		return
-	}
+func SendNFDiscoveryUDM() (*models.ProblemDetails, error) {
 
 	localVarOptionals := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
 
@@ -124,15 +118,14 @@ func SendNFDiscoveryUDM() (problemDetails *models.ProblemDetails, err error) {
 	} else if httpResp != nil {
 		logger.AppLog.Warnln("handler returned wrong status code ", httpResp.Status)
 		if httpResp.Status != localErr.Error() {
-			err = localErr
-			return
+			return nil, localErr
 		}
 		problem := localErr.(openapi.GenericOpenAPIError).Model().(models.ProblemDetails)
-		problemDetails = &problem
+		return &problem, nil
 	} else {
-		err = openapi.ReportError("server no response")
+		return nil, openapi.ReportError("server no response")
 	}
-	return
+	return nil, nil
 }
 
 func SendNFDiscoveryPCF() (problemDetails *models.ProblemDetails, err error) {
@@ -163,7 +156,7 @@ func SendNFDiscoveryPCF() (problemDetails *models.ProblemDetails, err error) {
 	return
 }
 
-func SendNFDiscoveryServingAMF(smContext *smf_context.SMContext) (problemDetails *models.ProblemDetails, err error) {
+func SendNFDiscoveryServingAMF(smContext *smf_context.SMContext) (*models.ProblemDetails, error) {
 	targetNfType := models.NfType_AMF
 	requesterNfType := models.NfType_SMF
 
@@ -180,27 +173,25 @@ func SendNFDiscoveryServingAMF(smContext *smf_context.SMContext) (problemDetails
 				logger.AppLog.Warnln("handler returned wrong status code", status)
 			}
 			logger.AppLog.Warnln("NfInstances is nil")
-			err = openapi.ReportError("NfInstances is nil")
-			return
+			return nil, openapi.ReportError("NfInstances is nil")
 		}
 		logger.AppLog.Info("SendNFDiscoveryServingAMF ok")
 		smContext.AMFProfile = deepcopy.Copy(result.NfInstances[0]).(models.NfProfile)
 	} else if httpResp != nil {
 		if httpResp.Status != localErr.Error() {
-			err = localErr
-			return
+			return nil, localErr
 		}
 		problem := localErr.(openapi.GenericOpenAPIError).Model().(models.ProblemDetails)
-		problemDetails = &problem
+		return &problem, nil
 	} else {
-		err = openapi.ReportError("server no response")
+		return nil, openapi.ReportError("server no response")
 	}
 
-	return
+	return nil, nil
 
 }
 
-func SendDeregisterNFInstance() (problemDetails *models.ProblemDetails, err error) {
+func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
 	logger.AppLog.Infof("Send Deregister NFInstance")
 
 	smfSelf := smf_context.SMF_Self()
@@ -208,17 +199,17 @@ func SendDeregisterNFInstance() (problemDetails *models.ProblemDetails, err erro
 
 	var res *http.Response
 
+	var err error
 	res, err = smfSelf.NFManagementClient.NFInstanceIDDocumentApi.DeregisterNFInstance(context.Background(), smfSelf.NfInstanceID)
 	if err == nil {
-		return
+		return nil, err
 	} else if res != nil {
 		if res.Status != err.Error() {
-			return
+			return nil, err
 		}
 		problem := err.(openapi.GenericOpenAPIError).Model().(models.ProblemDetails)
-		problemDetails = &problem
+		return &problem, err
 	} else {
-		err = openapi.ReportError("server no response")
+		return nil, openapi.ReportError("server no response")
 	}
-	return
 }

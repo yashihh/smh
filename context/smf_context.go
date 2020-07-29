@@ -14,8 +14,9 @@ import (
 	"free5gc/lib/openapi/models"
 	"free5gc/lib/pfcp/pfcpType"
 	"free5gc/lib/pfcp/pfcpUdp"
-	"github.com/google/uuid"
 	"sync/atomic"
+
+	"github.com/google/uuid"
 )
 
 func init() {
@@ -75,7 +76,8 @@ func AllocateLocalSEID() uint64 {
 
 func InitSmfContext(config *factory.Config) {
 	if config == nil {
-		logger.CtxLog.Infof("Config is nil")
+		logger.CtxLog.Error("Config is nil")
+		return
 	}
 
 	logger.CtxLog.Infof("smfconfig Info: Version[%s] Description[%s]", config.Info.Version, config.Info.Description)
@@ -85,10 +87,13 @@ func InitSmfContext(config *factory.Config) {
 	}
 
 	sbi := configuration.Sbi
-	smfContext.URIScheme = models.UriScheme(sbi.Scheme)
-	smfContext.HTTPAddress = "127.0.0.1" // default localhost
-	smfContext.HTTPPort = 29502          // default port
-	if sbi != nil {
+	if sbi == nil {
+		logger.CtxLog.Errorln("Configuration needs \"sbi\" value")
+		return
+	} else {
+		smfContext.URIScheme = models.UriScheme(sbi.Scheme)
+		smfContext.HTTPAddress = "127.0.0.1" // default localhost
+		smfContext.HTTPPort = 29502          // default port
 		if sbi.IPv4Addr != "" {
 			smfContext.HTTPAddress = sbi.IPv4Addr
 		}
@@ -101,6 +106,7 @@ func InitSmfContext(config *factory.Config) {
 			smfContext.PEM = tls.PEM
 		}
 	}
+
 	if configuration.NrfUri != "" {
 		smfContext.NrfUri = configuration.NrfUri
 	} else {
@@ -156,7 +162,8 @@ func InitSMFUERouting(routingConfig *factory.RoutingConfig) {
 	}
 
 	if routingConfig == nil {
-		logger.CtxLog.Infof("Routing Config is nil")
+		logger.CtxLog.Error("configuration needs the routing config")
+		return
 	}
 
 	logger.CtxLog.Infof("ue routing config Info: Version[%s] Description[%s]",

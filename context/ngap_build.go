@@ -2,11 +2,12 @@ package context
 
 import (
 	"encoding/binary"
+	"fmt"
 	"free5gc/lib/aper"
 	"free5gc/lib/ngap/ngapType"
 )
 
-func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) (buf []byte, err error) {
+func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error) {
 
 	var ANUPF = ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
 	var UpNode = ANUPF.UPF
@@ -89,15 +90,15 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) (buf []byte, er
 
 	resourceSetupRequestTransfer.ProtocolIEs.List = append(resourceSetupRequestTransfer.ProtocolIEs.List, ie)
 
-	buf, err = aper.MarshalWithParams(resourceSetupRequestTransfer, "valueExt")
-	if err != nil {
-		return nil, err
+	if buf, err := aper.MarshalWithParams(resourceSetupRequestTransfer, "valueE                                      xt"); err != nil {
+		return nil, fmt.Errorf("encode resourceSetupRequestTransfer failed: %s", err)
+	} else {
+		return buf, nil
 	}
-	return
 }
 
 // TS 38.413 9.3.4.9
-func BuildPathSwitchRequestAcknowledgeTransfer(ctx *SMContext) (buf []byte, err error) {
+func BuildPathSwitchRequestAcknowledgeTransfer(ctx *SMContext) ([]byte, error) {
 	var ANUPF = ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
 	var UpNode = ANUPF.UPF
 	var teidOct = make([]byte, 4)
@@ -132,11 +133,11 @@ func BuildPathSwitchRequestAcknowledgeTransfer(ctx *SMContext) (buf []byte, err 
 		securityIndication.MaximumIntegrityProtectedDataRate.Value = ngapType.MaximumIntegrityProtectedDataRatePresentBitrate64kbs
 	}
 
-	buf, err = aper.MarshalWithParams(pathSwitchRequestAcknowledgeTransfer, "valueExt")
-	if err != nil {
+	if buf, err := aper.MarshalWithParams(pathSwitchRequestAcknowledgeTransfer, "valueExt"); err != nil {
 		return nil, err
+	} else {
+		return buf, nil
 	}
-	return
 }
 
 func BuildPathSwitchRequestUnsuccessfulTransfer(causePresent int, causeValue aper.Enumerated) (buf []byte, err error) {

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bufio"
 	"fmt"
 	"free5gc/lib/http2_util"
 	"free5gc/lib/openapi/models"
@@ -22,9 +21,7 @@ import (
 	"free5gc/src/smf/util"
 	"net"
 	"os"
-	"os/exec"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -175,12 +172,12 @@ func (smf *SMF) Start() {
 	server, err := http2_util.NewServer(HTTPAddr, util.SmfLogPath, router)
 
 	if server == nil {
-		initLog.Errorln("Initialize HTTP server failed: %+v", err)
+		initLog.Error("Initialize HTTP server failed:", err)
 		return
 	}
 
 	if err != nil {
-		initLog.Warnln("Initialize HTTP server: +%v", err)
+		initLog.Warnln("Initialize HTTP server:", err)
 	}
 
 	serverScheme := factory.SmfConfig.Configuration.Sbi.Scheme
@@ -191,7 +188,7 @@ func (smf *SMF) Start() {
 	}
 
 	if err != nil {
-		initLog.Fatalln("HTTP server setup failed: %+v", err)
+		initLog.Fatalln("HTTP server setup failed:", err)
 	}
 
 }
@@ -210,45 +207,5 @@ func (smf *SMF) Terminate() {
 }
 
 func (smf *SMF) Exec(c *cli.Context) error {
-	initLog.Traceln("args:", c.String("smfcfg"))
-	args := smf.FilterCli(c)
-	initLog.Traceln("filter: ", args)
-	command := exec.Command("./smf", args...)
-
-	stdout, err := command.StdoutPipe()
-	if err != nil {
-		initLog.Fatalln(err)
-	}
-	wg := sync.WaitGroup{}
-	wg.Add(3)
-	go func() {
-		in := bufio.NewScanner(stdout)
-		for in.Scan() {
-			fmt.Println(in.Text())
-		}
-		wg.Done()
-	}()
-
-	stderr, err := command.StderrPipe()
-	if err != nil {
-		initLog.Fatalln(err)
-	}
-	go func() {
-		in := bufio.NewScanner(stderr)
-		for in.Scan() {
-			fmt.Println(in.Text())
-		}
-		wg.Done()
-	}()
-
-	go func() {
-		if err := command.Start(); err != nil {
-			initLog.Errorf("SMF Start error: %v", err)
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	return err
+	return nil
 }
