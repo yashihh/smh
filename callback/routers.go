@@ -59,7 +59,7 @@ var routes = Routes{
 		"SmPolicyUpdateNotification",
 		"POST",
 		"/sm-policies/:smContextRef/update",
-		SmPolicyUpdateNotification,
+		HTTPSmPolicyUpdateNotification,
 	},
 	{
 		"SmPolicyControlTerminationRequestNotification	",

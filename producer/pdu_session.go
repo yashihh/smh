@@ -23,29 +23,29 @@ import (
 	"github.com/antihax/optional"
 )
 
-func HandlePDUSessionSMContextCreate(rspChan chan smf_message.HandlerResponseMessage, request models.PostSmContextsRequest) {
+func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http_wrapper.Response {
 	//GSM State
 	//PDU Session Establishment Accept/Reject
 	var err error
 	var response models.PostSmContextsResponse
 	response.JsonData = new(models.SmContextCreatedData)
+	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextCreate")
 
 	// Check has PDU Session Establishment Request
 	m := nas.NewMessage()
 	err = m.GsmMessageDecode(&request.BinaryDataN1SmMessage)
 	if err != nil || m.GsmHeader.GetMessageType() != nas.MsgTypePDUSessionEstablishmentRequest {
-		rspChan <- smf_message.HandlerResponseMessage{
-			HTTPResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error: &Nsmf_PDUSession.N1SmError,
-					},
+		logger.PduSessLog.Warnln("GsmMessageDecode Error: ", err)
+		httpResponse := &http_wrapper.Response{
+			Header: nil,
+			Status: http.StatusForbidden,
+			Body: models.PostSmContextsErrorResponse{
+				JsonData: &models.SmContextCreateError{
+					Error: &Nsmf_PDUSession.N1SmError,
 				},
 			},
 		}
-		return
+		return httpResponse
 	}
 
 	createData := request.JsonData
@@ -150,35 +150,20 @@ func HandlePDUSessionSMContextCreate(rspChan chan smf_message.HandlerResponseMes
 	if defaultPath == nil {
 		smContext.SMContextState = smf_context.InActive
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
-		logger.PduSessLog.Errorf("Path for serve DNN[%s] not found\n", createData.Dnn)
-		rspChan <- smf_message.HandlerResponseMessage{
-			HTTPResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error:   &Nsmf_PDUSession.DnnNotSupported,
-						N1SmMsg: &models.RefToBinaryData{ContentId: "N1Msg"},
-					},
+		logger.PduSessLog.Warnln("Path for serve DNN[%s] not found\n", createData.Dnn)
+		httpResponse := &http_wrapper.Response{
+			Header: nil,
+			Status: http.StatusForbidden,
+			Body: models.PostSmContextsErrorResponse{
+				JsonData: &models.SmContextCreateError{
+					Error:   &Nsmf_PDUSession.DnnNotSupported,
+					N1SmMsg: &models.RefToBinaryData{ContentId: "N1Msg"},
 				},
 			},
 		}
+		return httpResponse
 
 	}
-
-	response.JsonData = smContext.BuildCreatedData()
-	rspChan <- smf_message.HandlerResponseMessage{HTTPResponse: &http_wrapper.Response{
-		Header: http.Header{
-			"Location": {smContext.Ref},
-		},
-		Status: http.StatusCreated,
-		Body:   response,
-	}}
-
-	// TODO: UECM registration
-
-	SendPFCPRule(smContext, defaultPath)
-	logger.PduSessLog.Infof("SendPFCPRule Finshed")
 
 	consumer.SendNFDiscoveryServingAMF(smContext)
 
@@ -189,8 +174,19 @@ func HandlePDUSessionSMContextCreate(rspChan chan smf_message.HandlerResponseMes
 			smContext.CommunicationClient = Namf_Communication.NewAPIClient(communicationConf)
 		}
 	}
+	SendPFCPRule(smContext, defaultPath)
 
-	logger.PduSessLog.Infof("HandlePDUSessionSMContextUpdate Finshed")
+	response.JsonData = smContext.BuildCreatedData()
+	httpResponse := &http_wrapper.Response{
+		Header: http.Header{
+			"Location": {smContext.Ref},
+		},
+		Status: http.StatusCreated,
+		Body:   response,
+	}
+
+	return httpResponse
+	// TODO: UECM registration
 
 }
 
@@ -198,10 +194,11 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	//GSM State
 	//PDU Session Modification Reject(Cause Value == 43 || Cause Value != 43)/Complete
 	//PDU Session Release Command/Complete
+	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextUpdate")
 	smContext := smf_context.GetSMContext(smContextRef)
 
-	logger.PduSessLog.Infoln("[SMF] PDUSession SMContext Update")
 	if smContext == nil {
+		logger.PduSessLog.Warnln("SMContext is nil")
 		rspChan <- smf_message.HandlerResponseMessage{
 			HTTPResponse: &http_wrapper.Response{
 				Header: nil,
@@ -267,7 +264,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 			for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 				dataPath.DeactivateTunnelAndPDR(smContext)
-				for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode.Next() {
+				for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 					curUPFID, _ := curDataPathNode.GetUPFID()
 					if _, exist := deletedPFCPNode[curUPFID]; !exist {
 						seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
@@ -578,7 +575,7 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 		for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 			dataPath.DeactivateTunnelAndPDR(smContext)
-			for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode.Next() {
+			for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 				curUPFID, _ := curDataPathNode.GetUPFID()
 				if _, exist := deletedPFCPNode[curUPFID]; !exist {
 					seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
@@ -599,13 +596,14 @@ func HandlePDUSessionSMContextUpdate(rspChan chan smf_message.HandlerResponseMes
 	ANUPF := defaultPath.FirstDPNode
 
 	seqNum = pfcp_message.SendPfcpSessionModificationRequest(ANUPF.UPF.NodeID, smContext, pdrList, farList, barList)
-	//TODO: Move line 515 to HandlePfcpSessionModificationResponse after FR5GC-1282 is solved
+	//TODO: Move line 600 to HandlePfcpSessionModificationResponse after FR5GC-1282 is solved
 	smContext.SMContextState = smf_context.Active
 	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 	return seqNum, response
 }
 
 func HandlePDUSessionSMContextRelease(rspChan chan smf_message.HandlerResponseMessage, smContextRef string, body models.ReleaseSmContextRequest) (seqNum uint32) {
+	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextRelease")
 	smContext := smf_context.GetSMContext(smContextRef)
 	// smf_context.RemoveSMContext(smContext.Ref)
 	smContext.SMContextState = smf_context.InActivePending
@@ -614,7 +612,7 @@ func HandlePDUSessionSMContextRelease(rspChan chan smf_message.HandlerResponseMe
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
 
 		dataPath.DeactivateTunnelAndPDR(smContext)
-		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode.Next() {
+		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 			curUPFID, _ := curDataPathNode.GetUPFID()
 			if _, exist := deletedPFCPNode[curUPFID]; !exist {
 				seqNum = pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)

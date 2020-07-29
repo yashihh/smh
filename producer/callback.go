@@ -2,12 +2,12 @@ package producer
 
 import (
 	"context"
+	"free5gc/lib/http_wrapper"
 	"free5gc/lib/openapi/Nsmf_EventExposure"
 	"free5gc/lib/openapi/models"
 	"free5gc/lib/pfcp/pfcpType"
 	smf_context "free5gc/src/smf/context"
 	"free5gc/src/smf/factory"
-	"free5gc/src/smf/handler/message"
 	"free5gc/src/smf/logger"
 	"net"
 	"net/http"
@@ -15,22 +15,32 @@ import (
 	"strings"
 )
 
-func HandleSMPolicyUpdateNotify(rspChan chan message.HandlerResponseMessage, smContextRef string, request models.SmPolicyNotification) {
+func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNotification) *http_wrapper.Response {
+	logger.PduSessLog.Infoln("In HandleSMPolicyUpdateNotify")
 	decision := request.SmPolicyDecision
 	smContext := smf_context.GetSMContext(smContextRef)
 	if smContext == nil {
 		logger.PduSessLog.Errorf("SMContext[%s] not found", smContextRef)
-		message.SendHttpResponseMessage(rspChan, nil, http.StatusBadRequest, nil)
-		return
+		httpResponse := http_wrapper.NewResponse(http.StatusBadRequest, nil, nil)
+		return httpResponse
+	}
+
+	if smContext.SMContextState != smf_context.Active {
+		//Wait till the state becomes Active again
+		//TODO: implement waiting in concurrent architecture
+		logger.PduSessLog.Infoln("The SMContext State should be Active State")
+		logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.ToString())
 	}
 
 	//TODO: Response data type -
 	//[200 OK] UeCampingRep
 	//[200 OK] array(PartialSuccessReport)
 	//[400 Bad Request] ErrorReport
-	message.SendHttpResponseMessage(rspChan, nil, http.StatusNoContent, nil)
 
+	httpResponse := http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
 	ApplySmPolicyFromDecision(smContext, decision)
+
+	return httpResponse
 }
 
 func SendUpPathChgEventExposureNotification(chgEvent *models.UpPathChgEvent, chgType string, sourceTR, targetTR *models.RouteToLocation) {
@@ -93,6 +103,8 @@ func handleSessionRule(smContext *smf_context.SMContext, id string, sessionRuleM
 }
 
 func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *models.SmPolicyDecision) error {
+	logger.PduSessLog.Traceln("In ApplySmPolicyFromDecision")
+	smContext.SMContextState = smf_context.ModificationPending
 	selectedSessionRule := smContext.SelectedSessionRule()
 	if selectedSessionRule == nil { //No active session rule
 		//Update session rules from decision
@@ -257,5 +269,8 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 			}
 		}
 	}
+
+	smContext.SMContextState = smf_context.Active
+	logger.PduSessLog.Traceln("End of ApplySmPolicyFromDecision")
 	return nil
 }

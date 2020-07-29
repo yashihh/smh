@@ -15,14 +15,15 @@ import (
 	"free5gc/lib/openapi/models"
 	"free5gc/src/smf/handler/message"
 	"free5gc/src/smf/logger"
+	"free5gc/src/smf/producer"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"strings"
 )
 
-// ReleaseSmContext - Release SM Context
-func ReleaseSmContext(c *gin.Context) {
+// HTTPReleaseSmContext - Release SM Context
+func HTTPReleaseSmContext(c *gin.Context) {
 	logger.PduSessLog.Info("Recieve Release SM Context Request")
 	var request models.ReleaseSmContextRequest
 	request.JsonData = new(models.SmContextReleaseData)
@@ -44,7 +45,16 @@ func ReleaseSmContext(c *gin.Context) {
 	req.Params["smContextRef"] = c.Params.ByName("smContextRef")
 
 	msg := message.NewHandlerMessage(message.PDUSessionSMContextRelease, req)
-	message.SendMessage(msg)
+	smContextRef := msg.HTTPRequest.Params["smContextRef"]
+	seqNum := producer.HandlePDUSessionSMContextRelease(
+		msg.ResponseChan, smContextRef, msg.HTTPRequest.Body.(models.ReleaseSmContextRequest))
+	response := http_wrapper.Response{
+		Status: http.StatusNoContent,
+		Body:   nil,
+	}
+	logger.PduSessLog.Traceln("In HTTPReleaseSmContext")
+	logger.PduSessLog.Traceln("Seq num: ", seqNum)
+	message.RspQueue.PutItem(seqNum, msg.ResponseChan, response)
 
 	_ = <-msg.ResponseChan
 
@@ -57,8 +67,8 @@ func RetrieveSmContext(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-// UpdateSmContext - Update SM Context
-func UpdateSmContext(c *gin.Context) {
+// HTTPUpdateSmContext - Update SM Context
+func HTTPUpdateSmContext(c *gin.Context) {
 	logger.PduSessLog.Info("Recieve Update SM Context Request")
 	var request models.UpdateSmContextRequest
 	request.JsonData = new(models.SmContextUpdateData)
@@ -80,7 +90,16 @@ func UpdateSmContext(c *gin.Context) {
 	req.Params["smContextRef"] = c.Params.ByName("smContextRef")
 
 	msg := message.NewHandlerMessage(message.PDUSessionSMContextUpdate, req)
-	message.SendMessage(msg)
+	smContextRef := msg.HTTPRequest.Params["smContextRef"]
+	seqNum, ResBody := producer.HandlePDUSessionSMContextUpdate(
+		msg.ResponseChan, smContextRef, msg.HTTPRequest.Body.(models.UpdateSmContextRequest))
+	response := http_wrapper.Response{
+		Status: http.StatusOK,
+		Body:   ResBody,
+	}
+	logger.PduSessLog.Traceln("In HTTPUpdateSmContext")
+	logger.PduSessLog.Traceln("Seq num: ", seqNum)
+	message.RspQueue.PutItem(seqNum, msg.ResponseChan, response)
 
 	rsp := <-msg.ResponseChan
 
