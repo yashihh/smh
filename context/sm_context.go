@@ -25,11 +25,14 @@ var seidSMContextMap map[uint64]*SMContext
 
 var smContextCount uint64
 
-type SMState int
+type SMContextState int
 
 const (
-	PDUSessionInactive SMState = 0
-	PDUSessionActive   SMState = 1
+	InActive SMContextState = iota
+	ActivePending
+	Active
+	InActivePending
+	ModificationPending
 )
 
 func init() {
@@ -86,7 +89,7 @@ type SMContext struct {
 	SelectedPCFProfile models.NfProfile
 	SmStatusNotifyUri  string
 
-	SMState SMState
+	SMContextState SMContextState
 
 	Tunnel    *UPTunnel
 	BPManager *BPManager
@@ -125,6 +128,7 @@ func NewSMContext(identifier string, pduSessID int32) (smContext *SMContext) {
 	smContextPool[smContext.Ref] = smContext
 	canonicalRef[canonicalName(identifier, pduSessID)] = smContext.Ref
 
+	smContext.SMContextState = InActive
 	smContext.Identifier = identifier
 	smContext.PDUSessionID = pduSessID
 	smContext.PFCPContext = make(map[string]*PFCPSessionContext)
@@ -134,10 +138,12 @@ func NewSMContext(identifier string, pduSessID int32) (smContext *SMContext) {
 	smContext.PCCRules = make(map[string]*PCCRule)
 	smContext.SessionRules = make(map[string]*SessionRule)
 	smContext.TrafficControlPool = make(map[string]*TrafficControlData)
+
 	smContext.ProtocolConfigurationOptions = &ProtocolConfigurationOptions{
 		DNSIPv4Request: false,
 		DNSIPv6Request: false,
 	}
+
 	return smContext
 }
 
@@ -371,4 +377,22 @@ func (smContext *SMContext) SelectedSessionRule() *SessionRule {
 	}
 
 	return nil
+}
+
+func (smContextState SMContextState) String() string {
+	switch smContextState {
+	case InActive:
+		return "InActive"
+	case ActivePending:
+		return "ActivePending"
+	case Active:
+		return "Active"
+	case InActivePending:
+		return "InActivePending"
+	case ModificationPending:
+		return "ModificationPending"
+	default:
+		return "Unknown State"
+	}
+
 }
