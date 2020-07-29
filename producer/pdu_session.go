@@ -55,7 +55,18 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SmStatusNotifyUri = createData.SmContextStatusUri
 
 	// Query UDM
-	consumer.SendNFDiscoveryUDM()
+	problemDetails, err := consumer.SendNFDiscoveryUDM()
+	if problemDetails != nil || err != nil {
+		if problemDetails != nil {
+			logger.PduSessLog.Warnf("Send NF Discovery Serving UDM Problem[%+v]", problemDetails)
+		}
+
+		if err != nil {
+			logger.PduSessLog.Warnf("Send NF Discovery Serving UDM Error[%v]", err)
+		}
+	} else {
+		logger.PduSessLog.Infoln("Send NF Discovery Serving UDM Successfully")
+	}
 
 	smPlmnID := createData.Guami.PlmnId
 
@@ -164,7 +175,18 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	}
 
-	consumer.SendNFDiscoveryServingAMF(smContext)
+	problemDetails, err = consumer.SendNFDiscoveryServingAMF(smContext)
+	if problemDetails != nil || err != nil {
+		if problemDetails != nil {
+			logger.PduSessLog.Warnf("Send NF Discovery Serving AMF Problem[%+v]", problemDetails)
+		}
+
+		if err != nil {
+			logger.PduSessLog.Warnf("Send NF Discovery Serving AMF Error[%v]", err)
+		}
+	} else {
+		logger.PduSessLog.Traceln("Send NF Discovery Serving AMF successfully")
+	}
 
 	for _, service := range *smContext.AMFProfile.NfServices {
 		if service.ServiceName == models.ServiceName_NAMF_COMM {
@@ -296,7 +318,18 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
 			smf_context.RemoveSMContext(smContext.Ref)
-			consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
+			problemDetails, err := consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
+			if problemDetails != nil || err != nil {
+				if problemDetails != nil {
+					logger.PduSessLog.Warnf("Send SMContext Status Notification Problem[%+v]", problemDetails)
+				}
+
+				if err != nil {
+					logger.PduSessLog.Warnf("Send SMContext Status Notification Error[%v]", err)
+				}
+			} else {
+				logger.PduSessLog.Traceln("Send SMContext Status Notification successfully")
+			}
 		}
 
 	} else {
@@ -429,7 +462,18 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 			smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = false
 			smf_context.RemoveSMContext(smContext.Ref)
-			consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
+			problemDetails, err := consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
+			if problemDetails != nil || err != nil {
+				if problemDetails != nil {
+					logger.PduSessLog.Warnf("Send SMContext Status Notification Problem[%+v]", problemDetails)
+				}
+
+				if err != nil {
+					logger.PduSessLog.Warnf("Send SMContext Status Notification Error[%v]", err)
+				}
+			} else {
+				logger.PduSessLog.Traceln("Send SMContext Status Notification successfully")
+			}
 
 		} else { // normal case
 			if smContext.SMContextState != smf_context.InActivePending {
