@@ -350,7 +350,9 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 					Ipv4Address: smContext.PDUAddress.To4(),
 				},
 			}
-			ULPDR.OuterHeaderRemoval = &pfcpType.OuterHeaderRemoval{OuterHeaderRemovalDescription: pfcpType.OuterHeaderRemovalGtpUUdpIpv4}
+			ULPDR.OuterHeaderRemoval = &pfcpType.OuterHeaderRemoval{
+				OuterHeaderRemovalDescription: pfcpType.OuterHeaderRemovalGtpUUdpIpv4,
+			}
 
 			ULFAR := ULPDR.FAR
 			ULFAR.ApplyAction = pfcpType.ApplyAction{

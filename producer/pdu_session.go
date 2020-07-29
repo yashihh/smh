@@ -77,7 +77,9 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	SubscriberDataManagementClient := smf_context.SMF_Self().SubscriberDataManagementClient
 
-	sessSubData, _, err := SubscriberDataManagementClient.SessionManagementSubscriptionDataRetrievalApi.GetSmData(context.Background(), smContext.Supi, smDataParams)
+	sessSubData, _, err := SubscriberDataManagementClient.
+		SessionManagementSubscriptionDataRetrievalApi.
+		GetSmData(context.Background(), smContext.Supi, smDataParams)
 
 	if err != nil {
 		logger.PduSessLog.Errorln("Get SessionManagementSubscriptionData error:", err)
@@ -92,7 +94,8 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	establishmentRequest := m.PDUSessionEstablishmentRequest
 	smContext.HandlePDUSessionEstablishmentRequest(establishmentRequest)
 
-	logger.PduSessLog.Infof("PCF Selection for SMContext SUPI[%s] PDUSessionID[%d]\n", smContext.Supi, smContext.PDUSessionID)
+	logger.PduSessLog.Infof("PCF Selection for SMContext SUPI[%s] PDUSessionID[%d]\n",
+		smContext.Supi, smContext.PDUSessionID)
 	err = smContext.PCFSelection()
 
 	if err != nil {
@@ -103,7 +106,12 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	smPolicyData.Supi = smContext.Supi
 	smPolicyData.PduSessionId = smContext.PDUSessionID
-	smPolicyData.NotificationUri = fmt.Sprintf("%s://%s:%d/nsmf-callback/sm-policies/%s", smf_context.SMF_Self().URIScheme, smf_context.SMF_Self().HTTPAddress, smf_context.SMF_Self().HTTPPort, smContext.Ref)
+	smPolicyData.NotificationUri = fmt.Sprintf("%s://%s:%d/nsmf-callback/sm-policies/%s",
+		smf_context.SMF_Self().URIScheme,
+		smf_context.SMF_Self().HTTPAddress,
+		smf_context.SMF_Self().HTTPPort,
+		smContext.Ref,
+	)
 	smPolicyData.Dnn = smContext.Dnn
 	smPolicyData.PduSessionType = nasConvert.PDUSessionTypeToModels(smContext.SelectedPDUSessionType)
 	smPolicyData.AccessType = smContext.AnType
@@ -444,7 +452,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 		}
 
-		if err := smf_context.HandlePDUSessionResourceSetupResponseTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+		if err := smf_context.
+			HandlePDUSessionResourceSetupResponseTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
 			logger.PduSessLog.Errorln("Handle PDUSessionResourceSetupResponseTransfer failed: %s", err)
 		}
 		sendPFCPModification = true
@@ -545,7 +554,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
-		if err := smf_context.HandlePathSwitchRequestSetupFailedTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+		if err :=
+			smf_context.HandlePathSwitchRequestSetupFailedTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
 			logger.PduSessLog.Error()
 		}
 	case models.N2SmInfoType_HANDOVER_REQUIRED:
@@ -599,7 +609,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		smContext.HoState = models.HoState_PREPARED
 		response.JsonData.HoState = models.HoState_PREPARED
-		if err := smf_context.HandleHandoverRequestAcknowledgeTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+		if err :=
+			smf_context.HandleHandoverRequestAcknowledgeTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
 			logger.PduSessLog.Errorf("Handle HandoverRequestAcknowledgeTransfer failed: %s", err)
 		}
 

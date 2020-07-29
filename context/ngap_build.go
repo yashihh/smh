@@ -90,7 +90,7 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 
 	resourceSetupRequestTransfer.ProtocolIEs.List = append(resourceSetupRequestTransfer.ProtocolIEs.List, ie)
 
-	if buf, err := aper.MarshalWithParams(resourceSetupRequestTransfer, "valueE                                      xt"); err != nil {
+	if buf, err := aper.MarshalWithParams(resourceSetupRequestTransfer, "valueExt"); err != nil {
 		return nil, fmt.Errorf("encode resourceSetupRequestTransfer failed: %s", err)
 	} else {
 		return buf, nil
@@ -107,9 +107,12 @@ func BuildPathSwitchRequestAcknowledgeTransfer(ctx *SMContext) ([]byte, error) {
 	pathSwitchRequestAcknowledgeTransfer := ngapType.PathSwitchRequestAcknowledgeTransfer{}
 
 	// UL NG-U UP TNL Information(optional) TS 38.413 9.3.2.2
-	pathSwitchRequestAcknowledgeTransfer.ULNGUUPTNLInformation = new(ngapType.UPTransportLayerInformation)
-	pathSwitchRequestAcknowledgeTransfer.ULNGUUPTNLInformation.Present = ngapType.UPTransportLayerInformationPresentGTPTunnel
-	pathSwitchRequestAcknowledgeTransfer.ULNGUUPTNLInformation.GTPTunnel = new(ngapType.GTPTunnel)
+	pathSwitchRequestAcknowledgeTransfer.
+		ULNGUUPTNLInformation = new(ngapType.UPTransportLayerInformation)
+
+	ULNGUUPTNLInformation := pathSwitchRequestAcknowledgeTransfer.ULNGUUPTNLInformation
+	ULNGUUPTNLInformation.Present = ngapType.UPTransportLayerInformationPresentGTPTunnel
+	ULNGUUPTNLInformation.GTPTunnel = new(ngapType.GTPTunnel)
 
 	gtpTunnel := pathSwitchRequestAcknowledgeTransfer.ULNGUUPTNLInformation.GTPTunnel
 	gtpTunnel.GTPTEID.Value = teidOct
@@ -124,13 +127,16 @@ func BuildPathSwitchRequestAcknowledgeTransfer(ctx *SMContext) ([]byte, error) {
 	// TODO: use real value
 	securityIndication.IntegrityProtectionIndication.Value = ngapType.IntegrityProtectionIndicationPresentNotNeeded
 	// TODO: use real value
-	securityIndication.ConfidentialityProtectionIndication.Value = ngapType.ConfidentialityProtectionIndicationPresentNotNeeded
+	securityIndication.ConfidentialityProtectionIndication.Value =
+		ngapType.ConfidentialityProtectionIndicationPresentNotNeeded
 
 	integrityProtectionInd := securityIndication.IntegrityProtectionIndication.Value
-	if integrityProtectionInd == ngapType.IntegrityProtectionIndicationPresentRequired || integrityProtectionInd == ngapType.IntegrityProtectionIndicationPresentPreferred {
+	if integrityProtectionInd == ngapType.IntegrityProtectionIndicationPresentRequired ||
+		integrityProtectionInd == ngapType.IntegrityProtectionIndicationPresentPreferred {
 		securityIndication.MaximumIntegrityProtectedDataRate = new(ngapType.MaximumIntegrityProtectedDataRate)
 		// TODO: use real value
-		securityIndication.MaximumIntegrityProtectedDataRate.Value = ngapType.MaximumIntegrityProtectedDataRatePresentBitrate64kbs
+		securityIndication.MaximumIntegrityProtectedDataRate.Value =
+			ngapType.MaximumIntegrityProtectedDataRatePresentBitrate64kbs
 	}
 
 	if buf, err := aper.MarshalWithParams(pathSwitchRequestAcknowledgeTransfer, "valueExt"); err != nil {
