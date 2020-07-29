@@ -13,11 +13,7 @@ import (
 	"sync"
 )
 
-var upfPool map[string]*UPF
-
-func init() {
-	upfPool = make(map[string]*UPF)
-}
+var upfPool sync.Map
 
 type UPTunnel struct {
 	PathIDGenerator *idgenerator.IDGenerator
@@ -54,7 +50,9 @@ type UPF struct {
 // UUID return this UPF UUID (allocate by SMF in this time)
 // Maybe allocate by UPF in future
 func (upf *UPF) UUID() string {
-	return upf.uuid.String()
+
+	uuid := upf.uuid.String()
+	return uuid
 }
 
 func NewUPTunnel() (tunnel *UPTunnel) {
@@ -81,7 +79,7 @@ func NewUPF(nodeID *pfcpType.NodeID) (upf *UPF) {
 	upf = new(UPF)
 	upf.uuid = uuid.New()
 
-	upfPool[upf.UUID()] = upf
+	upfPool.Store(upf.UUID(), upf)
 
 	// Initialize context
 	upf.UPFStatus = NotAssociated
@@ -97,6 +95,7 @@ func NewUPF(nodeID *pfcpType.NodeID) (upf *UPF) {
 }
 
 func (upf *UPF) GenerateTEID() (id uint32, err error) {
+
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
@@ -119,34 +118,50 @@ func (upf *UPF) PFCPAddr() *net.UDPAddr {
 }
 
 func RetrieveUPFNodeByNodeID(nodeID pfcpType.NodeID) (upf *UPF) {
-	for _, upf := range upfPool {
+	upfPool.Range(func(key, value interface{}) bool {
+		upf = value.(*UPF)
 		if reflect.DeepEqual(upf.NodeID, nodeID) {
-			return upf
+			return false
+		} else {
+			return true
 		}
-	}
-	return nil
+	})
+
+	return upf
 }
 
 func RemoveUPFNodeByNodeId(nodeID pfcpType.NodeID) {
-	for upfID, upf := range upfPool {
+
+	upfPool.Range(func(key, value interface{}) bool {
+		upfID := key.(string)
+		upf := value.(*UPF)
 		if reflect.DeepEqual(upf.NodeID, nodeID) {
-			delete(upfPool, upfID)
-			break
+			upfPool.Delete(upfID)
+			return false
+		} else {
+			return true
 		}
-	}
+	})
+
 }
 
-func SelectUPFByDnn(Dnn string) *UPF {
-	for _, upf := range upfPool {
+func SelectUPFByDnn(Dnn string) (upf *UPF) {
+
+	upfPool.Range(func(key, value interface{}) bool {
+		upf := value.(*UPF)
 		if upf.UPIPInfo.Assoni && string(upf.UPIPInfo.NetworkInstance) == Dnn {
-			return upf
+			return false
+		} else {
+			upf = nil
+			return true
 		}
-	}
-	return nil
+	})
+	return upf
 }
 
 func (upf *UPF) GetUPFIP() string {
-	return upf.NodeID.ResolveNodeIdToIp().String()
+	upfIP := upf.NodeID.ResolveNodeIdToIp().String()
+	return upfIP
 }
 
 func (upf *UPF) GetUPFID() string {
@@ -206,7 +221,6 @@ func (upf *UPF) barID() (barID uint8, err error) {
 }
 
 func (upf *UPF) AddPDR() (pdr *PDR, err error) {
-
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err = fmt.Errorf("this upf do not associate with smf")
 		return nil, err
@@ -217,6 +231,7 @@ func (upf *UPF) AddPDR() (pdr *PDR, err error) {
 	pdr.PDRID = PDRID
 	upf.pdrPool.Store(pdr.PDRID, pdr)
 	pdr.FAR, _ = upf.AddFAR()
+
 	return pdr, nil
 }
 

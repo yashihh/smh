@@ -13,10 +13,10 @@ import (
 	"free5gc/src/smf/context"
 	"free5gc/src/smf/eventexposure"
 	"free5gc/src/smf/factory"
-	"free5gc/src/smf/handler"
 	"free5gc/src/smf/logger"
 	"free5gc/src/smf/oam"
 	"free5gc/src/smf/pdusession"
+	"free5gc/src/smf/pfcp"
 	"free5gc/src/smf/pfcp/message"
 	"free5gc/src/smf/pfcp/udp"
 	"free5gc/src/smf/util"
@@ -104,7 +104,6 @@ func (*SMF) Initialize(c *cli.Context) {
 		initLog.Infoln("Log level is default set to [info] level")
 		logger.SetLogLevel(logrus.InfoLevel)
 	}
-	logger.SetLogLevel(logrus.TraceLevel)
 	logger.SetReportCaller(app.ContextSelf().Logger.SMF.ReportCaller)
 }
 
@@ -158,7 +157,7 @@ func (smf *SMF) Start() {
 			eventexposure.AddService(router)
 		}
 	}
-	udp.Run()
+	udp.Run(pfcp.Dispatch)
 
 	for _, upf := range context.SMF_Self().UserPlaneInformation.UPFs {
 		addr := new(net.UDPAddr)
@@ -172,7 +171,6 @@ func (smf *SMF) Start() {
 
 	time.Sleep(1000 * time.Millisecond)
 
-	go handler.Handle()
 	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().HTTPAddress, context.SMF_Self().HTTPPort)
 	server, err := http2_util.NewServer(HTTPAddr, util.SmfLogPath, router)
 

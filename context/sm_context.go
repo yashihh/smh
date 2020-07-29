@@ -275,8 +275,8 @@ func (smContext *SMContext) AllocateLocalSEIDForUPPath(path UPPath) {
 
 		NodeIDtoIP := upNode.NodeID.ResolveNodeIdToIp().String()
 		if _, exist := smContext.PFCPContext[NodeIDtoIP]; !exist {
-
 			allocatedSEID := AllocateLocalSEID()
+
 			smContext.PFCPContext[NodeIDtoIP] = &PFCPSessionContext{
 				PDRs:      make(map[uint16]*PDR),
 				NodeID:    upNode.NodeID,
@@ -312,6 +312,7 @@ func (smContext *SMContext) PutPDRtoPFCPSession(nodeID pfcpType.NodeID, pdr *PDR
 
 	NodeIDtoIP := nodeID.ResolveNodeIdToIp().String()
 	pfcpSessionCtx := smContext.PFCPContext[NodeIDtoIP]
+
 	pfcpSessionCtx.PDRs[pdr.PDRID] = pdr
 }
 

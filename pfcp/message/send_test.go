@@ -8,6 +8,7 @@ import (
 
 	"free5gc/lib/pfcp/pfcpType"
 	"free5gc/lib/pfcp/pfcpUdp"
+	"free5gc/src/smf/pfcp"
 	"free5gc/src/smf/pfcp/message"
 	"free5gc/src/smf/pfcp/udp"
 )
@@ -26,7 +27,7 @@ func init() {
 	smfContext.CPNodeID.NodeIdType = 0
 	smfContext.CPNodeID.NodeIdValue = net.ParseIP("127.0.0.1").To4()
 
-	udp.Run()
+	udp.Run(pfcp.Dispatch)
 
 	testAddr = &net.UDPAddr{
 		IP:   net.ParseIP("127.0.0.1"),

@@ -56,6 +56,7 @@ func HandlePfcpAssociationSetupRequest(msg *pfcpUdp.Message) {
 
 func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
 	req := msg.PfcpMessage.Body.(pfcp.PFCPAssociationSetupResponse)
+	logger.PfcpLog.Infoln("In HandlePfcpAssociationSetupResponse")
 
 	nodeID := req.NodeID
 	if req.Cause.CauseValue == pfcpType.CauseRequestAccepted {
@@ -65,14 +66,18 @@ func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
 		}
 
 		upf := smf_context.RetrieveUPFNodeByNodeID(*req.NodeID)
+
 		upf.UPFStatus = smf_context.AssociatedSetUpSuccess
 
 		if req.UserPlaneIPResourceInformation != nil {
+
 			upf.UPIPInfo = *req.UserPlaneIPResourceInformation
+
 			logger.PfcpLog.Infof("UPF(%s)[%s] setup association", upf.NodeID.ResolveNodeIdToIp().String(), upf.UPIPInfo.NetworkInstance)
 		} else {
 			logger.PfcpLog.Errorln("pfcp association setup response has no UserPlane IP Resource Information")
 		}
+
 	}
 }
 
@@ -89,13 +94,15 @@ func HandlePfcpAssociationReleaseRequest(msg *pfcpUdp.Message) {
 	pfcpMsg := msg.PfcpMessage.Body.(pfcp.PFCPAssociationReleaseRequest)
 
 	var cause pfcpType.Cause
-	upfNode := smf_context.RetrieveUPFNodeByNodeID(*pfcpMsg.NodeID)
-	if upfNode != nil {
+	upf := smf_context.RetrieveUPFNodeByNodeID(*pfcpMsg.NodeID)
+
+	if upf != nil {
 		smf_context.RemoveUPFNodeByNodeId(*pfcpMsg.NodeID)
 		cause.CauseValue = pfcpType.CauseRequestAccepted
 	} else {
 		cause.CauseValue = pfcpType.CauseNoEstablishedPfcpAssociation
 	}
+
 	pfcp_message.SendPfcpAssociationReleaseResponse(msg.RemoteAddr, cause)
 }
 
@@ -145,6 +152,7 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 		smNasBuf, _ := smf_context.BuildGSMPDUSessionEstablishmentAccept(smContext)
 		n2Pdu, _ := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext)
 		n1n2Request := models.N1N2MessageTransferRequest{}
+
 		n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
 			PduSessionId: smContext.PDUSessionID,
 			N1MessageContainer: &models.N1MessageContainer{
@@ -337,6 +345,7 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 			// TS 23.502 4.2.3.3 3a. Send Namf_Communication_N1N2MessageTransfer Request, SMF->AMF
 			n2SmBuf, _ := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext)
 			n1n2Request := models.N1N2MessageTransferRequest{}
+
 			n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
 				PduSessionId: smContext.PDUSessionID,
 				// Temporarily assign SMF itself, TODO: TS 23.502 4.2.3.3 5. Namf_Communication_N1N2TransferFailureNotification
@@ -355,9 +364,11 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 					},
 				},
 			}
+
 			n1n2Request.BinaryDataN2Information = n2SmBuf
 
 			rspData, _, err := smContext.CommunicationClient.N1N2MessageCollectionDocumentApi.N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+
 			if err != nil {
 				logger.PfcpLog.Warnf("Send N1N2Transfer failed")
 			}

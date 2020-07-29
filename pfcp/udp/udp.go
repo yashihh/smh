@@ -7,7 +7,6 @@ import (
 	"free5gc/lib/pfcp"
 	"free5gc/lib/pfcp/pfcpUdp"
 	"free5gc/src/smf/context"
-	"free5gc/src/smf/handler/message"
 	"free5gc/src/smf/logger"
 )
 
@@ -17,7 +16,7 @@ var Server pfcpUdp.PfcpServer
 
 var ServerStartTime time.Time
 
-func Run() {
+func Run(Dispatch func(*pfcpUdp.Message)) {
 	CPNodeID := context.SMF_Self().CPNodeID
 	Server = pfcpUdp.NewPfcpServer(CPNodeID.ResolveNodeIdToIp().String())
 
@@ -41,10 +40,9 @@ func Run() {
 				continue
 			}
 
-			pfcpUdpMessage := pfcpUdp.NewMessage(remoteAddr, &pfcpMessage)
+			msg := pfcpUdp.NewMessage(remoteAddr, &pfcpMessage)
+			go Dispatch(&msg)
 
-			msg := message.NewPfcpMessage(&pfcpUdpMessage)
-			message.SendMessage(msg)
 		}
 	}(&Server)
 

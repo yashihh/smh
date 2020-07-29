@@ -9,7 +9,6 @@ import (
 
 	"free5gc/lib/pfcp"
 	"free5gc/lib/pfcp/pfcpUdp"
-	"free5gc/src/smf/handler"
 	"free5gc/src/smf/pfcp/message"
 	"free5gc/src/smf/pfcp/udp"
 )
@@ -32,7 +31,6 @@ func init() {
 		Port: pfcpUdp.PFCP_PORT,
 	}
 
-	go handler.Handle()
 }
 
 func TestReliablePFCPResponseDelivery(t *testing.T) {
