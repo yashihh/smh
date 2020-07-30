@@ -92,7 +92,7 @@ type RouteProfID string
 // RouteProfile maintains the mapping between RouteProfileID and ForwardingPolicyID of UPF
 type RouteProfile struct {
 	// Forwarding Policy ID of the route profile
-	ForwardingPolicyID string `yaml:"forwarding_policy_id,omitempty"`
+	ForwardingPolicyID string `yaml:"forwardingPolicyID,omitempty"`
 }
 
 // PfdContent represents the flow of the application
