@@ -35,7 +35,10 @@ func SendNFRegistration() error {
 
 	// Check data (Use RESTful PUT)
 	for {
-		rep, res, err = smf_context.SMF_Self().NFManagementClient.NFInstanceIDDocumentApi.RegisterNFInstance(context.TODO(), smf_context.SMF_Self().NfInstanceID, profile)
+		rep, res, err = smf_context.SMF_Self().
+			NFManagementClient.
+			NFInstanceIDDocumentApi.
+			RegisterNFInstance(context.TODO(), smf_context.SMF_Self().NfInstanceID, profile)
 		if err != nil || res == nil {
 			logger.AppLog.Infof("SMF register to NRF Error[%s]", err.Error())
 			time.Sleep(2 * time.Second)
@@ -77,35 +80,35 @@ func RetrySendNFRegistration(MaxRetry int) error {
 	return fmt.Errorf("[SMF] Retry NF Registration has meet maximum")
 }
 
-func SendNFDeregistration() (err error) {
+func SendNFDeregistration() error {
 
 	// Check data (Use RESTful DELETE)
-	res, localErr := smf_context.SMF_Self().NFManagementClient.NFInstanceIDDocumentApi.DeregisterNFInstance(context.TODO(), smf_context.SMF_Self().NfInstanceID)
+	res, localErr := smf_context.SMF_Self().
+		NFManagementClient.
+		NFInstanceIDDocumentApi.
+		DeregisterNFInstance(context.TODO(), smf_context.SMF_Self().NfInstanceID)
 	if localErr != nil {
 		logger.AppLog.Warnln(localErr)
-		err = localErr
-		return
+		return localErr
 	}
 	if res != nil {
 		if status := res.StatusCode; status != http.StatusNoContent {
 			logger.AppLog.Warnln("handler returned wrong status code ", status)
-			err = openapi.ReportError("handler returned wrong status code ", status)
+			return openapi.ReportError("handler returned wrong status code %d", status)
 		}
 	}
-
-	return
-
+	return nil
 }
 
-func SendNFDiscoveryUDM() (problemDetails *models.ProblemDetails, err error) {
-	if smf_context.SMF_Self().SubscriberDataManagementClient != nil {
-		return
-	}
+func SendNFDiscoveryUDM() (*models.ProblemDetails, error) {
 
 	localVarOptionals := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
 
 	// Check data
-	result, httpResp, localErr := smf_context.SMF_Self().NFDiscoveryClient.NFInstancesStoreApi.SearchNFInstances(context.TODO(), models.NfType_UDM, models.NfType_SMF, &localVarOptionals)
+	result, httpResp, localErr := smf_context.SMF_Self().
+		NFDiscoveryClient.
+		NFInstancesStoreApi.
+		SearchNFInstances(context.TODO(), models.NfType_UDM, models.NfType_SMF, &localVarOptionals)
 
 	if localErr == nil {
 		smf_context.SMF_Self().UDMProfile = result.NfInstances[0]
@@ -124,15 +127,14 @@ func SendNFDiscoveryUDM() (problemDetails *models.ProblemDetails, err error) {
 	} else if httpResp != nil {
 		logger.AppLog.Warnln("handler returned wrong status code ", httpResp.Status)
 		if httpResp.Status != localErr.Error() {
-			err = localErr
-			return
+			return nil, localErr
 		}
 		problem := localErr.(openapi.GenericOpenAPIError).Model().(models.ProblemDetails)
-		problemDetails = &problem
+		return &problem, nil
 	} else {
-		err = openapi.ReportError("server no response")
+		return nil, openapi.ReportError("server no response")
 	}
-	return
+	return nil, nil
 }
 
 func SendNFDiscoveryPCF() (problemDetails *models.ProblemDetails, err error) {
@@ -144,7 +146,10 @@ func SendNFDiscoveryPCF() (problemDetails *models.ProblemDetails, err error) {
 	localVarOptionals := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
 
 	// Check data
-	result, httpResp, localErr := smf_context.SMF_Self().NFDiscoveryClient.NFInstancesStoreApi.SearchNFInstances(context.TODO(), targetNfType, requesterNfType, &localVarOptionals)
+	result, httpResp, localErr := smf_context.SMF_Self().
+		NFDiscoveryClient.
+		NFInstancesStoreApi.
+		SearchNFInstances(context.TODO(), targetNfType, requesterNfType, &localVarOptionals)
 
 	if localErr == nil {
 		logger.AppLog.Traceln(result.NfInstances)
@@ -163,7 +168,7 @@ func SendNFDiscoveryPCF() (problemDetails *models.ProblemDetails, err error) {
 	return
 }
 
-func SendNFDiscoveryServingAMF(smContext *smf_context.SMContext) (problemDetails *models.ProblemDetails, err error) {
+func SendNFDiscoveryServingAMF(smContext *smf_context.SMContext) (*models.ProblemDetails, error) {
 	targetNfType := models.NfType_AMF
 	requesterNfType := models.NfType_SMF
 
@@ -172,7 +177,10 @@ func SendNFDiscoveryServingAMF(smContext *smf_context.SMContext) (problemDetails
 	localVarOptionals.TargetNfInstanceId = optional.NewInterface(smContext.ServingNfId)
 
 	// Check data
-	result, httpResp, localErr := smf_context.SMF_Self().NFDiscoveryClient.NFInstancesStoreApi.SearchNFInstances(context.TODO(), targetNfType, requesterNfType, &localVarOptionals)
+	result, httpResp, localErr := smf_context.SMF_Self().
+		NFDiscoveryClient.
+		NFInstancesStoreApi.
+		SearchNFInstances(context.TODO(), targetNfType, requesterNfType, &localVarOptionals)
 
 	if localErr == nil {
 		if result.NfInstances == nil {
@@ -180,27 +188,25 @@ func SendNFDiscoveryServingAMF(smContext *smf_context.SMContext) (problemDetails
 				logger.AppLog.Warnln("handler returned wrong status code", status)
 			}
 			logger.AppLog.Warnln("NfInstances is nil")
-			err = openapi.ReportError("NfInstances is nil")
-			return
+			return nil, openapi.ReportError("NfInstances is nil")
 		}
 		logger.AppLog.Info("SendNFDiscoveryServingAMF ok")
 		smContext.AMFProfile = deepcopy.Copy(result.NfInstances[0]).(models.NfProfile)
 	} else if httpResp != nil {
 		if httpResp.Status != localErr.Error() {
-			err = localErr
-			return
+			return nil, localErr
 		}
 		problem := localErr.(openapi.GenericOpenAPIError).Model().(models.ProblemDetails)
-		problemDetails = &problem
+		return &problem, nil
 	} else {
-		err = openapi.ReportError("server no response")
+		return nil, openapi.ReportError("server no response")
 	}
 
-	return
+	return nil, nil
 
 }
 
-func SendDeregisterNFInstance() (problemDetails *models.ProblemDetails, err error) {
+func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
 	logger.AppLog.Infof("Send Deregister NFInstance")
 
 	smfSelf := smf_context.SMF_Self()
@@ -208,17 +214,20 @@ func SendDeregisterNFInstance() (problemDetails *models.ProblemDetails, err erro
 
 	var res *http.Response
 
-	res, err = smfSelf.NFManagementClient.NFInstanceIDDocumentApi.DeregisterNFInstance(context.Background(), smfSelf.NfInstanceID)
+	var err error
+	res, err = smfSelf.
+		NFManagementClient.
+		NFInstanceIDDocumentApi.
+		DeregisterNFInstance(context.Background(), smfSelf.NfInstanceID)
 	if err == nil {
-		return
+		return nil, err
 	} else if res != nil {
 		if res.Status != err.Error() {
-			return
+			return nil, err
 		}
 		problem := err.(openapi.GenericOpenAPIError).Model().(models.ProblemDetails)
-		problemDetails = &problem
+		return &problem, err
 	} else {
-		err = openapi.ReportError("server no response")
+		return nil, openapi.ReportError("server no response")
 	}
-	return
 }

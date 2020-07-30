@@ -6,11 +6,12 @@ import (
 	"free5gc/lib/pfcp/pfcpType"
 	"free5gc/lib/pfcp/pfcpUdp"
 	"free5gc/src/smf/logger"
-	"github.com/google/uuid"
 	"math"
 	"net"
 	"reflect"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 var upfPool sync.Map
@@ -34,11 +35,11 @@ type UPF struct {
 	UPIPInfo  pfcpType.UserPlaneIPResourceInformation
 	UPFStatus UPFStatus
 
-	pdrPool        sync.Map
-	farPool        sync.Map
-	barPool        sync.Map
-	urrPool        sync.Map
-	qerPool        sync.Map
+	pdrPool sync.Map
+	farPool sync.Map
+	barPool sync.Map
+	// qerPool sync.Map
+	// urrPool        sync.Map
 	pdrIDGenerator *idgenerator.IDGenerator
 	farIDGenerator *idgenerator.IDGenerator
 	barIDGenerator *idgenerator.IDGenerator
@@ -94,19 +95,20 @@ func NewUPF(nodeID *pfcpType.NodeID) (upf *UPF) {
 	return upf
 }
 
-func (upf *UPF) GenerateTEID() (id uint32, err error) {
+func (upf *UPF) GenerateTEID() (uint32, error) {
 
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
 	}
 
-	var tmpID int64
-	tmpID, err = upf.teidGenerator.Allocate()
-	id = uint32(tmpID)
-	if err != nil {
+	var id uint32
+	if tmpID, err := upf.teidGenerator.Allocate(); err != nil {
 		return 0, err
+	} else {
+		id = uint32(tmpID)
 	}
+
 	return id, nil
 }
 
@@ -145,10 +147,10 @@ func RemoveUPFNodeByNodeId(nodeID pfcpType.NodeID) {
 
 }
 
-func SelectUPFByDnn(Dnn string) (upf *UPF) {
-
+func SelectUPFByDnn(Dnn string) *UPF {
+	var upf *UPF
 	upfPool.Range(func(key, value interface{}) bool {
-		upf := value.(*UPF)
+		upf = value.(*UPF)
 		if upf.UPIPInfo.Assoni && string(upf.UPIPInfo.NetworkInstance) == Dnn {
 			return false
 		} else {
@@ -172,93 +174,110 @@ func (upf *UPF) GetUPFID() string {
 
 }
 
-func (upf *UPF) pdrID() (pdrID uint16, err error) {
+func (upf *UPF) pdrID() (uint16, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
 	}
 
-	var tmpID int64
-	tmpID, err = upf.pdrIDGenerator.Allocate()
-	pdrID = uint16(tmpID)
-	if err != nil {
+	var pdrID uint16
+	if tmpID, err := upf.farIDGenerator.Allocate(); err != nil {
 		return 0, err
+	} else {
+		pdrID = uint16(tmpID)
 	}
 
 	return pdrID, nil
 }
 
-func (upf *UPF) farID() (farID uint32, err error) {
+func (upf *UPF) farID() (uint32, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
 	}
 
-	var tmpID int64
-	tmpID, err = upf.farIDGenerator.Allocate()
-	farID = uint32(tmpID)
-	if err != nil {
+	var farID uint32
+	if tmpID, err := upf.farIDGenerator.Allocate(); err != nil {
 		return 0, err
+	} else {
+		farID = uint32(tmpID)
 	}
 
 	return farID, nil
 }
 
-func (upf *UPF) barID() (barID uint8, err error) {
+func (upf *UPF) barID() (uint8, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
 	}
 
-	var tmpID int64
-	tmpID, err = upf.barIDGenerator.Allocate()
-	barID = uint8(tmpID)
-	if err != nil {
+	var barID uint8
+	if tmpID, err := upf.farIDGenerator.Allocate(); err != nil {
 		return 0, err
+	} else {
+		barID = uint8(tmpID)
 	}
 
 	return barID, nil
 }
 
-func (upf *UPF) AddPDR() (pdr *PDR, err error) {
+func (upf *UPF) AddPDR() (*PDR, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err = fmt.Errorf("this upf do not associate with smf")
+		err := fmt.Errorf("this upf do not associate with smf")
 		return nil, err
 	}
 
-	pdr = new(PDR)
-	PDRID, _ := upf.pdrID()
-	pdr.PDRID = PDRID
-	upf.pdrPool.Store(pdr.PDRID, pdr)
-	pdr.FAR, _ = upf.AddFAR()
+	pdr := new(PDR)
+	if PDRID, err := upf.pdrID(); err != nil {
+		return nil, err
+	} else {
+		pdr.PDRID = PDRID
+		upf.pdrPool.Store(pdr.PDRID, pdr)
+	}
+
+	if newFAR, err := upf.AddFAR(); err != nil {
+		return nil, err
+	} else {
+		pdr.FAR = newFAR
+	}
 
 	return pdr, nil
 }
 
-func (upf *UPF) AddFAR() (far *FAR, err error) {
+func (upf *UPF) AddFAR() (*FAR, error) {
 
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err = fmt.Errorf("this upf do not associate with smf")
+		err := fmt.Errorf("this upf do not associate with smf")
 		return nil, err
 	}
 
-	far = new(FAR)
-	far.FARID, _ = upf.farID()
-	upf.farPool.Store(far.FARID, far)
+	far := new(FAR)
+	if FARID, err := upf.farID(); err != nil {
+		return nil, err
+	} else {
+		far.FARID = FARID
+		upf.farPool.Store(far.FARID, far)
+	}
+
 	return far, nil
 }
 
-func (upf *UPF) AddBAR() (bar *BAR, err error) {
+func (upf *UPF) AddBAR() (*BAR, error) {
 
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err = fmt.Errorf("this upf do not associate with smf")
+		err := fmt.Errorf("this upf do not associate with smf")
 		return nil, err
 	}
 
-	bar = new(BAR)
-	BARID, _ := upf.barID()
-	bar.BARID = uint8(BARID)
-	upf.barPool.Store(bar.BARID, bar)
+	bar := new(BAR)
+	if BARID, err := upf.barID(); err != nil {
+
+	} else {
+		bar.BARID = uint8(BARID)
+		upf.barPool.Store(bar.BARID, bar)
+	}
+
 	return bar, nil
 }
 

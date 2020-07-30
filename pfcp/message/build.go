@@ -199,7 +199,10 @@ func farToUpdateFAR(far *context.FAR) *pfcp.UpdateFAR {
 	return updateFAR
 }
 
-func BuildPfcpSessionEstablishmentRequest(upNodeID pfcpType.NodeID, smContext *context.SMContext, pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR) (pfcp.PFCPSessionEstablishmentRequest, error) {
+func BuildPfcpSessionEstablishmentRequest(
+	upNodeID pfcpType.NodeID,
+	smContext *context.SMContext,
+	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR) (pfcp.PFCPSessionEstablishmentRequest, error) {
 	msg := pfcp.PFCPSessionEstablishmentRequest{}
 
 	msg.NodeID = &context.SMF_Self().CPNodeID
@@ -286,7 +289,10 @@ func BuildPfcpSessionEstablishmentResponse() (pfcp.PFCPSessionEstablishmentRespo
 }
 
 // TODO: Replace dummy value in PFCP message
-func BuildPfcpSessionModificationRequest(upNodeID pfcpType.NodeID, smContext *context.SMContext, pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR) (pfcp.PFCPSessionModificationRequest, error) {
+func BuildPfcpSessionModificationRequest(
+	upNodeID pfcpType.NodeID,
+	smContext *context.SMContext,
+	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR) (pfcp.PFCPSessionModificationRequest, error) {
 	msg := pfcp.PFCPSessionModificationRequest{}
 
 	msg.UpdatePDR = make([]*pfcp.UpdatePDR, 0, 2)

@@ -37,12 +37,17 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	//[200 OK] array(PartialSuccessReport)
 	//[400 Bad Request] ErrorReport
 	httpResponse := http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
-	ApplySmPolicyFromDecision(smContext, decision)
+	if err := ApplySmPolicyFromDecision(smContext, decision); err != nil {
+		return nil
+	}
 
 	return httpResponse
 }
 
-func SendUpPathChgEventExposureNotification(chgEvent *models.UpPathChgEvent, chgType string, sourceTR, targetTR *models.RouteToLocation) {
+func SendUpPathChgEventExposureNotification(
+	chgEvent *models.UpPathChgEvent,
+	chgType string, sourceTR,
+	targetTR *models.RouteToLocation) {
 	notification := models.NsmfEventExposureNotification{
 		NotifId: chgEvent.NotifCorreId,
 		EventNotifs: []models.EventNotification{
@@ -64,7 +69,9 @@ func SendUpPathChgEventExposureNotification(chgEvent *models.UpPathChgEvent, chg
 		logger.PduSessLog.Infof("Send UpPathChg Event Exposure Notification [%s] to NEF/AF", chgType)
 		configuration := Nsmf_EventExposure.NewConfiguration()
 		client := Nsmf_EventExposure.NewAPIClient(configuration)
-		_, httpResponse, err := client.DefaultCallbackApi.SmfEventExposureNotification(context.Background(), chgEvent.NotificationUri, notification)
+		_, httpResponse, err := client.
+			DefaultCallbackApi.
+			SmfEventExposureNotification(context.Background(), chgEvent.NotificationUri, notification)
 		if err != nil {
 			if httpResponse != nil {
 				logger.PduSessLog.Warnf("SMF Event Exposure Notification Error[%s]", httpResponse.Status)
@@ -137,7 +144,9 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 	for id, pccRuleModel := range decision.PccRules {
 		pccRule, exist := smContext.PCCRules[id]
 		//TODO: Change PccRules map[string]PccRule to map[string]*PccRule
-		if &pccRuleModel == nil {
+
+		pccRulePtr := &pccRuleModel
+		if pccRulePtr == nil {
 			logger.PduSessLog.Infof("Remove PCCRule[%s]", id)
 			if !exist {
 				logger.PduSessLog.Errorf("pcc rule [%s] not exist", id)
@@ -174,9 +183,9 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 
 				if matchedPFD != nil && matchedPFD.Pfds != nil && matchedPFD.Pfds[0].FlowDescriptions != nil {
 					flowDesc := matchedPFD.Pfds[0].FlowDescriptions[0]
-					for curDataPathNode := createdDataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+					for curDPNode := createdDataPath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
 
-						curDataPathNode.UpLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
+						curDPNode.UpLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
 							Bid:                     false,
 							Fl:                      false,
 							Spi:                     false,
@@ -199,13 +208,13 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 
 				routeToLoc := tcModel.RouteToLocs[0]
 
-				for curDataPathNode := createdDataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-					if curDataPathNode.IsAnchorUPF() {
-						curDataPathNode.DownLinkTunnel.PDR.FAR.ForwardingParameters = new(smf_context.ForwardingParameters)
+				for curDPNode := createdDataPath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+					if curDPNode.IsAnchorUPF() {
+						curDPNode.DownLinkTunnel.PDR.FAR.ForwardingParameters = new(smf_context.ForwardingParameters)
 						// specify N6 routing information
 						if routeInfo := routeToLoc.RouteInfo; routeInfo != nil {
 							locToRouteIP := net.ParseIP(routeInfo.Ipv4Addr)
-							curDataPathNode.DownLinkTunnel.PDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
+							curDPNode.DownLinkTunnel.PDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
 								OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationUdpIpv4,
 								Ipv4Address:                    locToRouteIP,
 								PortNumber:                     uint16(routeInfo.PortNumber),
@@ -213,7 +222,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 						} else if routeToLoc.RouteProfId != "" {
 							routeProf, exist := factory.UERoutingConfig.RouteProf[factory.RouteProfID(routeToLoc.RouteProfId)]
 							if exist {
-								curDataPathNode.DownLinkTunnel.PDR.FAR.ForwardingParameters.ForwardingPolicyID = routeProf.ForwardingPolicyID
+								curDPNode.DownLinkTunnel.PDR.FAR.ForwardingParameters.ForwardingPolicyID = routeProf.ForwardingPolicyID
 							} else {
 								logger.PduSessLog.Errorln("Route Profile ID [%s] is not support", routeToLoc.RouteProfId)
 							}
@@ -248,7 +257,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 					smContext.TrafficControlPool[refTcID] = newTcData
 				}
 			}
-			if updatePccRule == false && !reflect.DeepEqual(pccRule, newPccRule) {
+			if !updatePccRule && !reflect.DeepEqual(pccRule, newPccRule) {
 				updatePccRule = true
 			}
 			if trChanged {

@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func SendSMContextStatusNotification(uri string) (problemDetails *models.ProblemDetails, err error) {
+func SendSMContextStatusNotification(uri string) (*models.ProblemDetails, error) {
 	if uri != "" {
 		request := models.SmContextStatusNotification{}
 		request.StatusInfo = &models.StatusInfo{
@@ -19,28 +19,29 @@ func SendSMContextStatusNotification(uri string) (problemDetails *models.Problem
 		client := Nsmf_PDUSession.NewAPIClient(configuration)
 
 		logger.CtxLog.Infoln("[SMF] Send SMContext Status Notification")
-		httpResp, localErr := client.IndividualSMContextNotificationApi.SMContextNotification(context.Background(), uri, request)
+		httpResp, localErr := client.
+			IndividualSMContextNotificationApi.
+			SMContextNotification(context.Background(), uri, request)
 
 		if localErr == nil {
 			if httpResp.StatusCode != http.StatusNoContent {
-				err = openapi.ReportError("Send SMContextStatus Notification Failed")
-				return
+				return nil, openapi.ReportError("Send SMContextStatus Notification Failed")
+
 			}
 
 			logger.PduSessLog.Tracef("Send SMContextStatus Notification Success")
 		} else if httpResp != nil {
 			logger.PduSessLog.Warnf("Send SMContextStatus Notification Error[%s]", httpResp.Status)
 			if httpResp.Status != localErr.Error() {
-				err = localErr
-				return
+				return nil, localErr
 			}
 			problem := localErr.(openapi.GenericOpenAPIError).Model().(models.ProblemDetails)
-			problemDetails = &problem
+			return &problem, nil
 		} else {
 			logger.PduSessLog.Warnln("Http Response is nil in comsumer API SMContextNotification")
-			err = openapi.ReportError("Send SMContextStatus Notification Failed[%s]", localErr.Error())
+			return nil, openapi.ReportError("Send SMContextStatus Notification Failed[%s]", localErr.Error())
 		}
 
 	}
-	return
+	return nil, nil
 }

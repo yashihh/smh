@@ -173,7 +173,7 @@ func (upi *UserPlaneInformation) ExistDefaultPath(dnn string) bool {
 	return exist
 }
 
-func GenerateDataPath(upPath UPPath, smContext *SMContext) (dataPath *DataPath) {
+func GenerateDataPath(upPath UPPath, smContext *SMContext) *DataPath {
 	if len(upPath) < 1 {
 		logger.CtxLog.Errorf("invalid path")
 	}
@@ -201,7 +201,7 @@ func GenerateDataPath(upPath UPPath, smContext *SMContext) (dataPath *DataPath) 
 		prevDataPathNode = curDataPathNode
 	}
 
-	dataPath = &DataPath{
+	dataPath := &DataPath{
 		Destination: Destination{
 			DestinationIP:   "",
 			DestinationPort: "",
@@ -209,10 +209,10 @@ func GenerateDataPath(upPath UPPath, smContext *SMContext) (dataPath *DataPath) 
 		},
 		FirstDPNode: root,
 	}
-	return
+	return dataPath
 }
 
-func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) (pathExist bool) {
+func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) bool {
 
 	var source *UPNode
 	var destination *UPNode
@@ -253,14 +253,13 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) (pathExist bool
 		visited[upNode] = false
 	}
 
-	var path []*UPNode
-	path, pathExist = getPathBetween(source, destination, visited)
+	path, pathExist := getPathBetween(source, destination, visited)
 
 	if path[0].Type == UPNODE_AN {
 		path = path[1:]
 	}
 	upi.DefaultUserPlanePath[dnn] = path
-	return
+	return pathExist
 }
 
 func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool) (path []*UPNode, pathExist bool) {

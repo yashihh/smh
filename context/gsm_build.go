@@ -7,6 +7,7 @@ import (
 	"free5gc/lib/nas/nasType"
 	"free5gc/src/smf/logger"
 	"net"
+
 	// "free5gc/lib/nas/nasType"
 	"free5gc/lib/openapi/models"
 )
@@ -77,13 +78,16 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 
 	if smContext.PDUAddress != nil {
 		addr, addrLen := smContext.PDUAddressToNAS()
-		pDUSessionEstablishmentAccept.PDUAddress = nasType.NewPDUAddress(nasMessage.PDUSessionEstablishmentAcceptPDUAddressType)
+		pDUSessionEstablishmentAccept.PDUAddress =
+			nasType.NewPDUAddress(nasMessage.PDUSessionEstablishmentAcceptPDUAddressType)
 		pDUSessionEstablishmentAccept.PDUAddress.SetLen(addrLen)
 		pDUSessionEstablishmentAccept.PDUAddress.SetPDUSessionTypeValue(smContext.SelectedPDUSessionType)
 		pDUSessionEstablishmentAccept.PDUAddress.SetPDUAddressInformation(addr)
 	}
 
-	// pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions = nasType.NewAuthorizedQosFlowDescriptions(nasMessage.PDUSessionEstablishmentAcceptAuthorizedQosFlowDescriptionsType)
+	// pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions = nasType.NewAuthorizedQosFlowDescriptions(
+	// 	nasMessage.PDUSessionEstablishmentAcceptAuthorizedQosFlowDescriptionsType,
+	// )
 	// pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions.SetLen(6)
 	// pDUSessionEstablishmentAccept.SetQoSFlowDescriptions([]uint8{0x09, 0x20, 0x41, 0x01, 0x01, 0x09})
 
@@ -92,7 +96,10 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 		if !exist {
 			logger.GsmLog.Warnf("No default DNS IP for DNN [%s]\n", smContext.Dnn)
 		} else {
-			pDUSessionEstablishmentAccept.ExtendedProtocolConfigurationOptions = nasType.NewExtendedProtocolConfigurationOptions(nasMessage.PDUSessionEstablishmentAcceptExtendedProtocolConfigurationOptionsType)
+			pDUSessionEstablishmentAccept.ExtendedProtocolConfigurationOptions =
+				nasType.NewExtendedProtocolConfigurationOptions(
+					nasMessage.PDUSessionEstablishmentAcceptExtendedProtocolConfigurationOptionsType,
+				)
 			protocolConfigurationOptions := nasConvert.NewProtocolConfigurationOptions()
 
 			if smContext.ProtocolConfigurationOptions.DNSIPv4Request {
@@ -113,8 +120,12 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 
 			pcoContents := protocolConfigurationOptions.Marshal()
 			pcoContentsLength := len(pcoContents)
-			pDUSessionEstablishmentAccept.ExtendedProtocolConfigurationOptions.SetLen(uint16(pcoContentsLength))
-			pDUSessionEstablishmentAccept.ExtendedProtocolConfigurationOptions.SetExtendedProtocolConfigurationOptionsContents(pcoContents)
+			pDUSessionEstablishmentAccept.
+				ExtendedProtocolConfigurationOptions.
+				SetLen(uint16(pcoContentsLength))
+			pDUSessionEstablishmentAccept.
+				ExtendedProtocolConfigurationOptions.
+				SetExtendedProtocolConfigurationOptionsContents(pcoContents)
 
 		}
 

@@ -15,15 +15,14 @@ var SmfInfo *models.SmfInfo
 
 func SetupNFProfile(config *factory.Config) {
 	//Set time
-	date := time.Now()
-	dateFormat, _ := time.Parse(time.RFC3339, date.Format(time.RFC3339))
+	nfSetupTime := time.Now()
 
 	//set NfServiceVersion
 	NfServiceVersion = &[]models.NfServiceVersion{
 		{
 			ApiVersionInUri: "v1",
 			ApiFullVersion:  fmt.Sprintf("https://%s:%d/nsmf-pdusession/v1", SMF_Self().HTTPAddress, SMF_Self().HTTPPort),
-			Expiry:          &dateFormat,
+			Expiry:          &nfSetupTime,
 		},
 	}
 

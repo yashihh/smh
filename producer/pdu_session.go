@@ -2,7 +2,6 @@ package producer
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"free5gc/lib/http_wrapper"
 	"free5gc/lib/nas"
@@ -78,7 +77,9 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	SubscriberDataManagementClient := smf_context.SMF_Self().SubscriberDataManagementClient
 
-	sessSubData, _, err := SubscriberDataManagementClient.SessionManagementSubscriptionDataRetrievalApi.GetSmData(context.Background(), smContext.Supi, smDataParams)
+	sessSubData, _, err := SubscriberDataManagementClient.
+		SessionManagementSubscriptionDataRetrievalApi.
+		GetSmData(context.Background(), smContext.Supi, smDataParams)
 
 	if err != nil {
 		logger.PduSessLog.Errorln("Get SessionManagementSubscriptionData error:", err)
@@ -93,7 +94,8 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	establishmentRequest := m.PDUSessionEstablishmentRequest
 	smContext.HandlePDUSessionEstablishmentRequest(establishmentRequest)
 
-	logger.PduSessLog.Infof("PCF Selection for SMContext SUPI[%s] PDUSessionID[%d]\n", smContext.Supi, smContext.PDUSessionID)
+	logger.PduSessLog.Infof("PCF Selection for SMContext SUPI[%s] PDUSessionID[%d]\n",
+		smContext.Supi, smContext.PDUSessionID)
 	err = smContext.PCFSelection()
 
 	if err != nil {
@@ -104,7 +106,12 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	smPolicyData.Supi = smContext.Supi
 	smPolicyData.PduSessionId = smContext.PDUSessionID
-	smPolicyData.NotificationUri = fmt.Sprintf("%s://%s:%d/nsmf-callback/sm-policies/%s", smf_context.SMF_Self().URIScheme, smf_context.SMF_Self().HTTPAddress, smf_context.SMF_Self().HTTPPort, smContext.Ref)
+	smPolicyData.NotificationUri = fmt.Sprintf("%s://%s:%d/nsmf-callback/sm-policies/%s",
+		smf_context.SMF_Self().URIScheme,
+		smf_context.SMF_Self().HTTPAddress,
+		smf_context.SMF_Self().HTTPPort,
+		smContext.Ref,
+	)
 	smPolicyData.Dnn = smContext.Dnn
 	smPolicyData.PduSessionType = nasConvert.PDUSessionTypeToModels(smContext.SelectedPDUSessionType)
 	smPolicyData.AccessType = smContext.AnType
@@ -244,9 +251,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 	smContextUpdateData := body.JsonData
 
-	UpdateSmContextRequestJson, _ := json.Marshal(body.JsonData)
-	logger.PduSessLog.Traceln("[SMF] UpdateSmContextRequest JsonData: ", string(UpdateSmContextRequestJson))
-
 	if body.BinaryDataN1SmMessage != nil {
 		logger.PduSessLog.Traceln("Binary Data N1 SmMessage isn't nil!")
 		m := nas.NewMessage()
@@ -274,17 +278,21 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			}
 
 			smContext.HandlePDUSessionReleaseRequest(m.PDUSessionReleaseRequest)
-			buf, _ := smf_context.BuildGSMPDUSessionReleaseCommand(smContext)
-			response.BinaryDataN1SmMessage = buf
+			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext); err != nil {
+				logger.PduSessLog.Errorln("Build GSM PDUSessionReleaseCommand failed: %s", err)
+			} else {
+				response.BinaryDataN1SmMessage = buf
+			}
+
 			response.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseCommand"}
 
 			response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
 			response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
 
-			buf, err := smf_context.BuildPDUSessionResourceReleaseCommandTransfer(smContext)
-			response.BinaryDataN2SmInformation = buf
-			if err != nil {
-				logger.PduSessLog.Error(err)
+			if buf, err := smf_context.BuildPDUSessionResourceReleaseCommandTransfer(smContext); err != nil {
+				logger.PduSessLog.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %s", err)
+			} else {
+				response.BinaryDataN2SmInformation = buf
 			}
 
 			deletedPFCPNode := make(map[string]bool)
@@ -293,7 +301,11 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 				dataPath.DeactivateTunnelAndPDR(smContext)
 				for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-					curUPFID, _ := curDataPathNode.GetUPFID()
+					curUPFID, err := curDataPathNode.GetUPFID()
+					if err != nil {
+						logger.PduSessLog.Error("DataPath UPFID not found")
+						continue
+					}
 					if _, exist := deletedPFCPNode[curUPFID]; !exist {
 						pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
 						deletedPFCPNode[curUPFID] = true
@@ -399,8 +411,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 	}
 
-	var err error
-
 	switch smContextUpdateData.N2SmInfoType {
 	case models.N2SmInfoType_PDU_RES_SETUP_RSP:
 		if smContext.SMContextState != smf_context.Active {
@@ -442,7 +452,10 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 		}
 
-		err = smf_context.HandlePDUSessionResourceSetupResponseTransfer(body.BinaryDataN2SmInformation, smContext)
+		if err := smf_context.
+			HandlePDUSessionResourceSetupResponseTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+			logger.PduSessLog.Errorln("Handle PDUSessionResourceSetupResponseTransfer failed: %s", err)
+		}
 		sendPFCPModification = true
 		smContext.SMContextState = smf_context.PFCPModification
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -498,13 +511,16 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 
-		err = smf_context.HandlePathSwitchRequestTransfer(body.BinaryDataN2SmInformation, smContext)
-		n2Buf, err := smf_context.BuildPathSwitchRequestAcknowledgeTransfer(smContext)
-		if err != nil {
-			logger.PduSessLog.Errorf("Build Path Switch Transfer Error(%s)", err.Error())
+		if err := smf_context.HandlePathSwitchRequestTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+			logger.PduSessLog.Errorf("Handle PathSwitchRequestTransfer", err)
 		}
 
-		response.BinaryDataN2SmInformation = n2Buf
+		if n2Buf, err := smf_context.BuildPathSwitchRequestAcknowledgeTransfer(smContext); err != nil {
+			logger.PduSessLog.Errorf("Build Path Switch Transfer Error(%s)", err)
+		} else {
+			response.BinaryDataN2SmInformation = n2Buf
+		}
+
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PATH_SWITCH_REQ_ACK
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{
 			ContentId: "PATH_SWITCH_REQ_ACK",
@@ -538,7 +554,10 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
-		err = smf_context.HandlePathSwitchRequestSetupFailedTransfer(body.BinaryDataN2SmInformation, smContext)
+		if err :=
+			smf_context.HandlePathSwitchRequestSetupFailedTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+			logger.PduSessLog.Error()
+		}
 	case models.N2SmInfoType_HANDOVER_REQUIRED:
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
@@ -563,14 +582,16 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		smContext.HoState = models.HoState_PREPARING
-		err = smf_context.HandleHandoverRequiredTransfer(body.BinaryDataN2SmInformation, smContext)
+		if err := smf_context.HandleHandoverRequiredTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+			logger.PduSessLog.Errorln("Handle HandoverRequiredTransfer failed: %s", err)
+		}
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_SETUP_REQ
 
-		n2Buf, err := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext)
-		if err != nil {
+		if n2Buf, err := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext); err != nil {
 			logger.PduSessLog.Errorf("Build PDUSession Resource Setup Request Transfer Error(%s)", err.Error())
+		} else {
+			response.BinaryDataN2SmInformation = n2Buf
 		}
-		response.BinaryDataN2SmInformation = n2Buf
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_SETUP_REQ
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{
 			ContentId: "PDU_RES_SETUP_REQ",
@@ -588,12 +609,17 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		smContext.HoState = models.HoState_PREPARED
 		response.JsonData.HoState = models.HoState_PREPARED
-		err = smf_context.HandleHandoverRequestAcknowledgeTransfer(body.BinaryDataN2SmInformation, smContext)
-		n2Buf, err := smf_context.BuildHandoverCommandTransfer(smContext)
-		if err != nil {
-			logger.PduSessLog.Errorf("Build PDUSession Resource Setup Request Transfer Error(%s)", err.Error())
+		if err :=
+			smf_context.HandleHandoverRequestAcknowledgeTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+			logger.PduSessLog.Errorf("Handle HandoverRequestAcknowledgeTransfer failed: %s", err)
 		}
-		response.BinaryDataN2SmInformation = n2Buf
+
+		if n2Buf, err := smf_context.BuildHandoverCommandTransfer(smContext); err != nil {
+			logger.PduSessLog.Errorf("Build PDUSession Resource Setup Request Transfer Error(%s)", err.Error())
+		} else {
+			response.BinaryDataN2SmInformation = n2Buf
+		}
+
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_HANDOVER_CMD
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{
 			ContentId: "HANDOVER_CMD",
@@ -640,7 +666,11 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 			dataPath.DeactivateTunnelAndPDR(smContext)
 			for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-				curUPFID, _ := curDataPathNode.GetUPFID()
+				curUPFID, err := curDataPathNode.GetUPFID()
+				if err != nil {
+					logger.PduSessLog.Error("DataPath UPFID not found")
+					continue
+				}
 				if _, exist := deletedPFCPNode[curUPFID]; !exist {
 					pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
 					deletedPFCPNode[curUPFID] = true
@@ -653,10 +683,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		smContext.SMContextState = smf_context.PFCPModification
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		logger.CtxLog.Infoln("[SMF] Cause_REL_DUE_TO_DUPLICATE_SESSION_ID")
-	}
-
-	if err != nil {
-		logger.PduSessLog.Error(err)
 	}
 
 	var httpResponse *http_wrapper.Response
@@ -727,8 +753,12 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 					Error: &problemDetail,
 				},
 			}
-			buf, _ := smf_context.BuildGSMPDUSessionReleaseReject(smContext)
-			errResponse.BinaryDataN1SmMessage = buf
+			if buf, err := smf_context.BuildGSMPDUSessionReleaseReject(smContext); err != nil {
+				logger.PduSessLog.Errorln("build GSM PDUSessionReleaseReject failed: %s", err)
+			} else {
+				errResponse.BinaryDataN1SmMessage = buf
+			}
+
 			errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
 			httpResponse.Body = errResponse
 
@@ -769,7 +799,11 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 
 		dataPath.DeactivateTunnelAndPDR(smContext)
 		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-			curUPFID, _ := curDataPathNode.GetUPFID()
+			curUPFID, err := curDataPathNode.GetUPFID()
+			if err != nil {
+				logger.PduSessLog.Error("DataPath UPFID not found")
+				continue
+			}
 			if _, exist := deletedPFCPNode[curUPFID]; !exist {
 				pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, smContext)
 				deletedPFCPNode[curUPFID] = true
@@ -812,8 +846,12 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 				Error: &problemDetail,
 			},
 		}
-		buf, _ := smf_context.BuildGSMPDUSessionReleaseReject(smContext)
-		errResponse.BinaryDataN1SmMessage = buf
+		if buf, err := smf_context.BuildGSMPDUSessionReleaseReject(smContext); err != nil {
+			logger.PduSessLog.Error("Build GSM PDUSessionReleaseReject failed: %s", err)
+		} else {
+			errResponse.BinaryDataN1SmMessage = buf
+		}
+
 		errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
 		httpResponse.Body = errResponse
 	default:
@@ -834,8 +872,12 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 				Error: &problemDetail,
 			},
 		}
-		buf, _ := smf_context.BuildGSMPDUSessionReleaseReject(smContext)
-		errResponse.BinaryDataN1SmMessage = buf
+		if buf, err := smf_context.BuildGSMPDUSessionReleaseReject(smContext); err != nil {
+			logger.PduSessLog.Errorln("Build GSM PDUSessionReleaseReject failed: %s", err)
+		} else {
+			errResponse.BinaryDataN1SmMessage = buf
+		}
+
 		errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
 		httpResponse.Body = errResponse
 

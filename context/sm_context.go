@@ -2,7 +2,6 @@ package context
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"free5gc/lib/nas/nasConvert"
 	"free5gc/lib/nas/nasMessage"
@@ -219,14 +218,17 @@ func (smContext *SMContext) PDUAddressToNAS() (addr [12]byte, addrLen uint8) {
 }
 
 // PCFSelection will select PCF for this SM Context
-func (smContext *SMContext) PCFSelection() (err error) {
+func (smContext *SMContext) PCFSelection() error {
 
 	// Send NFDiscovery for find PCF
 	localVarOptionals := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
 
-	rep, res, err := SMF_Self().NFDiscoveryClient.NFInstancesStoreApi.SearchNFInstances(context.TODO(), models.NfType_PCF, models.NfType_SMF, &localVarOptionals)
+	rep, res, err := SMF_Self().
+		NFDiscoveryClient.
+		NFInstancesStoreApi.
+		SearchNFInstances(context.TODO(), models.NfType_PCF, models.NfType_SMF, &localVarOptionals)
 	if err != nil {
-		return
+		return err
 	}
 
 	if res != nil {
@@ -243,9 +245,6 @@ func (smContext *SMContext) PCFSelection() (err error) {
 
 	smContext.SelectedPCFProfile = rep.NfInstances[0]
 
-	SelectedPCFProfileString, _ := json.MarshalIndent(smContext.SelectedPCFProfile, "", "  ")
-	logger.CtxLog.Tracef("Select PCF Profile: %s\n", SelectedPCFProfileString)
-
 	// Create SMPolicyControl Client for this SM Context
 	for _, service := range *smContext.SelectedPCFProfile.NfServices {
 		if service.ServiceName == models.ServiceName_NPCF_SMPOLICYCONTROL {
@@ -255,7 +254,7 @@ func (smContext *SMContext) PCFSelection() (err error) {
 		}
 	}
 
-	return
+	return nil
 }
 
 func (smContext *SMContext) GetNodeIDByLocalSEID(seid uint64) (nodeID pfcpType.NodeID) {
