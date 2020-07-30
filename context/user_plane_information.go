@@ -28,13 +28,12 @@ const (
 
 // UPNode represent the user plane node topology
 type UPNode struct {
-	Type         UPNodeType
-	NodeID       pfcpType.NodeID
-	UPResourceIP net.IP
-	ANIP         net.IP
-	Dnn          string
-	Links        []*UPNode
-	UPF          *UPF
+	Type   UPNodeType
+	NodeID pfcpType.NodeID
+	ANIP   net.IP
+	Dnn    string
+	Links  []*UPNode
+	UPF    *UPF
 }
 
 // UPPath represent User Plane Sequence of this path
