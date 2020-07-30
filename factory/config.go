@@ -138,11 +138,10 @@ type UserPlaneInformation struct {
 
 // UPNode represent the user plane node
 type UPNode struct {
-	Type         string `yaml:"type"`
-	NodeID       string `yaml:"node_id"`
-	UPResourceIP string `yaml:"node"`
-	ANIP         string `yaml:"an_ip"`
-	Dnn          string `yaml:"dnn"`
+	Type   string `yaml:"type"`
+	NodeID string `yaml:"node_id"`
+	ANIP   string `yaml:"an_ip"`
+	Dnn    string `yaml:"dnn"`
 }
 
 type UPLink struct {
