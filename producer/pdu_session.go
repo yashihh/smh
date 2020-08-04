@@ -25,15 +25,14 @@ import (
 func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http_wrapper.Response {
 	//GSM State
 	//PDU Session Establishment Accept/Reject
-	var err error
 	var response models.PostSmContextsResponse
 	response.JsonData = new(models.SmContextCreatedData)
 	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextCreate")
 
 	// Check has PDU Session Establishment Request
 	m := nas.NewMessage()
-	err = m.GsmMessageDecode(&request.BinaryDataN1SmMessage)
-	if err != nil || m.GsmHeader.GetMessageType() != nas.MsgTypePDUSessionEstablishmentRequest {
+	if err := m.GsmMessageDecode(&request.BinaryDataN1SmMessage); err != nil ||
+		m.GsmHeader.GetMessageType() != nas.MsgTypePDUSessionEstablishmentRequest {
 		logger.PduSessLog.Warnln("GsmMessageDecode Error: ", err)
 		httpResponse := &http_wrapper.Response{
 			Header: nil,
@@ -55,15 +54,10 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SmStatusNotifyUri = createData.SmContextStatusUri
 
 	// Query UDM
-	problemDetails, err := consumer.SendNFDiscoveryUDM()
-	if problemDetails != nil || err != nil {
-		if problemDetails != nil {
-			logger.PduSessLog.Warnf("Send NF Discovery Serving UDM Problem[%+v]", problemDetails)
-		}
-
-		if err != nil {
-			logger.PduSessLog.Warnf("Send NF Discovery Serving UDM Error[%v]", err)
-		}
+	if problemDetails, err := consumer.SendNFDiscoveryUDM(); err != nil {
+		logger.PduSessLog.Warnf("Send NF Discovery Serving UDM Error[%v]", err)
+	} else if problemDetails != nil {
+		logger.PduSessLog.Warnf("Send NF Discovery Serving UDM Problem[%+v]", problemDetails)
 	} else {
 		logger.PduSessLog.Infoln("Send NF Discovery Serving UDM Successfully")
 	}
@@ -78,18 +72,16 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	SubscriberDataManagementClient := smf_context.SMF_Self().SubscriberDataManagementClient
 
-	sessSubData, _, err := SubscriberDataManagementClient.
+	if sessSubData, _, err := SubscriberDataManagementClient.
 		SessionManagementSubscriptionDataRetrievalApi.
-		GetSmData(context.Background(), smContext.Supi, smDataParams)
-
-	if err != nil {
+		GetSmData(context.Background(), smContext.Supi, smDataParams); err != nil {
 		logger.PduSessLog.Errorln("Get SessionManagementSubscriptionData error:", err)
-	}
-
-	if len(sessSubData) > 0 {
-		smContext.DnnConfiguration = sessSubData[0].DnnConfigurations[smContext.Dnn]
 	} else {
-		logger.PduSessLog.Errorln("SessionManagementSubscriptionData from UDM is nil")
+		if len(sessSubData) > 0 {
+			smContext.DnnConfiguration = sessSubData[0].DnnConfigurations[smContext.Dnn]
+		} else {
+			logger.PduSessLog.Errorln("SessionManagementSubscriptionData from UDM is nil")
+		}
 	}
 
 	establishmentRequest := m.PDUSessionEstablishmentRequest
@@ -97,9 +89,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	logger.PduSessLog.Infof("PCF Selection for SMContext SUPI[%s] PDUSessionID[%d]\n",
 		smContext.Supi, smContext.PDUSessionID)
-	err = smContext.PCFSelection()
-
-	if err != nil {
+	if err := smContext.PCFSelection(); err != nil {
 		logger.PduSessLog.Errorln("pcf selection error:", err)
 	}
 
@@ -127,17 +117,17 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	}
 	smPolicyData.SuppFeat = "F"
 
-	smPolicyDecision, _, err := smContext.SMPolicyClient.DefaultApi.SmPoliciesPost(context.Background(), smPolicyData)
-
-	if err != nil {
+	var smPolicyDecision models.SmPolicyDecision
+	if smPolicyDecisionFromPCF, _, err := smContext.SMPolicyClient.
+		DefaultApi.SmPoliciesPost(context.Background(), smPolicyData); err != nil {
 		openapiError := err.(openapi.GenericOpenAPIError)
 		problemDetails := openapiError.Model().(models.ProblemDetails)
 		logger.PduSessLog.Errorln("setup sm policy association failed:", err, problemDetails)
+	} else {
+		smPolicyDecision = smPolicyDecisionFromPCF
 	}
 
-	err = ApplySmPolicyFromDecision(smContext, &smPolicyDecision)
-
-	if err != nil {
+	if err := ApplySmPolicyFromDecision(smContext, &smPolicyDecision); err != nil {
 		logger.PduSessLog.Errorf("apply sm policy decision error: %v", err)
 	}
 
@@ -205,15 +195,10 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	}
 
-	problemDetails, err = consumer.SendNFDiscoveryServingAMF(smContext)
-	if problemDetails != nil || err != nil {
-		if problemDetails != nil {
-			logger.PduSessLog.Warnf("Send NF Discovery Serving AMF Problem[%+v]", problemDetails)
-		}
-
-		if err != nil {
-			logger.PduSessLog.Warnf("Send NF Discovery Serving AMF Error[%v]", err)
-		}
+	if problemDetails, err := consumer.SendNFDiscoveryServingAMF(smContext); err != nil {
+		logger.PduSessLog.Warnf("Send NF Discovery Serving AMF Error[%v]", err)
+	} else if problemDetails != nil {
+		logger.PduSessLog.Warnf("Send NF Discovery Serving AMF Problem[%+v]", problemDetails)
 	} else {
 		logger.PduSessLog.Traceln("Send NF Discovery Serving AMF successfully")
 	}
@@ -535,7 +520,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 
 		if err := smf_context.HandlePathSwitchRequestTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
-			logger.PduSessLog.Errorf("Handle PathSwitchRequestTransfer", err)
+			logger.PduSessLog.Errorf("Handle PathSwitchRequestTransfer:", err)
 		}
 
 		if n2Buf, err := smf_context.BuildPathSwitchRequestAcknowledgeTransfer(smContext); err != nil {
@@ -870,7 +855,7 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 			},
 		}
 		if buf, err := smf_context.BuildGSMPDUSessionReleaseReject(smContext); err != nil {
-			logger.PduSessLog.Error("Build GSM PDUSessionReleaseReject failed: %s", err)
+			logger.PduSessLog.Errorf("Build GSM PDUSessionReleaseReject failed: %s", err)
 		} else {
 			errResponse.BinaryDataN1SmMessage = buf
 		}
@@ -878,7 +863,7 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 		errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
 		httpResponse.Body = errResponse
 	default:
-		logger.CtxLog.Warnln("The state shouldn't be [%s]\n", PFCPResponseStatus)
+		logger.CtxLog.Warnf("The state shouldn't be [%s]\n", PFCPResponseStatus)
 
 		logger.CtxLog.Traceln("In case Unkown")
 		problemDetail := models.ProblemDetails{
@@ -911,8 +896,8 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 
 func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPath) {
 
-	logger.PduSessLog.Infof("Send PFCP Rule")
-	logger.PduSessLog.Infof("DataPath: ", dataPath)
+	logger.PduSessLog.Infoln("Send PFCP Rule")
+	logger.PduSessLog.Infof("DataPath: %s", dataPath)
 	for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		pdrList := make([]*smf_context.PDR, 0, 2)
 		farList := make([]*smf_context.FAR, 0, 2)
