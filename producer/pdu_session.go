@@ -6,6 +6,7 @@ import (
 	"free5gc/lib/http_wrapper"
 	"free5gc/lib/nas"
 	"free5gc/lib/nas/nasConvert"
+	"free5gc/lib/nas/nasMessage"
 	"free5gc/lib/openapi"
 	"free5gc/lib/openapi/Namf_Communication"
 	"free5gc/lib/openapi/Nsmf_PDUSession"
@@ -159,25 +160,47 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		defaultUPPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(createData.Dnn)
 		smContext.AllocateLocalSEIDForUPPath(defaultUPPath)
 		defaultPath = smf_context.GenerateDataPath(defaultUPPath, smContext)
-		defaultPath.IsDefaultPath = true
-		smContext.Tunnel.AddDataPath(defaultPath)
-		defaultPath.ActivateTunnelAndPDR(smContext)
+		if defaultPath != nil {
+			defaultPath.IsDefaultPath = true
+			smContext.Tunnel.AddDataPath(defaultPath)
+			defaultPath.ActivateTunnelAndPDR(smContext)
+		}
 	}
 
 	if defaultPath == nil {
 		smContext.SMContextState = smf_context.InActive
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		logger.PduSessLog.Warnln("Path for serve DNN[%s] not found\n", createData.Dnn)
-		httpResponse := &http_wrapper.Response{
-			Header: nil,
-			Status: http.StatusForbidden,
-			Body: models.PostSmContextsErrorResponse{
-				JsonData: &models.SmContextCreateError{
-					Error:   &Nsmf_PDUSession.DnnNotSupported,
-					N1SmMsg: &models.RefToBinaryData{ContentId: "N1Msg"},
+
+		var httpResponse *http_wrapper.Response
+		if buf, err := smf_context.
+			BuildGSMPDUSessionEstablishmentReject(
+				smContext,
+				nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN); err != nil {
+			httpResponse = &http_wrapper.Response{
+				Header: nil,
+				Status: http.StatusForbidden,
+				Body: models.PostSmContextsErrorResponse{
+					JsonData: &models.SmContextCreateError{
+						Error:   &Nsmf_PDUSession.InsufficientResourceSliceDnn,
+						N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
+					},
 				},
-			},
+			}
+		} else {
+			httpResponse = &http_wrapper.Response{
+				Header: nil,
+				Status: http.StatusForbidden,
+				Body: models.PostSmContextsErrorResponse{
+					JsonData: &models.SmContextCreateError{
+						Error:   &Nsmf_PDUSession.InsufficientResourceSliceDnn,
+						N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
+					},
+					BinaryDataN1SmMessage: buf,
+				},
+			}
 		}
+
 		return httpResponse
 
 	}
