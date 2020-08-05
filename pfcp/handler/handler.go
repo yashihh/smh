@@ -153,12 +153,12 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 		n1n2Request := models.N1N2MessageTransferRequest{}
 
 		if smNasBuf, err := smf_context.BuildGSMPDUSessionEstablishmentAccept(smContext); err != nil {
-			logger.PduSessLog.Error("Build GSM PDUSessionEstablishmentAccept failed: %s", err)
+			logger.PduSessLog.Errorf("Build GSM PDUSessionEstablishmentAccept failed: %s", err)
 		} else {
 			n1n2Request.BinaryDataN1Message = smNasBuf
 		}
 		if n2Pdu, err := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext); err != nil {
-			logger.PduSessLog.Error("Build PDUSessionResourceSetupRequestTransfer failed: %s", err)
+			logger.PduSessLog.Errorf("Build PDUSessionResourceSetupRequestTransfer failed: %s", err)
 		} else {
 			n1n2Request.BinaryDataN2Information = n2Pdu
 		}

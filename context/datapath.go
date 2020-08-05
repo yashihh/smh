@@ -119,7 +119,7 @@ func (node *DataPathNode) ActivateUpLinkTunnel(smContext *SMContext) error {
 	smContext.PutPDRtoPFCPSession(destUPF.NodeID, node.UpLinkTunnel.PDR)
 
 	if teid, err := destUPF.GenerateTEID(); err != nil {
-		logger.CtxLog.Errorln("Generate uplink TEID fail: %s", err)
+		logger.CtxLog.Errorf("Generate uplink TEID fail: %s", err)
 		return err
 	} else {
 		node.UpLinkTunnel.TEID = teid
@@ -145,7 +145,7 @@ func (node *DataPathNode) ActivateDownLinkTunnel(smContext *SMContext) error {
 	smContext.PutPDRtoPFCPSession(destUPF.NodeID, node.DownLinkTunnel.PDR)
 
 	if teid, err := destUPF.GenerateTEID(); err != nil {
-		logger.CtxLog.Errorln("Generate downlink TEID fail: %s", err)
+		logger.CtxLog.Errorf("Generate downlink TEID fail: %s", err)
 		return err
 	} else {
 		node.DownLinkTunnel.TEID = teid

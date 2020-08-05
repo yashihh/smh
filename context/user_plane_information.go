@@ -174,7 +174,8 @@ func (upi *UserPlaneInformation) ExistDefaultPath(dnn string) bool {
 
 func GenerateDataPath(upPath UPPath, smContext *SMContext) *DataPath {
 	if len(upPath) < 1 {
-		logger.CtxLog.Errorf("invalid path")
+		logger.CtxLog.Errorf("Invalid data path")
+		return nil
 	}
 	var lowerBound = 0
 	var upperBound = len(upPath) - 1

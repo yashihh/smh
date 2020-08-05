@@ -30,7 +30,7 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 		protocolConfigurationOptions := nasConvert.NewProtocolConfigurationOptions()
 		unmarshalErr := protocolConfigurationOptions.UnMarshal(EPCOContents)
 		if unmarshalErr != nil {
-			logger.GsmLog.Errorln("Parsing PCO failed: %s", unmarshalErr)
+			logger.GsmLog.Errorf("Parsing PCO failed: %s", unmarshalErr)
 		}
 		logger.GsmLog.Infoln("Protocol Configuration Options")
 		logger.GsmLog.Infoln(protocolConfigurationOptions)
