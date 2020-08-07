@@ -2,6 +2,7 @@ package producer
 
 import (
 	"context"
+	"free5gc/lib/flowdesc"
 	"free5gc/lib/http_wrapper"
 	"free5gc/lib/openapi/Nsmf_EventExposure"
 	"free5gc/lib/openapi/models"
@@ -182,17 +183,41 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				}
 
 				if matchedPFD != nil && matchedPFD.Pfds != nil && matchedPFD.Pfds[0].FlowDescriptions != nil {
-					flowDesc := matchedPFD.Pfds[0].FlowDescriptions[0]
-					for curDPNode := createdDataPath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+					flowDescConfig := matchedPFD.Pfds[0].FlowDescriptions[0]
+					uplinkIPFilterRule := flowdesc.NewIPFilterRule()
 
-						curDPNode.UpLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
-							Bid:                     false,
-							Fl:                      false,
-							Spi:                     false,
-							Ttc:                     false,
-							Fd:                      true,
-							LengthOfFlowDescription: uint16(len(flowDesc)),
-							FlowDescription:         []byte(flowDesc),
+					if err := flowdesc.Decode(flowDescConfig, uplinkIPFilterRule); err != nil {
+						logger.PduSessLog.Error(err)
+					} else {
+						uplinkIPFilterRule.SwapSourceAndDestination()
+						var uplinkFlowDescription string
+						if ret, err := flowdesc.Encode(uplinkIPFilterRule); err != nil {
+							logger.PduSessLog.Error(err)
+						} else {
+							uplinkFlowDescription = ret
+						}
+
+						for curDPNode := createdDataPath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+
+							curDPNode.DownLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
+								Bid:                     false,
+								Fl:                      false,
+								Spi:                     false,
+								Ttc:                     false,
+								Fd:                      true,
+								LengthOfFlowDescription: uint16(len(flowDescConfig)),
+								FlowDescription:         []byte(flowDescConfig),
+							}
+							curDPNode.UpLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
+								Bid:                     false,
+								Fl:                      false,
+								Spi:                     false,
+								Ttc:                     false,
+								Fd:                      true,
+								LengthOfFlowDescription: uint16(len(uplinkFlowDescription)),
+								FlowDescription:         []byte(uplinkFlowDescription),
+							}
+
 						}
 					}
 				} else {
