@@ -239,7 +239,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 						// specify N6 routing information
 						if routeInfo := routeToLoc.RouteInfo; routeInfo != nil {
 							locToRouteIP := net.ParseIP(routeInfo.Ipv4Addr)
-							curDPNode.DownLinkTunnel.PDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
+							curDPNode.UpLinkTunnel.PDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
 								OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationUdpIpv4,
 								Ipv4Address:                    locToRouteIP,
 								PortNumber:                     uint16(routeInfo.PortNumber),
@@ -247,7 +247,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 						} else if routeToLoc.RouteProfId != "" {
 							routeProf, exist := factory.UERoutingConfig.RouteProf[factory.RouteProfID(routeToLoc.RouteProfId)]
 							if exist {
-								curDPNode.DownLinkTunnel.PDR.FAR.ForwardingParameters.ForwardingPolicyID = routeProf.ForwardingPolicyID
+								curDPNode.UpLinkTunnel.PDR.FAR.ForwardingParameters.ForwardingPolicyID = routeProf.ForwardingPolicyID
 							} else {
 								logger.PduSessLog.Errorf("Route Profile ID [%s] is not support", routeToLoc.RouteProfId)
 							}
