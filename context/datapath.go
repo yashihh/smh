@@ -362,16 +362,21 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 				Forw: true,
 				Nocp: false,
 			}
-			ULPDR.FAR.ForwardingParameters = &ForwardingParameters{
+			ULFAR.ForwardingParameters = &ForwardingParameters{
 				DestinationInterface: pfcpType.DestinationInterface{
-					InterfaceValue: pfcpType.DestinationInterfaceAccess,
+					InterfaceValue: pfcpType.DestinationInterfaceCore,
 				},
 				NetworkInstance: []byte(smContext.Dnn),
 			}
 
+			if curDataPathNode.IsAnchorUPF() {
+				ULFAR.ForwardingParameters.
+					DestinationInterface.InterfaceValue = pfcpType.DestinationInterfaceSgiLanN6Lan
+			}
+
 			if nextULDest := curDataPathNode.Next(); nextULDest != nil {
 				nextULTunnel := nextULDest.UpLinkTunnel
-				ULPDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
+				ULFAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
 					OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationGtpUUdpIpv4,
 					Ipv4Address:                    nextULTunnel.DestEndPoint.UPF.UPIPInfo.Ipv4Address,
 					Teid:                           nextULTunnel.TEID,
