@@ -115,6 +115,11 @@ func farToCreateFAR(far *context.FAR) *pfcp.CreateFAR {
 		createFAR.ForwardingParameters.DestinationInterface = &far.ForwardingParameters.DestinationInterface
 		createFAR.ForwardingParameters.NetworkInstance = &far.ForwardingParameters.NetworkInstance
 		createFAR.ForwardingParameters.OuterHeaderCreation = far.ForwardingParameters.OuterHeaderCreation
+		if far.ForwardingParameters.ForwardingPolicyID != "" {
+			createFAR.ForwardingParameters.ForwardingPolicy = new(pfcpType.ForwardingPolicy)
+			createFAR.ForwardingParameters.ForwardingPolicy.ForwardingPolicyIdentifierLength = uint8(len(far.ForwardingParameters.ForwardingPolicyID))
+			createFAR.ForwardingParameters.ForwardingPolicy.ForwardingPolicyIdentifier = []byte(far.ForwardingParameters.ForwardingPolicyID)
+		}
 	}
 
 	return createFAR
