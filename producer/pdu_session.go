@@ -287,7 +287,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 			smContext.HandlePDUSessionReleaseRequest(m.PDUSessionReleaseRequest)
 			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext); err != nil {
-				logger.PduSessLog.Errorf("Build GSM PDUSessionReleaseCommand failed: %s", err)
+				logger.PduSessLog.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
 				response.BinaryDataN1SmMessage = buf
 			}
@@ -298,7 +298,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
 
 			if buf, err := smf_context.BuildPDUSessionResourceReleaseCommandTransfer(smContext); err != nil {
-				logger.PduSessLog.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %s", err)
+				logger.PduSessLog.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %+v", err)
 			} else {
 				response.BinaryDataN2SmInformation = buf
 			}
@@ -524,7 +524,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		}
 
 		if n2Buf, err := smf_context.BuildPathSwitchRequestAcknowledgeTransfer(smContext); err != nil {
-			logger.PduSessLog.Errorf("Build Path Switch Transfer Error(%s)", err)
+			logger.PduSessLog.Errorf("Build Path Switch Transfer Error(%+v)", err)
 		} else {
 			response.BinaryDataN2SmInformation = n2Buf
 		}
@@ -619,7 +619,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		response.JsonData.HoState = models.HoState_PREPARED
 		if err :=
 			smf_context.HandleHandoverRequestAcknowledgeTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
-			logger.PduSessLog.Errorf("Handle HandoverRequestAcknowledgeTransfer failed: %s", err)
+			logger.PduSessLog.Errorf("Handle HandoverRequestAcknowledgeTransfer failed: %+v", err)
 		}
 
 		if n2Buf, err := smf_context.BuildHandoverCommandTransfer(smContext); err != nil {
@@ -855,7 +855,7 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 			},
 		}
 		if buf, err := smf_context.BuildGSMPDUSessionReleaseReject(smContext); err != nil {
-			logger.PduSessLog.Errorf("Build GSM PDUSessionReleaseReject failed: %s", err)
+			logger.PduSessLog.Errorf("Build GSM PDUSessionReleaseReject failed: %+v", err)
 		} else {
 			errResponse.BinaryDataN1SmMessage = buf
 		}
