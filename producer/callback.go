@@ -221,7 +221,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 						}
 					}
 				} else {
-					logger.PduSessLog.Errorln("Aplicationp ID [%s] is not support", appID)
+					logger.PduSessLog.Errorf("Aplicationp ID [%s] is not support", appID)
 				}
 			}
 
@@ -249,7 +249,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 							if exist {
 								curDPNode.DownLinkTunnel.PDR.FAR.ForwardingParameters.ForwardingPolicyID = routeProf.ForwardingPolicyID
 							} else {
-								logger.PduSessLog.Errorln("Route Profile ID [%s] is not support", routeToLoc.RouteProfId)
+								logger.PduSessLog.Errorf("Route Profile ID [%s] is not support", routeToLoc.RouteProfId)
 							}
 						}
 					}

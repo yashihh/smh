@@ -90,7 +90,7 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 			case nasMessage.PDUSessionIDUL:
 				logger.GsmLog.Infoln("Didn't Implement container type PDUSessionIDUL")
 			default:
-				logger.GsmLog.Infoln("Unknown Container ID [%d]", container.ProtocolOrContainerID)
+				logger.GsmLog.Infof("Unknown Container ID [%d]", container.ProtocolOrContainerID)
 			}
 		}
 	}
