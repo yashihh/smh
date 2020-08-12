@@ -32,6 +32,9 @@ func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (er
 
 	teid := binary.BigEndian.Uint32(gtpTunnel.GTPTEID.Value)
 
+	ctx.Tunnel.ANInformation.IPAddress = gtpTunnel.TransportLayerAddress.Value.Bytes
+	ctx.Tunnel.ANInformation.TEID = teid
+
 	for _, dataPath := range ctx.Tunnel.DataPathPool {
 
 		if dataPath.Activated {
@@ -41,8 +44,8 @@ func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (er
 			DLPDR.FAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
 			dlOuterHeaderCreation := DLPDR.FAR.ForwardingParameters.OuterHeaderCreation
 			dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
-			dlOuterHeaderCreation.Teid = uint32(teid)
-			dlOuterHeaderCreation.Ipv4Address = gtpTunnel.TransportLayerAddress.Value.Bytes
+			dlOuterHeaderCreation.Teid = teid
+			dlOuterHeaderCreation.Ipv4Address = ctx.Tunnel.ANInformation.IPAddress.To4()
 		}
 
 	}

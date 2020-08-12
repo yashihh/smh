@@ -234,8 +234,17 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				routeToLoc := tcModel.RouteToLocs[0]
 
 				for curDPNode := createdDataPath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+					if curDPNode.DownLinkTunnel != nil && curDPNode.DownLinkTunnel.PDR != nil {
+						curDPNode.DownLinkTunnel.PDR.Precedence = uint32(newPccRule.Precedence)
+					}
+					if curDPNode.UpLinkTunnel != nil && curDPNode.UpLinkTunnel.PDR != nil {
+						curDPNode.UpLinkTunnel.PDR.Precedence = uint32(newPccRule.Precedence)
+					}
 					if curDPNode.IsAnchorUPF() {
-						curDPNode.DownLinkTunnel.PDR.FAR.ForwardingParameters = new(smf_context.ForwardingParameters)
+						curDLFAR := curDPNode.DownLinkTunnel.PDR.FAR
+						if curDLFAR.ForwardingParameters == nil {
+							curDLFAR.ForwardingParameters = new(smf_context.ForwardingParameters)
+						}
 						// specify N6 routing information
 						if routeInfo := routeToLoc.RouteInfo; routeInfo != nil {
 							locToRouteIP := net.ParseIP(routeInfo.Ipv4Addr)
@@ -252,6 +261,12 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 								logger.PduSessLog.Errorln("Route Profile ID [%s] is not support", routeToLoc.RouteProfId)
 							}
 						}
+					}
+					// get old TEID
+					//TODO: remove this if RAN tunnel issue is fixed, because the AN tunnel is only one
+					if curDPNode.IsANUPF() {
+						curDPNode.UpLinkTunnel.PDR.PDI.LocalFTeid.Teid =
+							smContext.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode.GetUpLinkPDR().PDI.LocalFTeid.Teid
 					}
 				}
 

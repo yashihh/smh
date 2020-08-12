@@ -443,6 +443,21 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 						Teid:                           nextDLTunnel.TEID,
 					},
 				}
+			} else {
+				if anIP := smContext.Tunnel.ANInformation.IPAddress; anIP != nil {
+					ANUPF := dataPath.FirstDPNode
+					DLPDR := ANUPF.DownLinkTunnel.PDR
+					DLFAR := DLPDR.FAR
+					DLFAR.ForwardingParameters = new(ForwardingParameters)
+					DLFAR.ForwardingParameters.DestinationInterface.InterfaceValue = pfcpType.DestinationInterfaceAccess
+					DLFAR.ForwardingParameters.NetworkInstance = []byte(smContext.Dnn)
+					DLFAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
+
+					dlOuterHeaderCreation := DLFAR.ForwardingParameters.OuterHeaderCreation
+					dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
+					dlOuterHeaderCreation.Teid = uint32(smContext.Tunnel.ANInformation.TEID)
+					dlOuterHeaderCreation.Ipv4Address = smContext.Tunnel.ANInformation.IPAddress.To4()
+				}
 			}
 		}
 		if curDataPathNode.DownLinkTunnel != nil {
