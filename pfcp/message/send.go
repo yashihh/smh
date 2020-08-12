@@ -17,7 +17,7 @@ func getSeqNumber() uint32 {
 	return seq
 }
 
-func SendPfcpAssociationSetupRequest(addr *net.UDPAddr) {
+func SendPfcpAssociationSetupRequest(upNodeID pfcpType.NodeID) {
 	pfcpMsg, err := BuildPfcpAssociationSetupRequest()
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Association Setup Request failed: %v", err)
@@ -35,10 +35,15 @@ func SendPfcpAssociationSetupRequest(addr *net.UDPAddr) {
 		Body: pfcpMsg,
 	}
 
+	addr := &net.UDPAddr{
+		IP:   upNodeID.ResolveNodeIdToIp(),
+		Port: pfcpUdp.PFCP_PORT,
+	}
+
 	udp.SendPfcp(message, addr)
 }
 
-func SendPfcpAssociationSetupResponse(addr *net.UDPAddr, cause pfcpType.Cause) {
+func SendPfcpAssociationSetupResponse(upNodeID pfcpType.NodeID, cause pfcpType.Cause) {
 	pfcpMsg, err := BuildPfcpAssociationSetupResponse(cause)
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Association Setup Response failed: %v", err)
@@ -56,10 +61,15 @@ func SendPfcpAssociationSetupResponse(addr *net.UDPAddr, cause pfcpType.Cause) {
 		Body: pfcpMsg,
 	}
 
+	addr := &net.UDPAddr{
+		IP:   upNodeID.ResolveNodeIdToIp(),
+		Port: pfcpUdp.PFCP_PORT,
+	}
+
 	udp.SendPfcp(message, addr)
 }
 
-func SendPfcpAssociationReleaseRequest(addr *net.UDPAddr) {
+func SendPfcpAssociationReleaseRequest(upNodeID pfcpType.NodeID) {
 	pfcpMsg, err := BuildPfcpAssociationReleaseRequest()
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Association Release Request failed: %v", err)
@@ -77,10 +87,15 @@ func SendPfcpAssociationReleaseRequest(addr *net.UDPAddr) {
 		Body: pfcpMsg,
 	}
 
+	addr := &net.UDPAddr{
+		IP:   upNodeID.ResolveNodeIdToIp(),
+		Port: pfcpUdp.PFCP_PORT,
+	}
+
 	udp.SendPfcp(message, addr)
 }
 
-func SendPfcpAssociationReleaseResponse(addr *net.UDPAddr, cause pfcpType.Cause) {
+func SendPfcpAssociationReleaseResponse(upNodeID pfcpType.NodeID, cause pfcpType.Cause) {
 	pfcpMsg, err := BuildPfcpAssociationReleaseResponse(cause)
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Association Release Response failed: %v", err)
@@ -96,6 +111,11 @@ func SendPfcpAssociationReleaseResponse(addr *net.UDPAddr, cause pfcpType.Cause)
 			SequenceNumber: 1,
 		},
 		Body: pfcpMsg,
+	}
+
+	addr := &net.UDPAddr{
+		IP:   upNodeID.ResolveNodeIdToIp(),
+		Port: pfcpUdp.PFCP_PORT,
 	}
 
 	udp.SendPfcp(message, addr)

@@ -71,10 +71,8 @@ func processUPTopology(upTopology *factory.UserPlaneInformation) {
 			//This is just a work around
 			var ip net.IP
 			if net.ParseIP(node.NodeID).To4() == nil {
-
 				ip = net.ParseIP(node.NodeID)
 			} else {
-
 				ip = net.ParseIP(node.NodeID).To4()
 			}
 

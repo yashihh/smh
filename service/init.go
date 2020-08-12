@@ -5,7 +5,6 @@ import (
 	"free5gc/lib/http2_util"
 	"free5gc/lib/openapi/models"
 	"free5gc/lib/path_util"
-	"free5gc/lib/pfcp/pfcpUdp"
 	"free5gc/src/app"
 	"free5gc/src/smf/callback"
 	"free5gc/src/smf/consumer"
@@ -19,7 +18,6 @@ import (
 	"free5gc/src/smf/pfcp/message"
 	"free5gc/src/smf/pfcp/udp"
 	"free5gc/src/smf/util"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -157,13 +155,8 @@ func (smf *SMF) Start() {
 	udp.Run(pfcp.Dispatch)
 
 	for _, upf := range context.SMF_Self().UserPlaneInformation.UPFs {
-		addr := new(net.UDPAddr)
-		addr.IP = net.IP(upf.NodeID.NodeIdValue)
-
-		addr.Port = pfcpUdp.PFCP_PORT
-
-		logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", addr.String())
-		message.SendPfcpAssociationSetupRequest(addr)
+		logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", upf.NodeID.NodeIdValue)
+		message.SendPfcpAssociationSetupRequest(upf.NodeID)
 	}
 
 	time.Sleep(1000 * time.Millisecond)
