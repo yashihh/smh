@@ -362,16 +362,21 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 				Forw: true,
 				Nocp: false,
 			}
-			ULPDR.FAR.ForwardingParameters = &ForwardingParameters{
+			ULFAR.ForwardingParameters = &ForwardingParameters{
 				DestinationInterface: pfcpType.DestinationInterface{
-					InterfaceValue: pfcpType.DestinationInterfaceAccess,
+					InterfaceValue: pfcpType.DestinationInterfaceCore,
 				},
 				NetworkInstance: []byte(smContext.Dnn),
 			}
 
+			if curDataPathNode.IsAnchorUPF() {
+				ULFAR.ForwardingParameters.
+					DestinationInterface.InterfaceValue = pfcpType.DestinationInterfaceSgiLanN6Lan
+			}
+
 			if nextULDest := curDataPathNode.Next(); nextULDest != nil {
 				nextULTunnel := nextULDest.UpLinkTunnel
-				ULPDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
+				ULFAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
 					OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationGtpUUdpIpv4,
 					Ipv4Address:                    nextULTunnel.DestEndPoint.UPF.UPIPInfo.Ipv4Address,
 					Teid:                           nextULTunnel.TEID,
@@ -437,6 +442,21 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 						Ipv4Address:                    nextDLDest.UPF.UPIPInfo.Ipv4Address,
 						Teid:                           nextDLTunnel.TEID,
 					},
+				}
+			} else {
+				if anIP := smContext.Tunnel.ANInformation.IPAddress; anIP != nil {
+					ANUPF := dataPath.FirstDPNode
+					DLPDR := ANUPF.DownLinkTunnel.PDR
+					DLFAR := DLPDR.FAR
+					DLFAR.ForwardingParameters = new(ForwardingParameters)
+					DLFAR.ForwardingParameters.DestinationInterface.InterfaceValue = pfcpType.DestinationInterfaceAccess
+					DLFAR.ForwardingParameters.NetworkInstance = []byte(smContext.Dnn)
+					DLFAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
+
+					dlOuterHeaderCreation := DLFAR.ForwardingParameters.OuterHeaderCreation
+					dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
+					dlOuterHeaderCreation.Teid = uint32(smContext.Tunnel.ANInformation.TEID)
+					dlOuterHeaderCreation.Ipv4Address = smContext.Tunnel.ANInformation.IPAddress.To4()
 				}
 			}
 		}
