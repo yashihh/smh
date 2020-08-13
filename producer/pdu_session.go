@@ -128,7 +128,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	}
 
 	if err := ApplySmPolicyFromDecision(smContext, &smPolicyDecision); err != nil {
-		logger.PduSessLog.Errorf("apply sm policy decision error: %v", err)
+		logger.PduSessLog.Errorf("apply sm policy decision error: %+v", err)
 	}
 
 	smContext.Tunnel = smf_context.NewUPTunnel()
@@ -160,7 +160,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	if defaultPath == nil {
 		smContext.SMContextState = smf_context.InActive
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
-		logger.PduSessLog.Warnln("Path for serve DNN[%s] not found\n", createData.Dnn)
+		logger.PduSessLog.Warnf("Path for serve DNN[%s] not found\n", createData.Dnn)
 
 		var httpResponse *http_wrapper.Response
 		if buf, err := smf_context.
@@ -287,7 +287,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 			smContext.HandlePDUSessionReleaseRequest(m.PDUSessionReleaseRequest)
 			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext); err != nil {
-				logger.PduSessLog.Errorln("Build GSM PDUSessionReleaseCommand failed: %s", err)
+				logger.PduSessLog.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
 				response.BinaryDataN1SmMessage = buf
 			}
@@ -298,7 +298,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
 
 			if buf, err := smf_context.BuildPDUSessionResourceReleaseCommandTransfer(smContext); err != nil {
-				logger.PduSessLog.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %s", err)
+				logger.PduSessLog.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %+v", err)
 			} else {
 				response.BinaryDataN2SmInformation = buf
 			}
@@ -462,7 +462,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 		if err := smf_context.
 			HandlePDUSessionResourceSetupResponseTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
-			logger.PduSessLog.Errorln("Handle PDUSessionResourceSetupResponseTransfer failed: %s", err)
+			logger.PduSessLog.Errorf("Handle PDUSessionResourceSetupResponseTransfer failed: %+v", err)
 		}
 		sendPFCPModification = true
 		smContext.SMContextState = smf_context.PFCPModification
@@ -520,11 +520,11 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 
 		if err := smf_context.HandlePathSwitchRequestTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
-			logger.PduSessLog.Errorf("Handle PathSwitchRequestTransfer:", err)
+			logger.PduSessLog.Errorf("Handle PathSwitchRequestTransfer: %+v", err)
 		}
 
 		if n2Buf, err := smf_context.BuildPathSwitchRequestAcknowledgeTransfer(smContext); err != nil {
-			logger.PduSessLog.Errorf("Build Path Switch Transfer Error(%s)", err)
+			logger.PduSessLog.Errorf("Build Path Switch Transfer Error(%+v)", err)
 		} else {
 			response.BinaryDataN2SmInformation = n2Buf
 		}
@@ -591,7 +591,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		smContext.HoState = models.HoState_PREPARING
 		if err := smf_context.HandleHandoverRequiredTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
-			logger.PduSessLog.Errorln("Handle HandoverRequiredTransfer failed: %s", err)
+			logger.PduSessLog.Errorf("Handle HandoverRequiredTransfer failed: %+v", err)
 		}
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_SETUP_REQ
 
@@ -619,7 +619,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		response.JsonData.HoState = models.HoState_PREPARED
 		if err :=
 			smf_context.HandleHandoverRequestAcknowledgeTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
-			logger.PduSessLog.Errorf("Handle HandoverRequestAcknowledgeTransfer failed: %s", err)
+			logger.PduSessLog.Errorf("Handle HandoverRequestAcknowledgeTransfer failed: %+v", err)
 		}
 
 		if n2Buf, err := smf_context.BuildHandoverCommandTransfer(smContext); err != nil {
@@ -762,7 +762,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				},
 			}
 			if buf, err := smf_context.BuildGSMPDUSessionReleaseReject(smContext); err != nil {
-				logger.PduSessLog.Errorln("build GSM PDUSessionReleaseReject failed: %s", err)
+				logger.PduSessLog.Errorf("build GSM PDUSessionReleaseReject failed: %+v", err)
 			} else {
 				errResponse.BinaryDataN1SmMessage = buf
 			}
@@ -855,7 +855,7 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 			},
 		}
 		if buf, err := smf_context.BuildGSMPDUSessionReleaseReject(smContext); err != nil {
-			logger.PduSessLog.Errorf("Build GSM PDUSessionReleaseReject failed: %s", err)
+			logger.PduSessLog.Errorf("Build GSM PDUSessionReleaseReject failed: %+v", err)
 		} else {
 			errResponse.BinaryDataN1SmMessage = buf
 		}
@@ -881,7 +881,7 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 			},
 		}
 		if buf, err := smf_context.BuildGSMPDUSessionReleaseReject(smContext); err != nil {
-			logger.PduSessLog.Errorln("Build GSM PDUSessionReleaseReject failed: %s", err)
+			logger.PduSessLog.Errorf("Build GSM PDUSessionReleaseReject failed: %+v", err)
 		} else {
 			errResponse.BinaryDataN1SmMessage = buf
 		}
@@ -897,7 +897,7 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPath) {
 
 	logger.PduSessLog.Infoln("Send PFCP Rule")
-	logger.PduSessLog.Infof("DataPath: %s", dataPath)
+	logger.PduSessLog.Infoln("DataPath: ", dataPath)
 	for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		pdrList := make([]*smf_context.PDR, 0, 2)
 		farList := make([]*smf_context.FAR, 0, 2)

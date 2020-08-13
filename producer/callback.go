@@ -220,7 +220,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 						}
 					}
 				} else {
-					logger.PduSessLog.Errorln("Aplicationp ID [%s] is not support", appID)
+					logger.PduSessLog.Errorf("Aplicationp ID [%s] is not support", appID)
 				}
 			}
 
