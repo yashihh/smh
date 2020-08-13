@@ -19,6 +19,10 @@ var upfPool sync.Map
 type UPTunnel struct {
 	PathIDGenerator *idgenerator.IDGenerator
 	DataPathPool    DataPathPool
+	ANInformation   struct {
+		IPAddress net.IP
+		TEID      uint32
+	}
 }
 
 type UPFStatus int

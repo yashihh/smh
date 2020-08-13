@@ -51,7 +51,7 @@ func HandlePfcpAssociationSetupRequest(msg *pfcpUdp.Message) {
 	cause := pfcpType.Cause{
 		CauseValue: pfcpType.CauseRequestAccepted,
 	}
-	pfcp_message.SendPfcpAssociationSetupResponse(msg.RemoteAddr, cause)
+	pfcp_message.SendPfcpAssociationSetupResponse(*nodeID, cause)
 }
 
 func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
@@ -103,7 +103,7 @@ func HandlePfcpAssociationReleaseRequest(msg *pfcpUdp.Message) {
 		cause.CauseValue = pfcpType.CauseNoEstablishedPfcpAssociation
 	}
 
-	pfcp_message.SendPfcpAssociationReleaseResponse(msg.RemoteAddr, cause)
+	pfcp_message.SendPfcpAssociationReleaseResponse(*pfcpMsg.NodeID, cause)
 }
 
 func HandlePfcpAssociationReleaseResponse(msg *pfcpUdp.Message) {
