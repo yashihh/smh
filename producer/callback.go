@@ -2,6 +2,7 @@ package producer
 
 import (
 	"context"
+	"fmt"
 	"free5gc/lib/flowdesc"
 	"free5gc/lib/http_wrapper"
 	"free5gc/lib/openapi/Nsmf_EventExposure"
@@ -38,7 +39,8 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	//[400 Bad Request] ErrorReport
 	httpResponse := http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
 	if err := ApplySmPolicyFromDecision(smContext, decision); err != nil {
-		return nil
+		//TODO: Fill the error body
+		httpResponse.Status = http.StatusBadRequest
 	}
 
 	return httpResponse
@@ -110,6 +112,7 @@ func handleSessionRule(smContext *smf_context.SMContext, id string, sessionRuleM
 
 func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *models.SmPolicyDecision) error {
 	logger.PduSessLog.Traceln("In ApplySmPolicyFromDecision")
+	var err error
 	smContext.SMContextState = smf_context.ModificationPending
 	selectedSessionRule := smContext.SelectedSessionRule()
 	if selectedSessionRule == nil { //No active session rule
@@ -141,6 +144,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 		}
 	}
 
+	pccRuleUpdated := false
 	for id, pccRuleModel := range decision.PccRules {
 		pccRule, exist := smContext.PCCRules[id]
 		//TODO: Change PccRules map[string]PccRule to map[string]*PccRule
@@ -220,7 +224,8 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 						}
 					}
 				} else {
-					logger.PduSessLog.Errorf("Aplicationp ID [%s] is not support", appID)
+					logger.PduSessLog.Errorf("No PFD matched for Aplicationp ID [%s]", appID)
+					continue
 				}
 			}
 
@@ -317,10 +322,16 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				//Send Notification to NEF/AF if UP path change type contains "LATE"
 				SendUpPathChgEventExposureNotification(tcModel.UpPathChgEvent, "LATE", &sourceTraRouting, &targetTraRouting)
 			}
+			pccRuleUpdated = true
 		}
 	}
 
-	smContext.SMContextState = smf_context.Active
+	if pccRuleUpdated {
+		smContext.SMContextState = smf_context.Active
+	} else {
+		//TODO: Follow spec to return the error reason
+		err = fmt.Errorf("No PCC rule updated")
+	}
 	logger.PduSessLog.Traceln("End of ApplySmPolicyFromDecision")
-	return nil
+	return err
 }
