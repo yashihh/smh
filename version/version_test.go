@@ -12,9 +12,16 @@ import (
 )
 
 func TestVersion(t *testing.T) {
-	t.Run("VERSION specified", func(t *testing.T) {
-		t.Parallel()
+	t.Run("VERSION not specified", func(t *testing.T) {
+		var expected = fmt.Sprintf(
+			"\n\tNot specify ldflags (which link version) during go build\n\tgo version: %s %s/%s",
+			runtime.Version(),
+			runtime.GOOS,
+			runtime.GOARCH)
+		assert.Equal(t, expected, version.GetVersion())
+	})
 
+	t.Run("VERSION specified", func(t *testing.T) {
 		var stdout []byte
 		stdout, _ = exec.Command("bash", "-c", "cd ../../.. && git describe --tags").Output()
 		version.VERSION = strings.TrimSuffix(string(stdout), "\n")
@@ -35,16 +42,6 @@ func TestVersion(t *testing.T) {
 			runtime.GOOS,
 			runtime.GOARCH)
 
-		assert.Equal(t, expected, version.GetVersion())
-	})
-
-	t.Run("VERSION not specified", func(t *testing.T) {
-		t.Parallel()
-		var expected = fmt.Sprintf(
-			"\n\tNot specify ldflags (which link version) during go build\n\tgo version: %s %s/%s",
-			runtime.Version(),
-			runtime.GOOS,
-			runtime.GOARCH)
 		assert.Equal(t, expected, version.GetVersion())
 	})
 }
