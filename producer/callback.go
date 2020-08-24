@@ -2,7 +2,6 @@ package producer
 
 import (
 	"context"
-	"fmt"
 	"free5gc/lib/flowdesc"
 	"free5gc/lib/http_wrapper"
 	"free5gc/lib/openapi/Nsmf_EventExposure"
@@ -330,7 +329,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 		smContext.SMContextState = smf_context.Active
 	} else {
 		//TODO: Follow spec to return the error reason
-		err = fmt.Errorf("No PCC rule updated")
+		logger.PduSessLog.Traceln("No PCC rule updated")
 	}
 	logger.PduSessLog.Traceln("End of ApplySmPolicyFromDecision")
 	return err
