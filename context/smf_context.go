@@ -53,7 +53,7 @@ type SMFContext struct {
 	SubscriberDataManagementClient *Nudm_SubscriberDataManagement.APIClient
 	DNNInfo                        map[string]factory.DNNInfo
 
-	UserPlaneInformation UserPlaneInformation
+	UserPlaneInformation *UserPlaneInformation
 	OnlySupportIPv4      bool
 	OnlySupportIPv6      bool
 	//*** For ULCL ** //
@@ -150,7 +150,7 @@ func InitSmfContext(config *factory.Config) {
 
 	smfContext.OnlySupportIPv4 = true
 
-	processUPTopology(&configuration.UserPlaneInformation)
+	smfContext.UserPlaneInformation = NewUserPlaneInformation(&configuration.UserPlaneInformation)
 
 	SetupNFProfile(config)
 }
@@ -190,5 +190,5 @@ func SMF_Self() *SMFContext {
 }
 
 func GetUserPlaneInformation() *UserPlaneInformation {
-	return &smfContext.UserPlaneInformation
+	return smfContext.UserPlaneInformation
 }

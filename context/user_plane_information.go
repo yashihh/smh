@@ -52,7 +52,8 @@ func AllocateUPFID() {
 	}
 }
 
-func processUPTopology(upTopology *factory.UserPlaneInformation) {
+// NewUserPlaneInformation process the configuration then returns a new instance of UserPlaneInformation
+func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlaneInformation {
 	nodePool := make(map[string]*UPNode)
 	upfPool := make(map[string]*UPNode)
 	anPool := make(map[string]*UPNode)
@@ -121,13 +122,17 @@ func processUPTopology(upTopology *factory.UserPlaneInformation) {
 		upfNode.UPF = NewUPF(&upfNode.NodeID)
 	}
 
-	smfContext.UserPlaneInformation.UPNodes = nodePool
-	smfContext.UserPlaneInformation.UPFs = upfPool
-	smfContext.UserPlaneInformation.AccessNetwork = anPool
-	smfContext.UserPlaneInformation.UPFIPToName = upfIPMap
-	smfContext.UserPlaneInformation.UPFsID = make(map[string]string)
-	smfContext.UserPlaneInformation.UPFsIPtoID = make(map[string]string)
-	smfContext.UserPlaneInformation.DefaultUserPlanePath = make(map[string][]*UPNode)
+	userplaneInformation := &UserPlaneInformation{
+		UPNodes:              nodePool,
+		UPFs:                 upfPool,
+		AccessNetwork:        anPool,
+		UPFIPToName:          upfIPMap,
+		UPFsID:               make(map[string]string),
+		UPFsIPtoID:           make(map[string]string),
+		DefaultUserPlanePath: make(map[string][]*UPNode),
+	}
+
+	return userplaneInformation
 }
 
 func (upi *UserPlaneInformation) GetUPFNameByIp(ip string) string {
