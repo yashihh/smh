@@ -345,7 +345,7 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 				// Temporarily assign SMF itself, TODO: TS 23.502 4.2.3.3 5. Namf_Communication_N1N2TransferFailureNotification
 				N1n2FailureTxfNotifURI: fmt.Sprintf("%s://%s:%d",
 					smf_context.SMF_Self().URIScheme,
-					smf_context.SMF_Self().HTTPAddress,
+					smf_context.SMF_Self().RegisterIPv4,
 					smf_context.SMF_Self().HTTPPort),
 				N2InfoContainer: &models.N2InfoContainer{
 					N2InformationClass: models.N2InformationClass_SM,

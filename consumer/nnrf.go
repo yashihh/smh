@@ -25,7 +25,7 @@ func SendNFRegistration() error {
 		NfInstanceId:  smf_context.SMF_Self().NfInstanceID,
 		NfType:        models.NfType_SMF,
 		NfStatus:      models.NfStatus_REGISTERED,
-		Ipv4Addresses: []string{smf_context.SMF_Self().HTTPAddress},
+		Ipv4Addresses: []string{smf_context.SMF_Self().RegisterIPv4},
 		NfServices:    smf_context.NFServices,
 		SmfInfo:       smf_context.SmfInfo,
 	}
