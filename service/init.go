@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"free5gc/lib/http2_util"
+	"free5gc/lib/logger_util"
 	"free5gc/lib/openapi/models"
 	"free5gc/lib/path_util"
 	"free5gc/src/app"
@@ -23,7 +24,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -122,7 +122,7 @@ func (smf *SMF) Start() {
 	context.InitSMFUERouting(&factory.UERoutingConfig)
 
 	initLog.Infoln("Server started")
-	router := gin.Default()
+	router := logger_util.NewGinWithLogrus(logger.GinLog)
 
 	err := consumer.SendNFRegistration()
 

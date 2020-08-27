@@ -2,17 +2,17 @@ package pdusession
 
 import (
 	"free5gc/lib/http2_util"
+	"free5gc/lib/logger_util"
 	"free5gc/lib/path_util"
+	"free5gc/src/smf/logger"
 	"free5gc/src/smf/pfcp"
 	"free5gc/src/smf/pfcp/udp"
 	"log"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
 func DummyServer() {
-	router := gin.Default()
+	router := logger_util.NewGinWithLogrus(logger.GinLog)
 
 	AddService(router)
 
