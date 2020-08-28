@@ -19,6 +19,7 @@ var GsmLog *logrus.Entry
 var PfcpLog *logrus.Entry
 var PduSessLog *logrus.Entry
 var CtxLog *logrus.Entry
+var GinLog *logrus.Entry
 
 func init() {
 	log = logrus.New()
@@ -63,6 +64,7 @@ func init() {
 	PduSessLog = log.WithFields(logrus.Fields{"SMF": "pdu_session"})
 	GsmLog = log.WithFields(logrus.Fields{"SMF": "GSM"})
 	CtxLog = log.WithFields(logrus.Fields{"SMF": "Context"})
+	GinLog = log.WithFields(logrus.Fields{"SMF": "GIN"})
 }
 
 func SetLogLevel(level logrus.Level) {
