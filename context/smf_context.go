@@ -32,7 +32,7 @@ type SMFContext struct {
 	URIScheme    models.UriScheme
 	BindingIPv4  string
 	RegisterIPv4 string
-	HTTPPort     int
+	SBIPort      int
 	CPNodeID     pfcpType.NodeID
 
 	UDMProfile models.NfProfile
@@ -94,12 +94,12 @@ func InitSmfContext(config *factory.Config) {
 	} else {
 		smfContext.URIScheme = models.UriScheme(sbi.Scheme)
 		smfContext.RegisterIPv4 = "127.0.0.1" // default localhost
-		smfContext.HTTPPort = 29502           // default port
+		smfContext.SBIPort = 29502            // default port
 		if sbi.RegisterIPv4 != "" {
 			smfContext.RegisterIPv4 = sbi.RegisterIPv4
 		}
 		if sbi.Port != 0 {
-			smfContext.HTTPPort = sbi.Port
+			smfContext.SBIPort = sbi.Port
 		}
 
 		if tls := sbi.TLS; tls != nil {

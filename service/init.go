@@ -2,7 +2,16 @@ package service
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
+
 	"free5gc/lib/http2_util"
+	"free5gc/lib/logger_util"
 	"free5gc/lib/openapi/models"
 	"free5gc/lib/path_util"
 	"free5gc/src/app"
@@ -18,14 +27,6 @@ import (
 	"free5gc/src/smf/pfcp/message"
 	"free5gc/src/smf/pfcp/udp"
 	"free5gc/src/smf/util"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 )
 
 type SMF struct{}
@@ -122,7 +123,7 @@ func (smf *SMF) Start() {
 	context.InitSMFUERouting(&factory.UERoutingConfig)
 
 	initLog.Infoln("Server started")
-	router := gin.Default()
+	router := logger_util.NewGinWithLogrus(logger.GinLog)
 
 	err := consumer.SendNFRegistration()
 
@@ -161,7 +162,7 @@ func (smf *SMF) Start() {
 
 	time.Sleep(1000 * time.Millisecond)
 
-	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().BindingIPv4, context.SMF_Self().HTTPPort)
+	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().BindingIPv4, context.SMF_Self().SBIPort)
 	server, err := http2_util.NewServer(HTTPAddr, util.SmfLogPath, router)
 
 	if server == nil {
