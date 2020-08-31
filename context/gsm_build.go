@@ -27,7 +27,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 	pDUSessionEstablishmentAccept.SetPDUSessionID(uint8(smContext.PDUSessionID))
 	pDUSessionEstablishmentAccept.SetMessageType(nas.MsgTypePDUSessionEstablishmentAccept)
 	pDUSessionEstablishmentAccept.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
-	pDUSessionEstablishmentAccept.SetPTI(0x00)
+	pDUSessionEstablishmentAccept.SetPTI(smContext.Pti)
 
 	selectedPDUSessionType := nasConvert.PDUSessionTypeToModels(smContext.SelectedPDUSessionType)
 	if selectedPDUSessionType == models.PduSessionType_IPV4_V6 {
@@ -58,6 +58,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 			Identifier:    0x01,
 			DQR:           0x01,
 			OperationCode: OperationCodeCreateNewQoSRule,
+			Precedence:    0xff,
 			QFI:           uint8(authDefQos.Var5qi),
 			PacketFilterList: []PacketFilter{
 				{
@@ -86,7 +87,8 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 		pDUSessionEstablishmentAccept.PDUAddress.SetPDUAddressInformation(addr)
 	}
 
-	pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions = nasType.NewAuthorizedQosFlowDescriptions(nasMessage.PDUSessionEstablishmentAcceptAuthorizedQosFlowDescriptionsType)
+	pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions =
+		nasType.NewAuthorizedQosFlowDescriptions(nasMessage.PDUSessionEstablishmentAcceptAuthorizedQosFlowDescriptionsType)
 	pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions.SetLen(6)
 	pDUSessionEstablishmentAccept.SetQoSFlowDescriptions([]uint8{uint8(authDefQos.Var5qi), 0x20, 0x41, 0x01, 0x01, 0x09})
 
@@ -194,7 +196,7 @@ func BuildGSMPDUSessionReleaseCommand(smContext *SMContext) ([]byte, error) {
 	pDUSessionReleaseCommand.SetMessageType(nas.MsgTypePDUSessionReleaseCommand)
 	pDUSessionReleaseCommand.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
 	pDUSessionReleaseCommand.SetPDUSessionID(uint8(smContext.PDUSessionID))
-	pDUSessionReleaseCommand.SetPTI(0x00)
+	pDUSessionReleaseCommand.SetPTI(smContext.Pti)
 	pDUSessionReleaseCommand.SetCauseValue(0x0)
 
 	return m.PlainNasEncode()
@@ -210,7 +212,7 @@ func BuildGSMPDUSessionModificationCommand(smContext *SMContext) ([]byte, error)
 
 	pDUSessionModificationCommand.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
 	pDUSessionModificationCommand.SetPDUSessionID(uint8(smContext.PDUSessionID))
-	pDUSessionModificationCommand.SetPTI(0x00)
+	pDUSessionModificationCommand.SetPTI(smContext.Pti)
 	pDUSessionModificationCommand.SetMessageType(nas.MsgTypePDUSessionModificationCommand)
 	// pDUSessionModificationCommand.SetQosRule()
 	// pDUSessionModificationCommand.AuthorizedQosRules.SetLen()
@@ -237,7 +239,7 @@ func BuildGSMPDUSessionReleaseReject(smContext *SMContext) ([]byte, error) {
 
 	pDUSessionReleaseReject.SetPDUSessionID(uint8(smContext.PDUSessionID))
 
-	pDUSessionReleaseReject.SetPTI(0x00)
+	pDUSessionReleaseReject.SetPTI(smContext.Pti)
 	// TODO: fix to real value
 	pDUSessionReleaseReject.SetCauseValue(nasMessage.Cause5GSMRequestRejectedUnspecified)
 

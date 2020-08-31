@@ -10,6 +10,10 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 	// Retrieve PDUSessionID
 	smContext.PDUSessionID = int32(req.PDUSessionID.GetPDUSessionID())
 	logger.GsmLog.Infoln("In HandlePDUSessionEstablishmentRequest")
+
+	// Retrieve PTI (Procedure transaction identity)
+	smContext.Pti = req.GetPTI()
+
 	// Handle PDUSessionType
 	if req.PDUSessionType != nil {
 		requestedPDUSessionType := req.PDUSessionType.GetPDUSessionTypeValue()
@@ -86,7 +90,9 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 			case nasMessage.ReliableDataServiceRequestIndicatorUL:
 				logger.GsmLog.Infoln("Didn't Implement container type ReliableDataServiceRequestIndicatorUL")
 			case nasMessage.AdditionalAPNRateControlForExceptionDataSupportIndicatorUL:
-				logger.GsmLog.Infoln("Didn't Implement container type AdditionalAPNRateControlForExceptionDataSupportIndicatorUL")
+				logger.GsmLog.Infoln(
+					"Didn't Implement container type AdditionalAPNRateControlForExceptionDataSupportIndicatorUL",
+				)
 			case nasMessage.PDUSessionIDUL:
 				logger.GsmLog.Infoln("Didn't Implement container type PDUSessionIDUL")
 			case nasMessage.EthernetFramePayloadMTURequestUL:
@@ -98,7 +104,9 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 			case nasMessage.QoSRulesWithTheLengthOfTwoOctetsSupportIndicatorUL:
 				logger.GsmLog.Infoln("Didn't Implement container type QoSRulesWithTheLengthOfTwoOctetsSupportIndicatorUL")
 			case nasMessage.QoSFlowDescriptionsWithTheLengthOfTwoOctetsSupportIndicatorUL:
-				logger.GsmLog.Infoln("Didn't Implement container type QoSFlowDescriptionsWithTheLengthOfTwoOctetsSupportIndicatorUL")
+				logger.GsmLog.Infoln(
+					"Didn't Implement container type QoSFlowDescriptionsWithTheLengthOfTwoOctetsSupportIndicatorUL",
+				)
 			case nasMessage.LinkControlProtocolUL:
 				logger.GsmLog.Infoln("Didn't Implement container type LinkControlProtocolUL")
 			case nasMessage.PushAccessControlProtocolUL:
@@ -118,4 +126,7 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 
 func (smContext *SMContext) HandlePDUSessionReleaseRequest(req *nasMessage.PDUSessionReleaseRequest) {
 	logger.GsmLog.Infof("Handle Pdu Session Release Request")
+
+	// Retrieve PTI (Procedure transaction identity)
+	smContext.Pti = req.GetPTI()
 }

@@ -103,6 +103,9 @@ type SMContext struct {
 	SessionRules       map[string]*SessionRule
 	TrafficControlPool map[string]*TrafficControlData
 
+	// NAS
+	Pti uint8
+
 	//PCO Related
 	ProtocolConfigurationOptions *ProtocolConfigurationOptions
 }
