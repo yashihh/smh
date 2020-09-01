@@ -2,6 +2,14 @@ package service
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
+
 	"free5gc/lib/http2_util"
 	"free5gc/lib/logger_util"
 	"free5gc/lib/openapi/models"
@@ -19,13 +27,6 @@ import (
 	"free5gc/src/smf/pfcp/message"
 	"free5gc/src/smf/pfcp/udp"
 	"free5gc/src/smf/util"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 )
 
 type SMF struct{}
@@ -161,7 +162,7 @@ func (smf *SMF) Start() {
 
 	time.Sleep(1000 * time.Millisecond)
 
-	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().HTTPAddress, context.SMF_Self().HTTPPort)
+	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().BindingIPv4, context.SMF_Self().SBIPort)
 	server, err := http2_util.NewServer(HTTPAddr, util.SmfLogPath, router)
 
 	if server == nil {

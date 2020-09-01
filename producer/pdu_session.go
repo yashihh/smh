@@ -99,8 +99,8 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smPolicyData.PduSessionId = smContext.PDUSessionID
 	smPolicyData.NotificationUri = fmt.Sprintf("%s://%s:%d/nsmf-callback/sm-policies/%s",
 		smf_context.SMF_Self().URIScheme,
-		smf_context.SMF_Self().HTTPAddress,
-		smf_context.SMF_Self().HTTPPort,
+		smf_context.SMF_Self().RegisterIPv4,
+		smf_context.SMF_Self().SBIPort,
 		smContext.Ref,
 	)
 	smPolicyData.Dnn = smContext.Dnn
