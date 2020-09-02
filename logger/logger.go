@@ -1,11 +1,10 @@
 package logger
 
 import (
-	"fmt"
 	"os"
-	"runtime"
-	"strings"
+	"time"
 
+	formatter "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 
 	"free5gc/lib/logger_conf"
@@ -23,29 +22,14 @@ var GinLog *logrus.Entry
 
 func init() {
 	log = logrus.New()
-	log.SetReportCaller(true)
+	log.SetReportCaller(false)
 
-	log.Formatter = &logrus.TextFormatter{
-		ForceColors:               true,
-		DisableColors:             false,
-		EnvironmentOverrideColors: false,
-		DisableTimestamp:          false,
-		FullTimestamp:             true,
-		TimestampFormat:           "",
-		DisableSorting:            false,
-		SortingFunc:               nil,
-		DisableLevelTruncation:    false,
-		QuoteEmptyFields:          false,
-		FieldMap:                  nil,
-		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			repopath, wdErr := os.Getwd()
-			if wdErr != nil {
-				return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("[filename error: %s]:%d", wdErr, f.Line)
-			}
-			repopath = strings.Replace(repopath, "/bin", "", 1)
-			filename := strings.Replace(f.File, repopath, "", -1)
-			return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
-		},
+	log.Formatter = &formatter.Formatter{
+		TimestampFormat: time.RFC3339,
+		TrimMessages:    true,
+		NoFieldsSpace:   true,
+		HideKeys:        true,
+		FieldsOrder:     []string{"component", "category"},
 	}
 
 	free5gcLogHook, err := logger_util.NewFileHook(logger_conf.Free5gcLogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
@@ -58,13 +42,13 @@ func init() {
 		log.Hooks.Add(selfLogHook)
 	}
 
-	AppLog = log.WithFields(logrus.Fields{"SMF": "app"})
-	InitLog = log.WithFields(logrus.Fields{"SMF": "init"})
-	PfcpLog = log.WithFields(logrus.Fields{"SMF": "pfcp"})
-	PduSessLog = log.WithFields(logrus.Fields{"SMF": "pdu_session"})
-	GsmLog = log.WithFields(logrus.Fields{"SMF": "GSM"})
-	CtxLog = log.WithFields(logrus.Fields{"SMF": "Context"})
-	GinLog = log.WithFields(logrus.Fields{"SMF": "GIN"})
+	AppLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "App"})
+	InitLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Init"})
+	PfcpLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Pfcp"})
+	PduSessLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "PduSess"})
+	GsmLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "GSM"})
+	CtxLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Context"})
+	GinLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "GIN"})
 }
 
 func SetLogLevel(level logrus.Level) {
