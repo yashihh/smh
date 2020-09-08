@@ -106,8 +106,9 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 			for _, dnnInfo := range *node.SNssaiInfo.DnnSmfInfoList {
 				upNode.UPF.SNssaiInfo.DnnList = append(upNode.UPF.SNssaiInfo.DnnList, dnnInfo.Dnn)
 			}
-			logger.InitLog.Infoln("UPNode name: ", name)
-			logger.InitLog.Infoln("Snssai: ", upNode.UPF.SNssaiInfo)
+			logger.InitLog.Traceln("UPNode name: ", name)
+			logger.InitLog.Traceln("UPFIP: ", upNode.UPF.GetUPFIP())
+			logger.InitLog.Traceln("Snssai: ", upNode.UPF.SNssaiInfo)
 			upfPool[name] = upNode
 		default:
 			logger.InitLog.Warningf("invalid UPNodeType: %s\n", upNode.Type)
@@ -165,8 +166,8 @@ func (upi *UserPlaneInformation) GetUPFIDByIP(ip string) string {
 
 func (upi *UserPlaneInformation) GetDefaultUserPlanePathByDNN(selection *UPFSelectionParams) (path UPPath) {
 	path, pathExist := upi.DefaultUserPlanePath[selection.String()]
-	logger.CtxLog.Infoln("In GetDefaultUserPlanePathByDNN")
-	logger.CtxLog.Infoln("selection: ", selection.String())
+	logger.CtxLog.Traceln("In GetDefaultUserPlanePathByDNN")
+	logger.CtxLog.Traceln("selection: ", selection.String())
 	if pathExist {
 		return
 	} else {
@@ -269,19 +270,19 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 
 	path, pathExist := getPathBetween(source, destination, visited, selection)
 
-	if path[0].Type == UPNODE_AN {
-		path = path[1:]
+	if pathExist {
+		if path[0].Type == UPNODE_AN {
+			path = path[1:]
+		}
+		upi.DefaultUserPlanePath[selection.String()] = path
 	}
-	upi.DefaultUserPlanePath[selection.String()] = path
+
 	return pathExist
 }
 
 func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool, selection *UPFSelectionParams) (path []*UPNode, pathExist bool) {
 
 	visited[cur] = true
-	if cur.Type != UPNODE_AN {
-		logger.CtxLog.Infoln("CurUPF IP: ", cur.UPF.GetUPFIP())
-	}
 
 	if reflect.DeepEqual(*cur, *dest) {
 
@@ -296,7 +297,6 @@ func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool, selecti
 	for _, nodes := range cur.Links {
 
 		if !visited[nodes] {
-			logger.CtxLog.Infoln("VisitedUPF IP: ", nodes.UPF.GetUPFIP())
 			if selectedSNssai.Sst != nodes.UPF.SNssaiInfo.SNssai.Sst {
 				visited[nodes] = true
 				continue
