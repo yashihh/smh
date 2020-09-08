@@ -94,7 +94,6 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 					NodeIdValue: []byte(node.NodeID),
 				}
 			}
-
 			upNode.UPF = NewUPF(&upNode.NodeID)
 			upNode.UPF.SNssaiInfo = SnssaiInfo{
 				SNssai: SNssai{
@@ -164,15 +163,16 @@ func (upi *UserPlaneInformation) GetUPFIDByIP(ip string) string {
 	return upi.UPFsIPtoID[ip]
 }
 
-func (upi *UserPlaneInformation) GetDefaultUserPlanePathByDNN(dnn string) (path UPPath) {
-	path, pathExist := upi.DefaultUserPlanePath[dnn]
-
+func (upi *UserPlaneInformation) GetDefaultUserPlanePathByDNN(selection *UPFSelectionParams) (path UPPath) {
+	path, pathExist := upi.DefaultUserPlanePath[selection.String()]
+	logger.CtxLog.Infoln("In GetDefaultUserPlanePathByDNN")
+	logger.CtxLog.Infoln("selection: ", selection.String())
 	if pathExist {
 		return
 	} else {
-		pathExist = upi.GenerateDefaultPath(dnn)
+		pathExist = upi.GenerateDefaultPath(selection)
 		if pathExist {
-			return upi.DefaultUserPlanePath[dnn]
+			return upi.DefaultUserPlanePath[selection.String()]
 		}
 	}
 	return nil
@@ -224,7 +224,7 @@ func GenerateDataPath(upPath UPPath, smContext *SMContext) *DataPath {
 	return dataPath
 }
 
-func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) bool {
+func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionParams) bool {
 
 	var source *UPNode
 	var destination *UPNode
@@ -245,8 +245,9 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) bool {
 	for _, node := range upi.UPFs {
 
 		if node.UPF.UPIPInfo.NetworkInstance != nil {
-			node_dnn := string(node.UPF.UPIPInfo.NetworkInstance)
-			if node_dnn == dnn {
+			nodeDnn := string(node.UPF.UPIPInfo.NetworkInstance)
+			serviceType := node.UPF.SNssaiInfo.SNssai.Sst
+			if nodeDnn == selection.Dnn && serviceType == selection.SNssai.Sst {
 				destination = node
 				break
 			}
@@ -254,7 +255,8 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) bool {
 	}
 
 	if destination == nil {
-		logger.CtxLog.Errorf("Can't find UPF with DNN [%s]\n", dnn)
+		logger.CtxLog.Errorf("Can't find UPF with DNN [%s]\n", selection.Dnn)
+		logger.CtxLog.Errorf("Can't find UPF with Service Type [%d]\n", selection.SNssai.Sst)
 		return false
 	}
 
@@ -270,7 +272,7 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) bool {
 	if path[0].Type == UPNODE_AN {
 		path = path[1:]
 	}
-	upi.DefaultUserPlanePath[dnn] = path
+	upi.DefaultUserPlanePath[selection.String()] = path
 	return pathExist
 }
 
