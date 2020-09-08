@@ -269,7 +269,7 @@ func (dataPathPool DataPathPool) GetDefaultPath() (dataPath *DataPath) {
 	return
 }
 
-func (dataPath *DataPath) ToString() string {
+func (dataPath *DataPath) String() string {
 
 	firstDPNode := dataPath.FirstDPNode
 
@@ -310,7 +310,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 
 	firstDPNode := dataPath.FirstDPNode
 	logger.PduSessLog.Traceln("In ActivateTunnelAndPDR")
-	logger.PduSessLog.Traceln(dataPath.ToString())
+	logger.PduSessLog.Traceln(dataPath.String())
 	//Activate Tunnels
 	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		logger.PduSessLog.Traceln("Current DP Node IP: ", curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String())
