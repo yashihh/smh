@@ -95,6 +95,20 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 				}
 			}
 
+			upNode.UPF = NewUPF(&upNode.NodeID)
+			upNode.UPF.SNssaiInfo = SnssaiInfo{
+				SNssai: SNssai{
+					Sst: node.SNssaiInfo.SNssai.Sst,
+					Sd:  node.SNssaiInfo.SNssai.Sd,
+				},
+				DnnList: make([]string, 0),
+			}
+
+			for _, dnnInfo := range *node.SNssaiInfo.DnnSmfInfoList {
+				upNode.UPF.SNssaiInfo.DnnList = append(upNode.UPF.SNssaiInfo.DnnList, dnnInfo.Dnn)
+			}
+			logger.InitLog.Infoln("UPNode name: ", name)
+			logger.InitLog.Infoln("Snssai: ", upNode.UPF.SNssaiInfo)
 			upfPool[name] = upNode
 		default:
 			logger.InitLog.Warningf("invalid UPNodeType: %s\n", upNode.Type)
@@ -115,11 +129,6 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 		}
 		nodeA.Links = append(nodeA.Links, nodeB)
 		nodeB.Links = append(nodeB.Links, nodeA)
-	}
-
-	//Initialize each UPF
-	for _, upfNode := range upfPool {
-		upfNode.UPF = NewUPF(&upfNode.NodeID)
 	}
 
 	userplaneInformation := &UserPlaneInformation{

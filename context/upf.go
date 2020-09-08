@@ -34,10 +34,11 @@ const (
 )
 
 type UPF struct {
-	uuid      uuid.UUID
-	NodeID    pfcpType.NodeID
-	UPIPInfo  pfcpType.UserPlaneIPResourceInformation
-	UPFStatus UPFStatus
+	uuid       uuid.UUID
+	NodeID     pfcpType.NodeID
+	UPIPInfo   pfcpType.UserPlaneIPResourceInformation
+	UPFStatus  UPFStatus
+	SNssaiInfo SnssaiInfo
 
 	pdrPool sync.Map
 	farPool sync.Map
