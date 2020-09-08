@@ -96,7 +96,7 @@ func NewUEPreConfigPaths(SUPI string, paths []factory.Path) (*UEPreConfigPaths, 
 		}
 
 		logger.CtxLog.Traceln("New data path added")
-		logger.CtxLog.Traceln("\n" + dataPath.ToString() + "\n")
+		logger.CtxLog.Traceln("\n" + dataPath.String() + "\n")
 	}
 
 	uePreConfigPaths = &UEPreConfigPaths{

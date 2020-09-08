@@ -267,7 +267,7 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 		visited[upNode] = false
 	}
 
-	path, pathExist := getPathBetween(source, destination, visited)
+	path, pathExist := getPathBetween(source, destination, visited, selection)
 
 	if path[0].Type == UPNODE_AN {
 		path = path[1:]
@@ -276,9 +276,12 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 	return pathExist
 }
 
-func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool) (path []*UPNode, pathExist bool) {
+func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool, selection *UPFSelectionParams) (path []*UPNode, pathExist bool) {
 
 	visited[cur] = true
+	if cur.Type != UPNODE_AN {
+		logger.CtxLog.Infoln("CurUPF IP: ", cur.UPF.GetUPFIP())
+	}
 
 	if reflect.DeepEqual(*cur, *dest) {
 
@@ -288,10 +291,18 @@ func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool) (path [
 		return
 	}
 
+	selectedSNssai := selection.SNssai
+
 	for _, nodes := range cur.Links {
 
 		if !visited[nodes] {
-			path_tail, path_exist := getPathBetween(nodes, dest, visited)
+			logger.CtxLog.Infoln("VisitedUPF IP: ", nodes.UPF.GetUPFIP())
+			if selectedSNssai.Sst != nodes.UPF.SNssaiInfo.SNssai.Sst {
+				visited[nodes] = true
+				continue
+			}
+
+			path_tail, path_exist := getPathBetween(nodes, dest, visited, selection)
 
 			if path_exist {
 				path = make([]*UPNode, 0)
