@@ -116,7 +116,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 	if selectedSessionRule == nil { //No active session rule
 		//Update session rules from decision
 		for id, sessRuleModel := range decision.SessRules {
-			handleSessionRule(smContext, id, &sessRuleModel)
+			handleSessionRule(smContext, id, sessRuleModel)
 		}
 		for id := range smContext.SessionRules {
 			// Randomly choose a session rule to activate
@@ -127,7 +127,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 		selectedSessionRuleID := selectedSessionRule.SessionRuleID
 		//Update session rules from decision
 		for id, sessRuleModel := range decision.SessRules {
-			handleSessionRule(smContext, id, &sessRuleModel)
+			handleSessionRule(smContext, id, sessRuleModel)
 		}
 		if _, exist := smContext.SessionRules[selectedSessionRuleID]; !exist {
 			//Original active session rule is deleted; choose again
@@ -162,7 +162,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				logger.PduSessLog.Infof("Install PCCRule[%s]", id)
 			}
 
-			newPccRule := smf_context.NewPCCRuleFromModel(&pccRuleModel)
+			newPccRule := smf_context.NewPCCRuleFromModel(pccRuleModel)
 
 			// Create data traffic for the new PCC Rule
 			createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(smContext.Dnn)
@@ -230,7 +230,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 			//Set reference to traffic control data
 			if len(pccRuleModel.RefTcData) != 0 && pccRuleModel.RefTcData[0] != "" {
 				refTcID := pccRuleModel.RefTcData[0]
-				tcModel = decision.TraffContDecs[refTcID]
+				tcModel = *decision.TraffContDecs[refTcID]
 				newTcData := smf_context.NewTrafficControlDataFromModel(&tcModel)
 
 				routeToLoc := tcModel.RouteToLocs[0]
