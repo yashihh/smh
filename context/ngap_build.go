@@ -133,9 +133,9 @@ func BuildPathSwitchRequestAcknowledgeTransfer(ctx *SMContext) ([]byte, error) {
 	integrityProtectionInd := securityIndication.IntegrityProtectionIndication.Value
 	if integrityProtectionInd == ngapType.IntegrityProtectionIndicationPresentRequired ||
 		integrityProtectionInd == ngapType.IntegrityProtectionIndicationPresentPreferred {
-		securityIndication.MaximumIntegrityProtectedDataRate = new(ngapType.MaximumIntegrityProtectedDataRate)
+		securityIndication.MaximumIntegrityProtectedDataRateUL = new(ngapType.MaximumIntegrityProtectedDataRate)
 		// TODO: use real value
-		securityIndication.MaximumIntegrityProtectedDataRate.Value =
+		securityIndication.MaximumIntegrityProtectedDataRateUL.Value =
 			ngapType.MaximumIntegrityProtectedDataRatePresentBitrate64kbs
 	}
 
