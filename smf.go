@@ -11,13 +11,16 @@ package main
 
 import (
 	"fmt"
+	"os"
+
+	"bitbucket.org/free5gc-team/version"
+
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
+
 	"free5gc/src/app"
 	"free5gc/src/smf/logger"
 	"free5gc/src/smf/service"
-	"free5gc/src/smf/version"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
-	"os"
 )
 
 var SMF = &service.SMF{}
