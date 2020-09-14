@@ -143,7 +143,7 @@ type UPNode struct {
 	NodeID     string                   `yaml:"node_id"`
 	ANIP       string                   `yaml:"an_ip"`
 	Dnn        string                   `yaml:"dnn"`
-	SNssaiInfo models.SnssaiSmfInfoItem `yaml:"snssai_info,omitempty"`
+	SNssaiInfo models.SnssaiUpfInfoItem `yaml:"snssai_info,omitempty"`
 }
 
 type UPLink struct {

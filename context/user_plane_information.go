@@ -103,7 +103,7 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 				DnnList: make([]string, 0),
 			}
 
-			for _, dnnInfo := range *node.SNssaiInfo.DnnSmfInfoList {
+			for _, dnnInfo := range node.SNssaiInfo.DnnUpfInfoList {
 				upNode.UPF.SNssaiInfo.DnnList = append(upNode.UPF.SNssaiInfo.DnnList, dnnInfo.Dnn)
 			}
 			logger.InitLog.Traceln("UPNode name: ", name)
