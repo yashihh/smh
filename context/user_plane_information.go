@@ -280,7 +280,8 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 	return pathExist
 }
 
-func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool, selection *UPFSelectionParams) (path []*UPNode, pathExist bool) {
+func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool,
+	selection *UPFSelectionParams) (path []*UPNode, pathExist bool) {
 
 	visited[cur] = true
 

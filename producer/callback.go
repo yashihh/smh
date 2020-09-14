@@ -62,7 +62,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 	if selectedSessionRule == nil { //No active session rule
 		//Update session rules from decision
 		for id, sessRuleModel := range decision.SessRules {
-			handleSessionRule(smContext, id, &sessRuleModel)
+			handleSessionRule(smContext, id, sessRuleModel)
 		}
 		for id := range smContext.SessionRules {
 			// Randomly choose a session rule to activate
@@ -73,7 +73,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 		selectedSessionRuleID := selectedSessionRule.SessionRuleID
 		//Update session rules from decision
 		for id, sessRuleModel := range decision.SessRules {
-			handleSessionRule(smContext, id, &sessRuleModel)
+			handleSessionRule(smContext, id, sessRuleModel)
 		}
 		if _, exist := smContext.SessionRules[selectedSessionRuleID]; !exist {
 			//Original active session rule is deleted; choose again
