@@ -1,8 +1,8 @@
 package pfcp
 
 import (
-	"free5gc/lib/pfcp"
-	"free5gc/lib/pfcp/pfcpUdp"
+	"bitbucket.org/free5gc-team/pfcp"
+	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"free5gc/src/smf/logger"
 	"free5gc/src/smf/pfcp/handler"
 )

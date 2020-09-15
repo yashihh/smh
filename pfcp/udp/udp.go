@@ -4,8 +4,8 @@ import (
 	"net"
 	"time"
 
-	"free5gc/lib/pfcp"
-	"free5gc/lib/pfcp/pfcpUdp"
+	"bitbucket.org/free5gc-team/pfcp"
+	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"free5gc/src/smf/context"
 	"free5gc/src/smf/logger"
 )

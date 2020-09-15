@@ -1,10 +1,10 @@
 package context
 
 import (
+	"bitbucket.org/free5gc-team/idgenerator"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"fmt"
-	"free5gc/lib/idgenerator"
-	"free5gc/lib/pfcp/pfcpType"
-	"free5gc/lib/pfcp/pfcpUdp"
 	"free5gc/src/smf/logger"
 	"math"
 	"net"

@@ -1,10 +1,10 @@
 package context
 
 import (
+	"bitbucket.org/free5gc-team/aper"
+	"bitbucket.org/free5gc-team/ngap/ngapType"
 	"encoding/binary"
 	"fmt"
-	"free5gc/lib/aper"
-	"free5gc/lib/ngap/ngapType"
 )
 
 func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error) {

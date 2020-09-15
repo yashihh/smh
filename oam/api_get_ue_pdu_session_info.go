@@ -1,7 +1,7 @@
 package oam
 
 import (
-	"free5gc/lib/http_wrapper"
+	"bitbucket.org/free5gc-team/http_wrapper"
 	"free5gc/src/smf/producer"
 	"github.com/gin-gonic/gin"
 )

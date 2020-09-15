@@ -1,8 +1,8 @@
 package context
 
 import (
+	"bitbucket.org/free5gc-team/idgenerator"
 	"fmt"
-	"free5gc/lib/idgenerator"
 	"free5gc/src/smf/factory"
 	"free5gc/src/smf/logger"
 	"math"

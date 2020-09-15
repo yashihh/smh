@@ -1,8 +1,8 @@
 package context
 
 import (
+	"bitbucket.org/free5gc-team/openapi/models"
 	"fmt"
-	"free5gc/lib/openapi/models"
 	"free5gc/src/smf/factory"
 	"time"
 )

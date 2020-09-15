@@ -3,8 +3,8 @@ package message
 import (
 	"net"
 
-	"free5gc/lib/pfcp"
-	"free5gc/lib/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/pfcp"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"free5gc/src/smf/context"
 	"free5gc/src/smf/pfcp/udp"
 )

@@ -1,12 +1,12 @@
 package consumer
 
 import (
+	"bitbucket.org/free5gc-team/openapi"
+	"bitbucket.org/free5gc-team/openapi/Nnrf_NFDiscovery"
+	"bitbucket.org/free5gc-team/openapi/Nudm_SubscriberDataManagement"
+	"bitbucket.org/free5gc-team/openapi/models"
 	"context"
 	"fmt"
-	"free5gc/lib/openapi"
-	"free5gc/lib/openapi/Nnrf_NFDiscovery"
-	"free5gc/lib/openapi/Nudm_SubscriberDataManagement"
-	"free5gc/lib/openapi/models"
 	smf_context "free5gc/src/smf/context"
 	"free5gc/src/smf/logger"
 	"net/http"

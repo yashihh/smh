@@ -1,7 +1,7 @@
 package context
 
 import (
-	"free5gc/lib/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"free5gc/src/smf/factory"
 	"free5gc/src/smf/logger"
 	"net"

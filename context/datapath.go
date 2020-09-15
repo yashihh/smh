@@ -1,9 +1,9 @@
 package context
 
 import (
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/util_3gpp"
 	"fmt"
-	"free5gc/lib/pfcp/pfcpType"
-	"free5gc/lib/util_3gpp"
 	"free5gc/src/smf/logger"
 	"strconv"
 )

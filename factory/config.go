@@ -5,7 +5,7 @@
 package factory
 
 import (
-	"free5gc/lib/openapi/models"
+	"bitbucket.org/free5gc-team/openapi/models"
 	"time"
 )
 

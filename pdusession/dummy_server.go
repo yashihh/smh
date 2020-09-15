@@ -1,9 +1,9 @@
 package pdusession
 
 import (
-	"free5gc/lib/http2_util"
-	"free5gc/lib/logger_util"
-	"free5gc/lib/path_util"
+	"bitbucket.org/free5gc-team/http2_util"
+	"bitbucket.org/free5gc-team/logger_util"
+	"bitbucket.org/free5gc-team/path_util"
 	"free5gc/src/smf/logger"
 	"free5gc/src/smf/pfcp"
 	"free5gc/src/smf/pfcp/udp"

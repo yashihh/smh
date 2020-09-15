@@ -10,7 +10,7 @@
 package pdusession
 
 import (
-	"free5gc/lib/logger_util"
+	"bitbucket.org/free5gc-team/logger_util"
 	"free5gc/src/smf/logger"
 	"net/http"
 	"strings"

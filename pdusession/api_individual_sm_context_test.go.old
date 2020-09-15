@@ -2,9 +2,9 @@ package pdusession_test
 
 import (
 	"context"
-	"free5gc/lib/CommonConsumerTestData/SMF/TestPDUSession"
-	"free5gc/lib/openapi/Nsmf_PDUSession"
-	"free5gc/lib/openapi/models"
+	"bitbucket.org/free5gc-team/CommonConsumerTestData/SMF/TestPDUSession"
+	"bitbucket.org/free5gc-team/openapi/Nsmf_PDUSession"
+	"bitbucket.org/free5gc-team/openapi/models"
 	"free5gc/src/smf/pdusession"
 	"testing"
 

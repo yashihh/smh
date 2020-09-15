@@ -6,10 +6,10 @@ import (
 	"bytes"
 	"fmt"
 
+	"bitbucket.org/free5gc-team/aper"
+	"bitbucket.org/free5gc-team/ngap/ngapType"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"encoding/binary"
-	"free5gc/lib/aper"
-	"free5gc/lib/ngap/ngapType"
-	"free5gc/lib/pfcp/pfcpType"
 )
 
 func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (err error) {

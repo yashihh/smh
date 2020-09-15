@@ -1,8 +1,8 @@
 package context
 
 import (
-	"free5gc/lib/nas/nasConvert"
-	"free5gc/lib/nas/nasMessage"
+	"bitbucket.org/free5gc-team/nas/nasConvert"
+	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"free5gc/src/smf/logger"
 )
 

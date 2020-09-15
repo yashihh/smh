@@ -1,10 +1,10 @@
 package consumer
 
 import (
+	"bitbucket.org/free5gc-team/openapi"
+	"bitbucket.org/free5gc-team/openapi/Nsmf_PDUSession"
+	"bitbucket.org/free5gc-team/openapi/models"
 	"context"
-	"free5gc/lib/openapi"
-	"free5gc/lib/openapi/Nsmf_PDUSession"
-	"free5gc/lib/openapi/models"
 	"free5gc/src/smf/logger"
 	"net/http"
 )
