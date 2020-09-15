@@ -305,7 +305,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				}
 
 				if updateTcData {
-					newPccRule.SetRefTrafficControlData(newTcData)
+					newPccRule.SetRefTrafficControlData(newTcData.TrafficControlID)
 					smContext.TrafficControlPool[refTcID] = newTcData
 				}
 			}
