@@ -163,9 +163,15 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 			}
 
 			newPccRule := smf_context.NewPCCRuleFromModel(pccRuleModel)
-
+			upfSelectionParams := &smf_context.UPFSelectionParams{
+				Dnn: smContext.Dnn,
+				SNssai: &smf_context.SNssai{
+					Sst: smContext.Snssai.Sst,
+					Sd:  smContext.Snssai.Sd,
+				},
+			}
 			// Create data traffic for the new PCC Rule
-			createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(smContext.Dnn)
+			createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(upfSelectionParams)
 			createdDataPath := smf_context.GenerateDataPath(createdUpPath, smContext)
 			createdDataPath.ActivateTunnelAndPDR(smContext)
 			smContext.Tunnel.AddDataPath(createdDataPath)
