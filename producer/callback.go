@@ -155,9 +155,26 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				continue
 			}
 
+			for curDPNode := pccRule.Datapath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+				if curDPNode.UpLinkTunnel.PDR != nil {
+					curDPNode.UpLinkTunnel.PDR.State = smf_context.RULE_REMOVE
+					curDPNode.UpLinkTunnel.PDR.FAR.State = smf_context.RULE_REMOVE
+				}
+
+				if curDPNode.DownLinkTunnel.PDR != nil {
+					curDPNode.DownLinkTunnel.PDR.State = smf_context.RULE_REMOVE
+					curDPNode.DownLinkTunnel.PDR.FAR.State = smf_context.RULE_REMOVE
+				}
+			}
+
+			SendPFCPRule(smContext, pccRule.Datapath)
+
+			delete(smContext.PCCRules, id)
+
 		} else {
 			if exist {
 				logger.PduSessLog.Infof("Modify PCCRule[%s] in SMContext[%s]", id, smContext.Ref)
+
 			} else {
 				logger.PduSessLog.Infof("Install PCCRule[%s] in SMContext[%s]", id, smContext.Ref)
 
@@ -175,6 +192,8 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				createdDataPath := smf_context.GenerateDataPath(createdUpPath, smContext)
 				createdDataPath.ActivateTunnelAndPDR(smContext)
 				smContext.Tunnel.AddDataPath(createdDataPath)
+
+				newPccRule.Datapath = createdDataPath
 
 				updatePccRule, updateTcData, trChanged := false, false, false
 				var sourceTraRouting, targetTraRouting models.RouteToLocation

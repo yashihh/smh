@@ -16,6 +16,9 @@ type PCCRule struct {
 
 	// Reference Data
 	refTrafficControlData string
+
+	// related Data
+	Datapath *DataPath
 }
 
 // NewPCCRuleFromModel - create PCC rule from OpenAPI models
