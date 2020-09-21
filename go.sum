@@ -11,6 +11,8 @@ bitbucket.org/free5gc-team/idgenerator v0.0.0-20200915034231-b4c0cb18dfd9 h1:YSc
 bitbucket.org/free5gc-team/idgenerator v0.0.0-20200915034231-b4c0cb18dfd9/go.mod h1:0I+2v036Vbipp6BwO04k1BUq/UkImf92QbBt9Z5FQvo=
 bitbucket.org/free5gc-team/logger_conf v0.0.0-20200915032859-681c48762af1 h1:0m5E6nwusmb/6/Crio9vJrRv5mDkHOkh3R0S8fL1IoA=
 bitbucket.org/free5gc-team/logger_conf v0.0.0-20200915032859-681c48762af1/go.mod h1:ipdDDgMBxBf0d/FQfFfiGOLKOtudsQxi1eepd2hPAs8=
+bitbucket.org/free5gc-team/logger_conf v0.0.0-20200925082105-8f148a8a82a3 h1:OkLRdutON2obZS90QaDRjtlGV7EwHjtZzXbmgrM547o=
+bitbucket.org/free5gc-team/logger_conf v0.0.0-20200925082105-8f148a8a82a3/go.mod h1:aeeZdAiNyP5N+oaUunHVzTZxCzAV1/wYEDsfWXJw03A=
 bitbucket.org/free5gc-team/logger_util v0.0.0-20200915032249-cd1bf694e835/go.mod h1:UQytjJkq9guRYfPlO3jXNjAwfj92kkNnw5O6tnx6fu0=
 bitbucket.org/free5gc-team/logger_util v0.0.0-20200916200038-727096880b5b h1:H2+87d4k4dMJS3I8qhlo4w9mLzelNhLInyNlHq654Qo=
 bitbucket.org/free5gc-team/logger_util v0.0.0-20200916200038-727096880b5b/go.mod h1:poyN/lZRT3WxLydQy2Ov0S/5Ii/tO3xFA+Mqw2bmwxE=
@@ -23,6 +25,8 @@ bitbucket.org/free5gc-team/openapi v0.0.0-20200915035203-9fc3f0e748b4 h1:c9BKWMd
 bitbucket.org/free5gc-team/openapi v0.0.0-20200915035203-9fc3f0e748b4/go.mod h1:OPBqpY9KpaTgGnmZMNUe+yVx56L0cCmvBHnZ6llCKhs=
 bitbucket.org/free5gc-team/path_util v0.0.0-20200915032418-20c65dc7664b h1:C+8SCH2FZ4cDnPUho3iDCquxfOS5OAodvHrIoJC0jMs=
 bitbucket.org/free5gc-team/path_util v0.0.0-20200915032418-20c65dc7664b/go.mod h1:YOubpf9itrS2U04mpnHFlB7X7SOwP50KqDaM8ptBA/Q=
+bitbucket.org/free5gc-team/path_util v0.0.0-20200925075253-6a41479bd567 h1:wdBLG5CRrNUGPuD2Rzm45Bxh1ly413s2U06chl2Ts0E=
+bitbucket.org/free5gc-team/path_util v0.0.0-20200925075253-6a41479bd567/go.mod h1:YOubpf9itrS2U04mpnHFlB7X7SOwP50KqDaM8ptBA/Q=
 bitbucket.org/free5gc-team/pfcp v0.0.0-20200915045257-65f72906e362 h1:9hGAcPoWWVY5NFyk+fQbY4K9tezM6HXYyE45NzhSahY=
 bitbucket.org/free5gc-team/pfcp v0.0.0-20200915045257-65f72906e362/go.mod h1:flr3RUdWsTf+lKgt0o41t02nvqx81CCAMJeUIGscpks=
 bitbucket.org/free5gc-team/tlv v0.0.0-20200915044351-ec1e600c7efc h1:YRD599vizOc2CF61tubxI0uoyqrghCl6S1bhmLDh5R8=
@@ -327,6 +331,8 @@ golang.org/x/sys v0.0.0-20200523222454-059865788121/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200803210538-64077c9b5642/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200909081042-eff7692f9009 h1:W0lCpv29Hv0UaM1LXb9QlBHLNP8UFfcKjblhVCWftOM=
 golang.org/x/sys v0.0.0-20200909081042-eff7692f9009/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d h1:L/IKR6COd7ubZrs2oTnTi73IhgqJ71c9s80WsQnh0Es=
+golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
