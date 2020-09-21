@@ -151,15 +151,15 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 		if pccRuleModel == nil {
 			logger.PduSessLog.Infof("Remove PCCRule[%s] in SMContext[%s]", id, smContext.Ref)
 			if !exist {
-				logger.PduSessLog.Errorf("pcc rule [%s] not exist", id)
+				logger.PduSessLog.Errorf("PCCRule[%s] not exist in SMContext[%s]", id, smContext.Ref)
 				continue
 			}
 
 		} else {
 			if exist {
-				logger.PduSessLog.Infof("Modify PCCRule[%s]", id)
+				logger.PduSessLog.Infof("Modify PCCRule[%s] in SMContext[%s]", id, smContext.Ref)
 			} else {
-				logger.PduSessLog.Infof("Install PCCRule[%s]", id)
+				logger.PduSessLog.Infof("Install PCCRule[%s] in SMContext[%s]", id, smContext.Ref)
 
 				// Install PCC rule
 				newPccRule := smf_context.NewPCCRuleFromModel(pccRuleModel)
