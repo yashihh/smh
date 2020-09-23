@@ -1,11 +1,12 @@
 package context
 
 import (
-	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"free5gc/src/smf/factory"
-	"free5gc/src/smf/logger"
 	"net"
 	"reflect"
+
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/smf/factory"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 // UserPlaneInformation store userplane topology
@@ -94,7 +95,21 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 					NodeIdValue: []byte(node.NodeID),
 				}
 			}
+			upNode.UPF = NewUPF(&upNode.NodeID)
+			upNode.UPF.SNssaiInfo = SnssaiInfo{
+				SNssai: SNssai{
+					Sst: node.SNssaiInfo.SNssai.Sst,
+					Sd:  node.SNssaiInfo.SNssai.Sd,
+				},
+				DnnList: make([]string, 0),
+			}
 
+			for _, dnnInfo := range node.SNssaiInfo.DnnUpfInfoList {
+				upNode.UPF.SNssaiInfo.DnnList = append(upNode.UPF.SNssaiInfo.DnnList, dnnInfo.Dnn)
+			}
+			logger.InitLog.Traceln("UPNode name: ", name)
+			logger.InitLog.Traceln("UPFIP: ", upNode.UPF.GetUPFIP())
+			logger.InitLog.Traceln("Snssai: ", upNode.UPF.SNssaiInfo)
 			upfPool[name] = upNode
 		default:
 			logger.InitLog.Warningf("invalid UPNodeType: %s\n", upNode.Type)
@@ -115,11 +130,6 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 		}
 		nodeA.Links = append(nodeA.Links, nodeB)
 		nodeB.Links = append(nodeB.Links, nodeA)
-	}
-
-	//Initialize each UPF
-	for _, upfNode := range upfPool {
-		upfNode.UPF = NewUPF(&upfNode.NodeID)
 	}
 
 	userplaneInformation := &UserPlaneInformation{
@@ -155,15 +165,16 @@ func (upi *UserPlaneInformation) GetUPFIDByIP(ip string) string {
 	return upi.UPFsIPtoID[ip]
 }
 
-func (upi *UserPlaneInformation) GetDefaultUserPlanePathByDNN(dnn string) (path UPPath) {
-	path, pathExist := upi.DefaultUserPlanePath[dnn]
-
+func (upi *UserPlaneInformation) GetDefaultUserPlanePathByDNN(selection *UPFSelectionParams) (path UPPath) {
+	path, pathExist := upi.DefaultUserPlanePath[selection.String()]
+	logger.CtxLog.Traceln("In GetDefaultUserPlanePathByDNN")
+	logger.CtxLog.Traceln("selection: ", selection.String())
 	if pathExist {
 		return
 	} else {
-		pathExist = upi.GenerateDefaultPath(dnn)
+		pathExist = upi.GenerateDefaultPath(selection)
 		if pathExist {
-			return upi.DefaultUserPlanePath[dnn]
+			return upi.DefaultUserPlanePath[selection.String()]
 		}
 	}
 	return nil
@@ -215,7 +226,7 @@ func GenerateDataPath(upPath UPPath, smContext *SMContext) *DataPath {
 	return dataPath
 }
 
-func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) bool {
+func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionParams) bool {
 
 	var source *UPNode
 	var destination *UPNode
@@ -236,8 +247,9 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) bool {
 	for _, node := range upi.UPFs {
 
 		if node.UPF.UPIPInfo.NetworkInstance != nil {
-			node_dnn := string(node.UPF.UPIPInfo.NetworkInstance)
-			if node_dnn == dnn {
+			nodeDnn := string(node.UPF.UPIPInfo.NetworkInstance)
+			serviceType := node.UPF.SNssaiInfo.SNssai.Sst
+			if nodeDnn == selection.Dnn && serviceType == selection.SNssai.Sst {
 				destination = node
 				break
 			}
@@ -245,7 +257,8 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) bool {
 	}
 
 	if destination == nil {
-		logger.CtxLog.Errorf("Can't find UPF with DNN [%s]\n", dnn)
+		logger.CtxLog.Errorf("Can't find UPF with DNN [%s]\n", selection.Dnn)
+		logger.CtxLog.Errorf("Can't find UPF with Service Type [%d]\n", selection.SNssai.Sst)
 		return false
 	}
 
@@ -256,16 +269,20 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(dnn string) bool {
 		visited[upNode] = false
 	}
 
-	path, pathExist := getPathBetween(source, destination, visited)
+	path, pathExist := getPathBetween(source, destination, visited, selection)
 
-	if path[0].Type == UPNODE_AN {
-		path = path[1:]
+	if pathExist {
+		if path[0].Type == UPNODE_AN {
+			path = path[1:]
+		}
+		upi.DefaultUserPlanePath[selection.String()] = path
 	}
-	upi.DefaultUserPlanePath[dnn] = path
+
 	return pathExist
 }
 
-func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool) (path []*UPNode, pathExist bool) {
+func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool,
+	selection *UPFSelectionParams) (path []*UPNode, pathExist bool) {
 
 	visited[cur] = true
 
@@ -277,10 +294,17 @@ func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool) (path [
 		return
 	}
 
+	selectedSNssai := selection.SNssai
+
 	for _, nodes := range cur.Links {
 
 		if !visited[nodes] {
-			path_tail, path_exist := getPathBetween(nodes, dest, visited)
+			if selectedSNssai.Sst != nodes.UPF.SNssaiInfo.SNssai.Sst {
+				visited[nodes] = true
+				continue
+			}
+
+			path_tail, path_exist := getPathBetween(nodes, dest, visited, selection)
 
 			if path_exist {
 				path = make([]*UPNode, 0)

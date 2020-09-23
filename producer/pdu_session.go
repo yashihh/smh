@@ -1,6 +1,12 @@
 package producer
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/antihax/optional"
+
 	"bitbucket.org/free5gc-team/http_wrapper"
 	"bitbucket.org/free5gc-team/nas"
 	"bitbucket.org/free5gc-team/nas/nasConvert"
@@ -11,15 +17,10 @@ import (
 	"bitbucket.org/free5gc-team/openapi/Nudm_SubscriberDataManagement"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"context"
-	"fmt"
-	"free5gc/src/smf/consumer"
-	smf_context "free5gc/src/smf/context"
-	"free5gc/src/smf/logger"
-	pfcp_message "free5gc/src/smf/pfcp/message"
-	"net/http"
-
-	"github.com/antihax/optional"
+	"bitbucket.org/free5gc-team/smf/consumer"
+	smf_context "bitbucket.org/free5gc-team/smf/context"
+	"bitbucket.org/free5gc-team/smf/logger"
+	pfcp_message "bitbucket.org/free5gc-team/smf/pfcp/message"
 )
 
 func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http_wrapper.Response {
@@ -131,8 +132,16 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		logger.PduSessLog.Errorf("apply sm policy decision error: %+v", err)
 	}
 
+	//dataPath selection
 	smContext.Tunnel = smf_context.NewUPTunnel()
 	var defaultPath *smf_context.DataPath
+	upfSelectionParams := &smf_context.UPFSelectionParams{
+		Dnn: createData.Dnn,
+		SNssai: &smf_context.SNssai{
+			Sst: createData.SNssai.Sst,
+			Sd:  createData.SNssai.Sd,
+		},
+	}
 
 	if smf_context.SMF_Self().ULCLSupport && smf_context.CheckUEHasPreConfig(createData.Supi) {
 		logger.PduSessLog.Infof("SUPI[%s] has pre-config route", createData.Supi)
@@ -147,7 +156,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		//UE has no pre-config path.
 		//Use default route
 		logger.PduSessLog.Infof("SUPI[%s] has no pre-config route", createData.Supi)
-		defaultUPPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(createData.Dnn)
+		defaultUPPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(upfSelectionParams)
 		smContext.AllocateLocalSEIDForUPPath(defaultUPPath)
 		defaultPath = smf_context.GenerateDataPath(defaultUPPath, smContext)
 		if defaultPath != nil {
@@ -160,7 +169,8 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	if defaultPath == nil {
 		smContext.SMContextState = smf_context.InActive
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
-		logger.PduSessLog.Warnf("Path for serve DNN[%s] not found\n", createData.Dnn)
+		logger.PduSessLog.Warnf("Data Path not found\n")
+		logger.PduSessLog.Warnln("Selection Parameter: ", upfSelectionParams.String())
 
 		var httpResponse *http_wrapper.Response
 		if buf, err := smf_context.

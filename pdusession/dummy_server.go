@@ -1,14 +1,15 @@
 package pdusession
 
 import (
+	"log"
+	"net/http"
+
 	"bitbucket.org/free5gc-team/http2_util"
 	"bitbucket.org/free5gc-team/logger_util"
 	"bitbucket.org/free5gc-team/path_util"
-	"free5gc/src/smf/logger"
-	"free5gc/src/smf/pfcp"
-	"free5gc/src/smf/pfcp/udp"
-	"log"
-	"net/http"
+	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/smf/pfcp"
+	"bitbucket.org/free5gc-team/smf/pfcp/udp"
 )
 
 func DummyServer() {

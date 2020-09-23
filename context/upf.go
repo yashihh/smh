@@ -1,17 +1,19 @@
 package context
 
 import (
-	"bitbucket.org/free5gc-team/idgenerator"
-	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"fmt"
-	"free5gc/src/smf/logger"
 	"math"
 	"net"
 	"reflect"
+	"strconv"
 	"sync"
 
 	"github.com/google/uuid"
+
+	"bitbucket.org/free5gc-team/idgenerator"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 var upfPool sync.Map
@@ -34,10 +36,11 @@ const (
 )
 
 type UPF struct {
-	uuid      uuid.UUID
-	NodeID    pfcpType.NodeID
-	UPIPInfo  pfcpType.UserPlaneIPResourceInformation
-	UPFStatus UPFStatus
+	uuid       uuid.UUID
+	NodeID     pfcpType.NodeID
+	UPIPInfo   pfcpType.UserPlaneIPResourceInformation
+	UPFStatus  UPFStatus
+	SNssaiInfo SnssaiInfo
 
 	pdrPool sync.Map
 	farPool sync.Map
@@ -50,6 +53,28 @@ type UPF struct {
 	urrIDGenerator *idgenerator.IDGenerator
 	qerIDGenerator *idgenerator.IDGenerator
 	teidGenerator  *idgenerator.IDGenerator
+}
+
+//UPFSelectionParams ... parameters for upf selection
+type UPFSelectionParams struct {
+	Dnn    string
+	SNssai *SNssai
+}
+
+func (upfSelectionParams *UPFSelectionParams) String() string {
+	Dnn := upfSelectionParams.Dnn
+	SNssai := upfSelectionParams.SNssai
+
+	str := ""
+	if Dnn != "" {
+		str += "\nDnn: " + upfSelectionParams.Dnn + "\n"
+	}
+
+	if SNssai != nil {
+		str += "Sst: " + strconv.Itoa(int(upfSelectionParams.SNssai.Sst)) + "\n"
+	}
+
+	return str
 }
 
 // UUID return this UPF UUID (allocate by SMF in this time)

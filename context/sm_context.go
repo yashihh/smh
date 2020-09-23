@@ -1,6 +1,15 @@
 package context
 
 import (
+	"context"
+	"fmt"
+	"net"
+	"net/http"
+	"sync"
+	"sync/atomic"
+
+	"github.com/google/uuid"
+
 	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/openapi"
@@ -9,15 +18,7 @@ import (
 	"bitbucket.org/free5gc-team/openapi/Npcf_SMPolicyControl"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"context"
-	"fmt"
-	"free5gc/src/smf/logger"
-	"net"
-	"net/http"
-	"sync"
-	"sync/atomic"
-
-	"github.com/google/uuid"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 var smContextPool sync.Map

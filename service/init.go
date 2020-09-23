@@ -10,23 +10,28 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 
+	aperLogger "bitbucket.org/free5gc-team/aper/logger"
 	"bitbucket.org/free5gc-team/http2_util"
 	"bitbucket.org/free5gc-team/logger_util"
+	nasLogger "bitbucket.org/free5gc-team/nas/logger"
+	ngapLogger "bitbucket.org/free5gc-team/ngap/logger"
+	openApiLogger "bitbucket.org/free5gc-team/openapi/logger"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/path_util"
-	"free5gc/src/app"
-	"free5gc/src/smf/callback"
-	"free5gc/src/smf/consumer"
-	"free5gc/src/smf/context"
-	"free5gc/src/smf/eventexposure"
-	"free5gc/src/smf/factory"
-	"free5gc/src/smf/logger"
-	"free5gc/src/smf/oam"
-	"free5gc/src/smf/pdusession"
-	"free5gc/src/smf/pfcp"
-	"free5gc/src/smf/pfcp/message"
-	"free5gc/src/smf/pfcp/udp"
-	"free5gc/src/smf/util"
+	pathUtilLogger "bitbucket.org/free5gc-team/path_util/logger"
+	pfcpLogger "bitbucket.org/free5gc-team/pfcp/logger"
+	"bitbucket.org/free5gc-team/smf/callback"
+	"bitbucket.org/free5gc-team/smf/consumer"
+	"bitbucket.org/free5gc-team/smf/context"
+	"bitbucket.org/free5gc-team/smf/eventexposure"
+	"bitbucket.org/free5gc-team/smf/factory"
+	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/smf/oam"
+	"bitbucket.org/free5gc-team/smf/pdusession"
+	"bitbucket.org/free5gc-team/smf/pfcp"
+	"bitbucket.org/free5gc-team/smf/pfcp/message"
+	"bitbucket.org/free5gc-team/smf/pfcp/udp"
+	"bitbucket.org/free5gc-team/smf/util"
 )
 
 type SMF struct{}
@@ -66,7 +71,7 @@ func (*SMF) GetCliCmd() (flags []cli.Flag) {
 	return smfCLi
 }
 
-func (*SMF) Initialize(c *cli.Context) {
+func (smf *SMF) Initialize(c *cli.Context) {
 
 	config = Config{
 		smfcfg:    c.String("smfcfg"),
@@ -74,33 +79,149 @@ func (*SMF) Initialize(c *cli.Context) {
 	}
 
 	if config.smfcfg != "" {
-		factory.InitConfigFactory(config.smfcfg)
+		if err := factory.InitConfigFactory(config.smfcfg); err != nil {
+			panic(err)
+		}
 	} else {
 		DefaultSmfConfigPath := path_util.Gofree5gcPath("free5gc/config/smfcfg.conf")
-		factory.InitConfigFactory(DefaultSmfConfigPath)
+		if err := factory.InitConfigFactory(DefaultSmfConfigPath); err != nil {
+			panic(err)
+		}
 	}
 
 	if config.uerouting != "" {
-		factory.InitRoutingConfigFactory(config.uerouting)
-	} else {
-		DefaultUERoutingPath := path_util.Gofree5gcPath("free5gc/config/uerouting.yaml")
-		factory.InitRoutingConfigFactory(DefaultUERoutingPath)
-	}
-
-	if app.ContextSelf().Logger.SMF.DebugLevel != "" {
-		level, err := logrus.ParseLevel(app.ContextSelf().Logger.SMF.DebugLevel)
-		if err != nil {
-			initLog.Warnf("Log level [%s] is not valid, set to [info] level", app.ContextSelf().Logger.SMF.DebugLevel)
-			logger.SetLogLevel(logrus.InfoLevel)
-		} else {
-			logger.SetLogLevel(level)
-			initLog.Infof("Log level is set to [%s] level", level)
+		if err := factory.InitRoutingConfigFactory(config.uerouting); err != nil {
+			panic(err)
 		}
 	} else {
-		initLog.Infoln("Log level is default set to [info] level")
-		logger.SetLogLevel(logrus.InfoLevel)
+		DefaultUERoutingPath := path_util.Gofree5gcPath("free5gc/config/uerouting.yaml")
+		if err := factory.InitRoutingConfigFactory(DefaultUERoutingPath); err != nil {
+			panic(err)
+		}
 	}
-	logger.SetReportCaller(app.ContextSelf().Logger.SMF.ReportCaller)
+
+	smf.setLogLevel()
+}
+
+func (smf *SMF) setLogLevel() {
+
+	if factory.SmfConfig.Logger == nil {
+		initLog.Warnln("SMF config without log level setting!!!")
+		return
+	}
+
+	if factory.SmfConfig.Logger.SMF != nil {
+		if factory.SmfConfig.Logger.SMF.DebugLevel != "" {
+			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.SMF.DebugLevel); err != nil {
+				initLog.Warnf("SMF Log level [%s] is invalid, set to [info] level",
+					factory.SmfConfig.Logger.SMF.DebugLevel)
+				logger.SetLogLevel(logrus.InfoLevel)
+			} else {
+				initLog.Infof("SMF Log level is set to [%s] level", level)
+				logger.SetLogLevel(level)
+			}
+		} else {
+			initLog.Infoln("SMF Log level is default set to [info] level")
+			logger.SetLogLevel(logrus.InfoLevel)
+		}
+		logger.SetReportCaller(factory.SmfConfig.Logger.SMF.ReportCaller)
+	}
+
+	if factory.SmfConfig.Logger.NAS != nil {
+		if factory.SmfConfig.Logger.NAS.DebugLevel != "" {
+			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.NAS.DebugLevel); err != nil {
+				nasLogger.NasLog.Warnf("NAS Log level [%s] is invalid, set to [info] level",
+					factory.SmfConfig.Logger.NAS.DebugLevel)
+				logger.SetLogLevel(logrus.InfoLevel)
+			} else {
+				nasLogger.SetLogLevel(level)
+			}
+		} else {
+			nasLogger.NasLog.Warnln("NAS Log level not set. Default set to [info] level")
+			nasLogger.SetLogLevel(logrus.InfoLevel)
+		}
+		nasLogger.SetReportCaller(factory.SmfConfig.Logger.NAS.ReportCaller)
+	}
+
+	if factory.SmfConfig.Logger.NGAP != nil {
+		if factory.SmfConfig.Logger.NGAP.DebugLevel != "" {
+			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.NGAP.DebugLevel); err != nil {
+				ngapLogger.NgapLog.Warnf("NGAP Log level [%s] is invalid, set to [info] level",
+					factory.SmfConfig.Logger.NGAP.DebugLevel)
+				ngapLogger.SetLogLevel(logrus.InfoLevel)
+			} else {
+				ngapLogger.SetLogLevel(level)
+			}
+		} else {
+			ngapLogger.NgapLog.Warnln("NGAP Log level not set. Default set to [info] level")
+			ngapLogger.SetLogLevel(logrus.InfoLevel)
+		}
+		ngapLogger.SetReportCaller(factory.SmfConfig.Logger.NGAP.ReportCaller)
+	}
+
+	if factory.SmfConfig.Logger.Aper != nil {
+		if factory.SmfConfig.Logger.Aper.DebugLevel != "" {
+			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.Aper.DebugLevel); err != nil {
+				aperLogger.AperLog.Warnf("Aper Log level [%s] is invalid, set to [info] level",
+					factory.SmfConfig.Logger.Aper.DebugLevel)
+				aperLogger.SetLogLevel(logrus.InfoLevel)
+			} else {
+				aperLogger.SetLogLevel(level)
+			}
+		} else {
+			aperLogger.AperLog.Warnln("Aper Log level not set. Default set to [info] level")
+			aperLogger.SetLogLevel(logrus.InfoLevel)
+		}
+		aperLogger.SetReportCaller(factory.SmfConfig.Logger.Aper.ReportCaller)
+	}
+
+	if factory.SmfConfig.Logger.PathUtil != nil {
+		if factory.SmfConfig.Logger.PathUtil.DebugLevel != "" {
+			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.PathUtil.DebugLevel); err != nil {
+				pathUtilLogger.PathLog.Warnf("PathUtil Log level [%s] is invalid, set to [info] level",
+					factory.SmfConfig.Logger.PathUtil.DebugLevel)
+				pathUtilLogger.SetLogLevel(logrus.InfoLevel)
+			} else {
+				pathUtilLogger.SetLogLevel(level)
+			}
+		} else {
+			pathUtilLogger.PathLog.Warnln("PathUtil Log level not set. Default set to [info] level")
+			pathUtilLogger.SetLogLevel(logrus.InfoLevel)
+		}
+		pathUtilLogger.SetReportCaller(factory.SmfConfig.Logger.PathUtil.ReportCaller)
+	}
+
+	if factory.SmfConfig.Logger.OpenApi != nil {
+		if factory.SmfConfig.Logger.OpenApi.DebugLevel != "" {
+			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.OpenApi.DebugLevel); err != nil {
+				openApiLogger.OpenApiLog.Warnf("OpenAPI Log level [%s] is invalid, set to [info] level",
+					factory.SmfConfig.Logger.OpenApi.DebugLevel)
+				openApiLogger.SetLogLevel(logrus.InfoLevel)
+			} else {
+				openApiLogger.SetLogLevel(level)
+			}
+		} else {
+			openApiLogger.OpenApiLog.Warnln("OpenAPI Log level not set. Default set to [info] level")
+			openApiLogger.SetLogLevel(logrus.InfoLevel)
+		}
+		openApiLogger.SetReportCaller(factory.SmfConfig.Logger.OpenApi.ReportCaller)
+	}
+
+	if factory.SmfConfig.Logger.PFCP != nil {
+		if factory.SmfConfig.Logger.PFCP.DebugLevel != "" {
+			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.PFCP.DebugLevel); err != nil {
+				pfcpLogger.PFCPLog.Warnf("PFCP Log level [%s] is invalid, set to [info] level",
+					factory.SmfConfig.Logger.PFCP.DebugLevel)
+				pfcpLogger.SetLogLevel(logrus.InfoLevel)
+			} else {
+				pfcpLogger.SetLogLevel(level)
+			}
+		} else {
+			pfcpLogger.PFCPLog.Warnln("PFCP Log level not set. Default set to [info] level")
+			pfcpLogger.SetLogLevel(logrus.InfoLevel)
+		}
+		pfcpLogger.SetReportCaller(factory.SmfConfig.Logger.PFCP.ReportCaller)
+	}
 }
 
 func (smf *SMF) FilterCli(c *cli.Context) (args []string) {

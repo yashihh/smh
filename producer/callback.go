@@ -1,18 +1,19 @@
 package producer
 
 import (
+	"context"
+	"net/http"
+	"reflect"
+	"strings"
+
 	"bitbucket.org/free5gc-team/flowdesc"
 	"bitbucket.org/free5gc-team/http_wrapper"
 	"bitbucket.org/free5gc-team/openapi/Nsmf_EventExposure"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"context"
-	smf_context "free5gc/src/smf/context"
-	"free5gc/src/smf/factory"
-	"free5gc/src/smf/logger"
-	"net/http"
-	"reflect"
-	"strings"
+	smf_context "bitbucket.org/free5gc-team/smf/context"
+	"bitbucket.org/free5gc-team/smf/factory"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNotification) *http_wrapper.Response {
@@ -163,9 +164,15 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 			}
 
 			newPccRule := smf_context.NewPCCRuleFromModel(pccRuleModel)
-
+			upfSelectionParams := &smf_context.UPFSelectionParams{
+				Dnn: smContext.Dnn,
+				SNssai: &smf_context.SNssai{
+					Sst: smContext.Snssai.Sst,
+					Sd:  smContext.Snssai.Sd,
+				},
+			}
 			// Create data traffic for the new PCC Rule
-			createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(smContext.Dnn)
+			createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(upfSelectionParams)
 			createdDataPath := smf_context.GenerateDataPath(createdUpPath, smContext)
 			createdDataPath.ActivateTunnelAndPDR(smContext)
 			smContext.Tunnel.AddDataPath(createdDataPath)

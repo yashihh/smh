@@ -15,8 +15,8 @@ import (
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
-	"free5gc/src/smf/factory"
-	"free5gc/src/smf/logger"
+	"bitbucket.org/free5gc-team/smf/factory"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 func init() {

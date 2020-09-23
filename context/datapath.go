@@ -1,11 +1,12 @@
 package context
 
 import (
-	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"bitbucket.org/free5gc-team/util_3gpp"
 	"fmt"
-	"free5gc/src/smf/logger"
 	"strconv"
+
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/util_3gpp"
 )
 
 // GTPTunnel represents the GTP tunnel information
@@ -269,7 +270,7 @@ func (dataPathPool DataPathPool) GetDefaultPath() (dataPath *DataPath) {
 	return
 }
 
-func (dataPath *DataPath) ToString() string {
+func (dataPath *DataPath) String() string {
 
 	firstDPNode := dataPath.FirstDPNode
 
@@ -310,7 +311,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 
 	firstDPNode := dataPath.FirstDPNode
 	logger.PduSessLog.Traceln("In ActivateTunnelAndPDR")
-	logger.PduSessLog.Traceln(dataPath.ToString())
+	logger.PduSessLog.Traceln(dataPath.String())
 	//Activate Tunnels
 	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		logger.PduSessLog.Traceln("Current DP Node IP: ", curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String())

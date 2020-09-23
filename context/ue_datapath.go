@@ -1,11 +1,12 @@
 package context
 
 import (
-	"bitbucket.org/free5gc-team/idgenerator"
 	"fmt"
-	"free5gc/src/smf/factory"
-	"free5gc/src/smf/logger"
 	"math"
+
+	"bitbucket.org/free5gc-team/idgenerator"
+	"bitbucket.org/free5gc-team/smf/factory"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 type UEPreConfigPaths struct {
@@ -96,7 +97,7 @@ func NewUEPreConfigPaths(SUPI string, paths []factory.Path) (*UEPreConfigPaths, 
 		}
 
 		logger.CtxLog.Traceln("New data path added")
-		logger.CtxLog.Traceln("\n" + dataPath.ToString() + "\n")
+		logger.CtxLog.Traceln("\n" + dataPath.String() + "\n")
 	}
 
 	uePreConfigPaths = &UEPreConfigPaths{

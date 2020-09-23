@@ -3,7 +3,7 @@ package context
 import (
 	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
-	"free5gc/src/smf/logger"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage.PDUSessionEstablishmentRequest) {

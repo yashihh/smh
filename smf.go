@@ -13,14 +13,12 @@ import (
 	"fmt"
 	"os"
 
-	"bitbucket.org/free5gc-team/version"
-
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 
-	"free5gc/src/app"
-	"free5gc/src/smf/logger"
-	"free5gc/src/smf/service"
+	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/smf/service"
+	"bitbucket.org/free5gc-team/version"
 )
 
 var SMF = &service.SMF{}
@@ -46,7 +44,6 @@ func main() {
 }
 
 func action(c *cli.Context) {
-	app.AppInitializeWillInitialize(c.String("free5gccfg"))
 	SMF.Initialize(c)
 	SMF.Start()
 }

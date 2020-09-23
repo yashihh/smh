@@ -1,14 +1,15 @@
 package producer
 
 import (
+	"net"
+	"reflect"
+
 	"bitbucket.org/free5gc-team/flowdesc"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
-	"free5gc/src/smf/context"
-	"free5gc/src/smf/logger"
-	"free5gc/src/smf/pfcp/message"
-	"net"
-	"reflect"
+	"bitbucket.org/free5gc-team/smf/context"
+	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/smf/pfcp/message"
 )
 
 func AddPDUSessionAnchorAndULCL(smContext *context.SMContext, nodeID pfcpType.NodeID) {

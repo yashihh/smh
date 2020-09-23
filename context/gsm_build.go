@@ -1,16 +1,15 @@
 package context
 
 import (
+	"encoding/hex"
+	"net"
+
 	"bitbucket.org/free5gc-team/nas"
 	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/nas/nasType"
-	"encoding/hex"
-	"free5gc/src/smf/logger"
-	"net"
-
-	// "bitbucket.org/free5gc-team/nas/nasType"
 	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error) {

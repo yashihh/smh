@@ -1,12 +1,13 @@
 package consumer
 
 import (
+	"context"
+	"net/http"
+
 	"bitbucket.org/free5gc-team/openapi"
 	"bitbucket.org/free5gc-team/openapi/Nsmf_PDUSession"
 	"bitbucket.org/free5gc-team/openapi/models"
-	"context"
-	"free5gc/src/smf/logger"
-	"net/http"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 func SendSMContextStatusNotification(uri string) (*models.ProblemDetails, error) {

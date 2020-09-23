@@ -10,15 +10,17 @@
 package pdusession
 
 import (
-	"bitbucket.org/free5gc-team/http_wrapper"
-	"bitbucket.org/free5gc-team/openapi"
-	"bitbucket.org/free5gc-team/openapi/models"
-	"free5gc/src/smf/logger"
-	"free5gc/src/smf/producer"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+
+	"bitbucket.org/free5gc-team/http_wrapper"
+	"bitbucket.org/free5gc-team/openapi"
+	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/smf/producer"
 )
 
 // HTTPReleaseSmContext - Release SM Context

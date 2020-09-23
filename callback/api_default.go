@@ -10,14 +10,15 @@
 package callback
 
 import (
-	"bitbucket.org/free5gc-team/http_wrapper"
-	"bitbucket.org/free5gc-team/openapi"
-	"bitbucket.org/free5gc-team/openapi/models"
-	"free5gc/src/smf/logger"
-	"free5gc/src/smf/producer"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"bitbucket.org/free5gc-team/http_wrapper"
+	"bitbucket.org/free5gc-team/openapi"
+	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/smf/producer"
 )
 
 // SubscriptionsPost -

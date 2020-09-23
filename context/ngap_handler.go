@@ -1,15 +1,14 @@
 package context
 
 import (
-	"errors"
-
 	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"bitbucket.org/free5gc-team/aper"
 	"bitbucket.org/free5gc-team/ngap/ngapType"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"encoding/binary"
 )
 
 func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (err error) {
