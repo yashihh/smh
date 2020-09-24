@@ -3,7 +3,7 @@
 package util
 
 import (
-	"free5gc/lib/path_util"
+	"bitbucket.org/free5gc-team/path_util"
 )
 
 var SmfLogPath = path_util.Gofree5gcPath("free5gc/smfsslkey.log")

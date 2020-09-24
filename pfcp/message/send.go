@@ -1,13 +1,14 @@
 package message
 
 import (
-	"free5gc/lib/pfcp"
-	"free5gc/lib/pfcp/pfcpType"
-	"free5gc/lib/pfcp/pfcpUdp"
-	"free5gc/src/smf/context"
-	"free5gc/src/smf/logger"
-	"free5gc/src/smf/pfcp/udp"
 	"net"
+
+	"bitbucket.org/free5gc-team/pfcp"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
+	"bitbucket.org/free5gc-team/smf/context"
+	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/smf/pfcp/udp"
 )
 
 var seq uint32

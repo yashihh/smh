@@ -3,23 +3,24 @@ package producer
 import (
 	"context"
 	"fmt"
-	"free5gc/lib/http_wrapper"
-	"free5gc/lib/nas"
-	"free5gc/lib/nas/nasConvert"
-	"free5gc/lib/nas/nasMessage"
-	"free5gc/lib/openapi"
-	"free5gc/lib/openapi/Namf_Communication"
-	"free5gc/lib/openapi/Nsmf_PDUSession"
-	"free5gc/lib/openapi/Nudm_SubscriberDataManagement"
-	"free5gc/lib/openapi/models"
-	"free5gc/lib/pfcp/pfcpType"
-	"free5gc/src/smf/consumer"
-	smf_context "free5gc/src/smf/context"
-	"free5gc/src/smf/logger"
-	pfcp_message "free5gc/src/smf/pfcp/message"
 	"net/http"
 
 	"github.com/antihax/optional"
+
+	"bitbucket.org/free5gc-team/http_wrapper"
+	"bitbucket.org/free5gc-team/nas"
+	"bitbucket.org/free5gc-team/nas/nasConvert"
+	"bitbucket.org/free5gc-team/nas/nasMessage"
+	"bitbucket.org/free5gc-team/openapi"
+	"bitbucket.org/free5gc-team/openapi/Namf_Communication"
+	"bitbucket.org/free5gc-team/openapi/Nsmf_PDUSession"
+	"bitbucket.org/free5gc-team/openapi/Nudm_SubscriberDataManagement"
+	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/smf/consumer"
+	smf_context "bitbucket.org/free5gc-team/smf/context"
+	"bitbucket.org/free5gc-team/smf/logger"
+	pfcp_message "bitbucket.org/free5gc-team/smf/pfcp/message"
 )
 
 func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http_wrapper.Response {

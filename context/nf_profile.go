@@ -2,9 +2,10 @@ package context
 
 import (
 	"fmt"
-	"free5gc/lib/openapi/models"
-	"free5gc/src/smf/factory"
 	"time"
+
+	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/smf/factory"
 )
 
 var NFServices *[]models.NfService

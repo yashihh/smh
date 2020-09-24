@@ -5,42 +5,34 @@
 package factory
 
 import (
-	"free5gc/lib/openapi/models"
 	"time"
+
+	"bitbucket.org/free5gc-team/logger_util"
+	"bitbucket.org/free5gc-team/openapi/models"
 )
 
 type Config struct {
-	Info Info `yaml:"info"`
-
-	Configuration Configuration `yaml:"configuration"`
+	Info          *Info               `yaml:"info"`
+	Configuration *Configuration      `yaml:"configuration"`
+	Logger        *logger_util.Logger `yaml:"logger"`
 }
 
 type Info struct {
-	Version string `yaml:"version,omitempty"`
-
+	Version     string `yaml:"version,omitempty"`
 	Description string `yaml:"description,omitempty"`
 }
 
 type Configuration struct {
-	SmfName string `yaml:"smfName,omitempty"`
-
-	Sbi *Sbi `yaml:"sbi,omitempty"`
-
-	PFCP *PFCP `yaml:"pfcp,omitempty"`
-
-	DNN map[string]DNNInfo `yaml:"dnn,omitempty"`
-
-	NrfUri string `yaml:"nrfUri,omitempty"`
-
-	UserPlaneInformation UserPlaneInformation `yaml:"userplane_information"`
-
-	UESubnet string `yaml:"ue_subnet"`
-
-	ServiceNameList []string `yaml:"serviceNameList,omitempty"`
-
-	SNssaiInfo []models.SnssaiSmfInfoItem `yaml:"snssai_info,omitempty"`
-
-	ULCL bool `yaml:"ulcl,omitempty"`
+	SmfName              string                     `yaml:"smfName,omitempty"`
+	Sbi                  *Sbi                       `yaml:"sbi,omitempty"`
+	PFCP                 *PFCP                      `yaml:"pfcp,omitempty"`
+	DNN                  map[string]DNNInfo         `yaml:"dnn,omitempty"`
+	NrfUri               string                     `yaml:"nrfUri,omitempty"`
+	UserPlaneInformation UserPlaneInformation       `yaml:"userplane_information"`
+	UESubnet             string                     `yaml:"ue_subnet"`
+	ServiceNameList      []string                   `yaml:"serviceNameList,omitempty"`
+	SNssaiInfo           []models.SnssaiSmfInfoItem `yaml:"snssai_info,omitempty"`
+	ULCL                 bool                       `yaml:"ulcl,omitempty"`
 }
 
 type Sbi struct {
@@ -72,18 +64,14 @@ type DNS struct {
 }
 
 type Path struct {
-	DestinationIP string `yaml:"DestinationIP,omitempty"`
-
-	DestinationPort string `yaml:"DestinationPort,omitempty"`
-
-	UPF []string `yaml:"UPF,omitempty"`
+	DestinationIP   string   `yaml:"DestinationIP,omitempty"`
+	DestinationPort string   `yaml:"DestinationPort,omitempty"`
+	UPF             []string `yaml:"UPF,omitempty"`
 }
 
 type UERoutingInfo struct {
-	SUPI string `yaml:"SUPI,omitempty"`
-
-	AN string `yaml:"AN,omitempty"`
-
+	SUPI     string `yaml:"SUPI,omitempty"`
+	AN       string `yaml:"AN,omitempty"`
 	PathList []Path `yaml:"PathList,omitempty"`
 }
 
@@ -122,13 +110,10 @@ type PfdDataForApp struct {
 }
 
 type RoutingConfig struct {
-	Info *Info `yaml:"info"`
-
-	UERoutingInfo []*UERoutingInfo `yaml:"ueRoutingInfo"`
-
-	RouteProf map[RouteProfID]RouteProfile `yaml:"routeProfile,omitempty"`
-
-	PfdDatas []*PfdDataForApp `yaml:"pfdDataForApp,omitempty"`
+	Info          *Info                        `yaml:"info"`
+	UERoutingInfo []*UERoutingInfo             `yaml:"ueRoutingInfo"`
+	RouteProf     map[RouteProfID]RouteProfile `yaml:"routeProfile,omitempty"`
+	PfdDatas      []*PfdDataForApp             `yaml:"pfdDataForApp,omitempty"`
 }
 
 // UserPlaneInformation describe core network userplane information

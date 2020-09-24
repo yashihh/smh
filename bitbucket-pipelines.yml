@@ -15,12 +15,9 @@ pipelines:
               name: Check coding style
               size: 2x
               script:
-                - curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.28.0
+                - go env -w GOPRIVATE=bitbucket.org/free5gc-team/*
                 - git config --global url."git@bitbucket.org:free5gc-team".insteadOf https://bitbucket.org/free5gc-team
-                - go env -w GOPRIVATE=bitbucket.org/free5gc-team/*                
-                - git clone --recursive -b develop -j 30 git@bitbucket.org:free5gc-team/free5gc
-                - cd free5gc/src/smf
-                - git checkout $BITBUCKET_COMMIT
+                - curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.28.0
                 - golangci-lint run ./...
           - step:
               caches:
@@ -28,12 +25,9 @@ pipelines:
               name: Unit test
               size: 2x
               script:
-                - go get -u gotest.tools/gotestsum
-                - git config --global url."git@bitbucket.org:free5gc-team".insteadOf https://bitbucket.org/free5gc-team
                 - go env -w GOPRIVATE=bitbucket.org/free5gc-team/*
-                - git clone --recursive -b develop -j 30 git@bitbucket.org:free5gc-team/free5gc
-                - cd free5gc/src/smf
-                - git checkout $BITBUCKET_COMMIT
+                - git config --global url."git@bitbucket.org:free5gc-team".insteadOf https://bitbucket.org/free5gc-team
+                - go get gotest.tools/gotestsum
                 - gotestsum ./... -v -cover -race
 
 definitions:

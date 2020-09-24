@@ -1,9 +1,10 @@
 package oam
 
 import (
-	"free5gc/lib/http_wrapper"
-	"free5gc/src/smf/producer"
 	"github.com/gin-gonic/gin"
+
+	"bitbucket.org/free5gc-team/http_wrapper"
+	"bitbucket.org/free5gc-team/smf/producer"
 )
 
 func HTTPGetUEPDUSessionInfo(c *gin.Context) {

@@ -3,21 +3,22 @@ package context
 import (
 	"context"
 	"fmt"
-	"free5gc/lib/nas/nasConvert"
-	"free5gc/lib/nas/nasMessage"
-	"free5gc/lib/openapi"
-	"free5gc/lib/openapi/Namf_Communication"
-	"free5gc/lib/openapi/Nnrf_NFDiscovery"
-	"free5gc/lib/openapi/Npcf_SMPolicyControl"
-	"free5gc/lib/openapi/models"
-	"free5gc/lib/pfcp/pfcpType"
-	"free5gc/src/smf/logger"
 	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
 
 	"github.com/google/uuid"
+
+	"bitbucket.org/free5gc-team/nas/nasConvert"
+	"bitbucket.org/free5gc-team/nas/nasMessage"
+	"bitbucket.org/free5gc-team/openapi"
+	"bitbucket.org/free5gc-team/openapi/Namf_Communication"
+	"bitbucket.org/free5gc-team/openapi/Nnrf_NFDiscovery"
+	"bitbucket.org/free5gc-team/openapi/Npcf_SMPolicyControl"
+	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 var smContextPool sync.Map

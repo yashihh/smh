@@ -1,7 +1,7 @@
 package context
 
 import (
-	"free5gc/lib/openapi/models"
+	"bitbucket.org/free5gc-team/openapi/models"
 )
 
 // TrafficControlData - Traffic control data defines how traffic data flows

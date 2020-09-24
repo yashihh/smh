@@ -2,10 +2,11 @@ package context
 
 import (
 	"fmt"
-	"free5gc/lib/pfcp/pfcpType"
-	"free5gc/lib/util_3gpp"
-	"free5gc/src/smf/logger"
 	"strconv"
+
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/util_3gpp"
 )
 
 // GTPTunnel represents the GTP tunnel information

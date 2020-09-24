@@ -2,17 +2,18 @@ package producer
 
 import (
 	"context"
-	"free5gc/lib/flowdesc"
-	"free5gc/lib/http_wrapper"
-	"free5gc/lib/openapi/Nsmf_EventExposure"
-	"free5gc/lib/openapi/models"
-	"free5gc/lib/pfcp/pfcpType"
-	smf_context "free5gc/src/smf/context"
-	"free5gc/src/smf/factory"
-	"free5gc/src/smf/logger"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"bitbucket.org/free5gc-team/flowdesc"
+	"bitbucket.org/free5gc-team/http_wrapper"
+	"bitbucket.org/free5gc-team/openapi/Nsmf_EventExposure"
+	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	smf_context "bitbucket.org/free5gc-team/smf/context"
+	"bitbucket.org/free5gc-team/smf/factory"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNotification) *http_wrapper.Response {

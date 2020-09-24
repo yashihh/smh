@@ -1,11 +1,12 @@
 package oam
 
 import (
-	"free5gc/lib/logger_util"
-	"free5gc/src/smf/logger"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"bitbucket.org/free5gc-team/logger_util"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 // Route is the information for every URI.

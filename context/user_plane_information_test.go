@@ -1,12 +1,13 @@
 package context_test
 
 import (
-	"free5gc/lib/openapi/models"
-	"free5gc/src/smf/context"
-	"free5gc/src/smf/factory"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/smf/context"
+	"bitbucket.org/free5gc-team/smf/factory"
 )
 
 var configuration = &factory.UserPlaneInformation{

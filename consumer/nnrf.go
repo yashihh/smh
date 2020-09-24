@@ -3,19 +3,19 @@ package consumer
 import (
 	"context"
 	"fmt"
-	"free5gc/lib/openapi"
-	"free5gc/lib/openapi/Nnrf_NFDiscovery"
-	"free5gc/lib/openapi/Nudm_SubscriberDataManagement"
-	"free5gc/lib/openapi/models"
-	smf_context "free5gc/src/smf/context"
-	"free5gc/src/smf/logger"
 	"net/http"
-
 	"strings"
 	"time"
 
 	"github.com/antihax/optional"
 	"github.com/mohae/deepcopy"
+
+	"bitbucket.org/free5gc-team/openapi"
+	"bitbucket.org/free5gc-team/openapi/Nnrf_NFDiscovery"
+	"bitbucket.org/free5gc-team/openapi/Nudm_SubscriberDataManagement"
+	"bitbucket.org/free5gc-team/openapi/models"
+	smf_context "bitbucket.org/free5gc-team/smf/context"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 func SendNFRegistration() error {

@@ -2,10 +2,11 @@ package context
 
 import (
 	"fmt"
-	"free5gc/lib/idgenerator"
-	"free5gc/src/smf/factory"
-	"free5gc/src/smf/logger"
 	"math"
+
+	"bitbucket.org/free5gc-team/idgenerator"
+	"bitbucket.org/free5gc-team/smf/factory"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 type UEPreConfigPaths struct {

@@ -2,16 +2,18 @@ package context
 
 import (
 	"fmt"
-	"free5gc/lib/idgenerator"
-	"free5gc/lib/pfcp/pfcpType"
-	"free5gc/lib/pfcp/pfcpUdp"
-	"free5gc/src/smf/logger"
-	"github.com/google/uuid"
 	"math"
 	"net"
 	"reflect"
 	"strconv"
 	"sync"
+
+	"github.com/google/uuid"
+
+	"bitbucket.org/free5gc-team/idgenerator"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 var upfPool sync.Map
