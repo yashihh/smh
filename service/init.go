@@ -83,7 +83,7 @@ func (smf *SMF) Initialize(c *cli.Context) {
 			panic(err)
 		}
 	} else {
-		DefaultSmfConfigPath := path_util.Gofree5gcPath("free5gc/config/smfcfg.conf")
+		DefaultSmfConfigPath := path_util.Free5gcPath("free5gc/config/smfcfg.conf")
 		if err := factory.InitConfigFactory(DefaultSmfConfigPath); err != nil {
 			panic(err)
 		}
@@ -94,7 +94,7 @@ func (smf *SMF) Initialize(c *cli.Context) {
 			panic(err)
 		}
 	} else {
-		DefaultUERoutingPath := path_util.Gofree5gcPath("free5gc/config/uerouting.yaml")
+		DefaultUERoutingPath := path_util.Free5gcPath("free5gc/config/uerouting.yaml")
 		if err := factory.InitRoutingConfigFactory(DefaultUERoutingPath); err != nil {
 			panic(err)
 		}

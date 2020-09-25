@@ -8,12 +8,12 @@ require (
 	bitbucket.org/free5gc-team/http2_util v0.0.0-20200915033753-44c1ee32f9a4
 	bitbucket.org/free5gc-team/http_wrapper v0.0.0-20200915033914-6b902db12ee5
 	bitbucket.org/free5gc-team/idgenerator v0.0.0-20200915034231-b4c0cb18dfd9
-	bitbucket.org/free5gc-team/logger_conf v0.0.0-20200915032859-681c48762af1
+	bitbucket.org/free5gc-team/logger_conf v0.0.0-20200925082105-8f148a8a82a3
 	bitbucket.org/free5gc-team/logger_util v0.0.0-20200916200038-727096880b5b
 	bitbucket.org/free5gc-team/nas v0.0.0-20200916194209-0698dd234d50
 	bitbucket.org/free5gc-team/ngap v0.0.0-20200915042202-2cf700b6cfe5
 	bitbucket.org/free5gc-team/openapi v0.0.0-20200915035203-9fc3f0e748b4
-	bitbucket.org/free5gc-team/path_util v0.0.0-20200915032418-20c65dc7664b
+	bitbucket.org/free5gc-team/path_util v0.0.0-20200925075253-6a41479bd567
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20200915045257-65f72906e362
 	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20200915035727-57c11712e705
 	bitbucket.org/free5gc-team/version v0.0.0-20200915045942-9abe4c17a92c
