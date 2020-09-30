@@ -322,6 +322,12 @@ func BuildPfcpSessionModificationRequest(
 			msg.CreatePDR = append(msg.CreatePDR, pdrToCreatePDR(pdr))
 		case context.RULE_UPDATE:
 			msg.UpdatePDR = append(msg.UpdatePDR, pdrToUpdatePDR(pdr))
+		case context.RULE_REMOVE:
+			msg.RemovePDR = append(msg.RemovePDR, &pfcp.RemovePDR{
+				PDRID: &pfcpType.PacketDetectionRuleID{
+					RuleId: pdr.PDRID,
+				},
+			})
 		}
 	}
 
@@ -331,6 +337,12 @@ func BuildPfcpSessionModificationRequest(
 			msg.CreateFAR = append(msg.CreateFAR, farToCreateFAR(far))
 		case context.RULE_UPDATE:
 			msg.UpdateFAR = append(msg.UpdateFAR, farToUpdateFAR(far))
+		case context.RULE_REMOVE:
+			msg.RemoveFAR = append(msg.RemoveFAR, &pfcp.RemoveFAR{
+				FARID: &pfcpType.FARID{
+					FarIdValue: far.FARID,
+				},
+			})
 		}
 	}
 
