@@ -64,10 +64,12 @@ type SMFContext struct {
 }
 
 func AllocUEIP() net.IP {
+	var newIP = make(net.IP, len(smfContext.UEAddressTemp))
 	smfContext.UEAddressLock.Lock()
 	defer smfContext.UEAddressLock.Unlock()
 	smfContext.UEAddressTemp[3]++
-	return smfContext.UEAddressTemp
+	copy(newIP, smfContext.UEAddressTemp)
+	return newIP
 }
 
 func AllocateLocalSEID() uint64 {
