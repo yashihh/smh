@@ -20,6 +20,7 @@ import (
 	"bitbucket.org/free5gc-team/path_util"
 	pathUtilLogger "bitbucket.org/free5gc-team/path_util/logger"
 	pfcpLogger "bitbucket.org/free5gc-team/pfcp/logger"
+	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/callback"
 	"bitbucket.org/free5gc-team/smf/consumer"
 	"bitbucket.org/free5gc-team/smf/context"
@@ -277,7 +278,12 @@ func (smf *SMF) Start() {
 	udp.Run(pfcp.Dispatch)
 
 	for _, upf := range context.SMF_Self().UserPlaneInformation.UPFs {
-		logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", upf.NodeID.NodeIdValue)
+		if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
+			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s](%s)\n", upf.NodeID.NodeIdValue,
+				upf.NodeID.ResolveNodeIdToIp().String())
+		} else {
+			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", upf.NodeID.ResolveNodeIdToIp().String())
+		}
 		message.SendPfcpAssociationSetupRequest(upf.NodeID)
 	}
 

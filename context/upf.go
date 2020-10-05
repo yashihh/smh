@@ -148,32 +148,53 @@ func (upf *UPF) PFCPAddr() *net.UDPAddr {
 	}
 }
 
-func RetrieveUPFNodeByNodeID(nodeID pfcpType.NodeID) (upf *UPF) {
+func RetrieveUPFNodeByNodeID(nodeID pfcpType.NodeID) *UPF {
+	var upf *UPF
 	upfPool.Range(func(key, value interface{}) bool {
 		upf = value.(*UPF)
-		if reflect.DeepEqual(upf.NodeID, nodeID) {
+		if upf.NodeID.NodeIdType != nodeID.NodeIdType &&
+			(upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn || nodeID.NodeIdType == pfcpType.NodeIdTypeFqdn) {
+			upfNodeIdIP := upf.NodeID.ResolveNodeIdToIp().To4()
+			nodeIdIP := nodeID.ResolveNodeIdToIp().To4()
+			logger.CtxLog.Tracef("RetrieveUPF - upfNodeIdIP:[%+v], nodeIdIP:[%+v]", upfNodeIdIP, nodeIdIP)
+			if reflect.DeepEqual(upfNodeIdIP, nodeIdIP) {
+				return false
+			}
+		} else if reflect.DeepEqual(upf.NodeID, nodeID) {
 			return false
-		} else {
-			return true
 		}
+		upf = nil
+		return true
 	})
 
 	return upf
 }
 
-func RemoveUPFNodeByNodeId(nodeID pfcpType.NodeID) {
-
+func RemoveUPFNodeByNodeId(nodeID pfcpType.NodeID) bool {
+	upfID := ""
 	upfPool.Range(func(key, value interface{}) bool {
-		upfID := key.(string)
+		upfID = key.(string)
 		upf := value.(*UPF)
-		if reflect.DeepEqual(upf.NodeID, nodeID) {
-			upfPool.Delete(upfID)
+		if upf.NodeID.NodeIdType != nodeID.NodeIdType &&
+			(upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn || nodeID.NodeIdType == pfcpType.NodeIdTypeFqdn) {
+			upfNodeIdIP := upf.NodeID.ResolveNodeIdToIp().To4()
+			nodeIdIP := nodeID.ResolveNodeIdToIp().To4()
+			logger.CtxLog.Tracef("RemoveUPF - upfNodeIdIP:[%+v], nodeIdIP:[%+v]", upfNodeIdIP, nodeIdIP)
+			if reflect.DeepEqual(upfNodeIdIP, nodeIdIP) {
+				return false
+			}
+		} else if reflect.DeepEqual(upf.NodeID, nodeID) {
 			return false
-		} else {
-			return true
 		}
+		upfID = ""
+		return true
 	})
 
+	if upfID != "" {
+		upfPool.Delete(upfID)
+		return true
+	}
+	return false
 }
 
 func SelectUPFByDnn(Dnn string) *UPF {
@@ -182,10 +203,9 @@ func SelectUPFByDnn(Dnn string) *UPF {
 		upf = value.(*UPF)
 		if upf.UPIPInfo.Assoni && string(upf.UPIPInfo.NetworkInstance) == Dnn {
 			return false
-		} else {
-			upf = nil
-			return true
 		}
+		upf = nil
+		return true
 	})
 	return upf
 }
@@ -196,7 +216,6 @@ func (upf *UPF) GetUPFIP() string {
 }
 
 func (upf *UPF) GetUPFID() string {
-
 	upInfo := GetUserPlaneInformation()
 	upfIP := upf.NodeID.ResolveNodeIdToIp().String()
 	return upInfo.GetUPFIDByIP(upfIP)

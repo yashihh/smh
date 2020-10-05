@@ -311,19 +311,20 @@ func (smContext *SMContext) AllocateLocalSEIDForDataPath(dataPath *DataPath) {
 	}
 }
 
-func (smContext *SMContext) PutPDRtoPFCPSession(nodeID pfcpType.NodeID, pdr *PDR) {
-
+func (smContext *SMContext) PutPDRtoPFCPSession(nodeID pfcpType.NodeID, pdr *PDR) error {
 	NodeIDtoIP := nodeID.ResolveNodeIdToIp().String()
-	pfcpSessionCtx := smContext.PFCPContext[NodeIDtoIP]
-
-	pfcpSessionCtx.PDRs[pdr.PDRID] = pdr
+	if pfcpSessCtx, exist := smContext.PFCPContext[NodeIDtoIP]; exist {
+		pfcpSessCtx.PDRs[pdr.PDRID] = pdr
+	} else {
+		return fmt.Errorf("Can't find PFCPContext[%s] to put PDR(%d)", NodeIDtoIP, pdr.PDRID)
+	}
+	return nil
 }
 
 func (smContext *SMContext) RemovePDRfromPFCPSession(nodeID pfcpType.NodeID, pdr *PDR) {
-
 	NodeIDtoIP := nodeID.ResolveNodeIdToIp().String()
-	pfcpSessionCtx := smContext.PFCPContext[NodeIDtoIP]
-	delete(pfcpSessionCtx.PDRs, pdr.PDRID)
+	pfcpSessCtx := smContext.PFCPContext[NodeIDtoIP]
+	delete(pfcpSessCtx.PDRs, pdr.PDRID)
 }
 
 func (smContext *SMContext) isAllowedPDUSessionType(nasPDUSessionType uint8) bool {

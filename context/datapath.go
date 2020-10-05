@@ -110,14 +110,16 @@ func (node *DataPathNode) ActivateUpLinkTunnel(smContext *SMContext) error {
 	node.UpLinkTunnel.DestEndPoint = node
 
 	destUPF := node.UPF
-	node.UpLinkTunnel.PDR, err = destUPF.AddPDR()
-
-	if err != nil {
-		logger.CtxLog.Warnln("In ActivateUpLinkTunnel UPF IP: ", node.UPF.NodeID.ResolveNodeIdToIp().String())
-		logger.CtxLog.Warnln("Allocata PDR Error: ", err)
+	if node.UpLinkTunnel.PDR, err = destUPF.AddPDR(); err != nil {
+		logger.CtxLog.Errorln("In ActivateUpLinkTunnel UPF IP: ", node.UPF.NodeID.ResolveNodeIdToIp().String())
+		logger.CtxLog.Errorln("Allocate PDR Error: ", err)
+		return fmt.Errorf("Add PDR failed: %s", err)
 	}
 
-	smContext.PutPDRtoPFCPSession(destUPF.NodeID, node.UpLinkTunnel.PDR)
+	if err = smContext.PutPDRtoPFCPSession(destUPF.NodeID, node.UpLinkTunnel.PDR); err != nil {
+		logger.CtxLog.Errorln("Put PDR Error: ", err)
+		return err
+	}
 
 	if teid, err := destUPF.GenerateTEID(); err != nil {
 		logger.CtxLog.Errorf("Generate uplink TEID fail: %s", err)
@@ -130,20 +132,21 @@ func (node *DataPathNode) ActivateUpLinkTunnel(smContext *SMContext) error {
 }
 
 func (node *DataPathNode) ActivateDownLinkTunnel(smContext *SMContext) error {
-
+	var err error
 	node.DownLinkTunnel.SrcEndPoint = node.Next()
 	node.DownLinkTunnel.DestEndPoint = node
 
 	destUPF := node.UPF
-	if newPDR, err := destUPF.AddPDR(); err != nil {
-		logger.CtxLog.Warnln("In ActivateDownLinkTunnel UPF IP: ", node.UPF.NodeID.ResolveNodeIdToIp().String())
-		logger.CtxLog.Warnln("Allocata PDR Error: ", err)
-		return fmt.Errorf("AddPDR failed: %s", err)
-	} else {
-		node.DownLinkTunnel.PDR = newPDR
+	if node.DownLinkTunnel.PDR, err = destUPF.AddPDR(); err != nil {
+		logger.CtxLog.Errorln("In ActivateDownLinkTunnel UPF IP: ", node.UPF.NodeID.ResolveNodeIdToIp().String())
+		logger.CtxLog.Errorln("Allocate PDR Error: ", err)
+		return fmt.Errorf("Add PDR failed: %s", err)
 	}
 
-	smContext.PutPDRtoPFCPSession(destUPF.NodeID, node.DownLinkTunnel.PDR)
+	if err = smContext.PutPDRtoPFCPSession(destUPF.NodeID, node.DownLinkTunnel.PDR); err != nil {
+		logger.CtxLog.Errorln("Put PDR Error: ", err)
+		return err
+	}
 
 	if teid, err := destUPF.GenerateTEID(); err != nil {
 		logger.CtxLog.Errorf("Generate downlink TEID fail: %s", err)
@@ -315,15 +318,13 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 	//Activate Tunnels
 	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		logger.PduSessLog.Traceln("Current DP Node IP: ", curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String())
-		err := curDataPathNode.ActivateUpLinkTunnel(smContext)
-
-		if err != nil {
+		if err := curDataPathNode.ActivateUpLinkTunnel(smContext); err != nil {
 			logger.CtxLog.Warnln(err)
+			return
 		}
-		err = curDataPathNode.ActivateDownLinkTunnel(smContext)
-
-		if err != nil {
+		if err := curDataPathNode.ActivateDownLinkTunnel(smContext); err != nil {
 			logger.CtxLog.Warnln(err)
+			return
 		}
 	}
 
