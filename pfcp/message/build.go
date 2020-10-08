@@ -198,10 +198,19 @@ func farToUpdateFAR(far *context.FAR) *pfcp.UpdateFAR {
 	updateFAR.ApplyAction.Dupl = far.ApplyAction.Dupl
 	updateFAR.ApplyAction.Drop = far.ApplyAction.Drop
 
-	updateFAR.UpdateForwardingParameters = new(pfcp.UpdateForwardingParametersIEInFAR)
-	updateFAR.UpdateForwardingParameters.DestinationInterface = &far.ForwardingParameters.DestinationInterface
-	updateFAR.UpdateForwardingParameters.NetworkInstance = &far.ForwardingParameters.NetworkInstance
-	updateFAR.UpdateForwardingParameters.OuterHeaderCreation = far.ForwardingParameters.OuterHeaderCreation
+	if far.ForwardingParameters != nil {
+		updateFAR.UpdateForwardingParameters = new(pfcp.UpdateForwardingParametersIEInFAR)
+		updateFAR.UpdateForwardingParameters.DestinationInterface = &far.ForwardingParameters.DestinationInterface
+		updateFAR.UpdateForwardingParameters.NetworkInstance = &far.ForwardingParameters.NetworkInstance
+		updateFAR.UpdateForwardingParameters.OuterHeaderCreation = far.ForwardingParameters.OuterHeaderCreation
+		if far.ForwardingParameters.ForwardingPolicyID != "" {
+			updateFAR.UpdateForwardingParameters.ForwardingPolicy = new(pfcpType.ForwardingPolicy)
+			updateFAR.UpdateForwardingParameters.ForwardingPolicy.ForwardingPolicyIdentifierLength =
+				uint8(len(far.ForwardingParameters.ForwardingPolicyID))
+			updateFAR.UpdateForwardingParameters.ForwardingPolicy.ForwardingPolicyIdentifier =
+				[]byte(far.ForwardingParameters.ForwardingPolicyID)
+		}
+	}
 
 	return updateFAR
 }
