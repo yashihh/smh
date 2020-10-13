@@ -95,7 +95,8 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 					NodeIdValue: []byte(node.NodeID),
 				}
 			}
-			upNode.UPF = NewUPF(&upNode.NodeID)
+
+			upNode.UPF = NewUPF(&upNode.NodeID, node.InterfaceUpfInfoList)
 			upNode.UPF.SNssaiInfo = SnssaiInfo{
 				SNssai: SNssai{
 					Sst: node.SNssaiInfo.SNssai.Sst,

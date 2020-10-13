@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/logger"
 	"bitbucket.org/free5gc-team/util_3gpp"
@@ -340,18 +341,32 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 			ULDestUPF := curULTunnel.DestEndPoint.UPF
 
 			ULPDR.Precedence = 32
-			ULPDR.PDI = PDI{
-				SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceAccess},
-				LocalFTeid: &pfcpType.FTEID{
-					V4:          true,
-					Ipv4Address: ULDestUPF.UPIPInfo.Ipv4Address,
-					Teid:        curULTunnel.TEID,
-				},
-				UEIPAddress: &pfcpType.UEIPAddress{
-					V4:          true,
-					Ipv4Address: smContext.PDUAddress.To4(),
-				},
+
+			var iface *UPFInterfaceInfo
+			if curDataPathNode.IsANUPF() {
+				iface = ULDestUPF.GetInterface(models.UpInterfaceType_N3, smContext.Dnn)
+			} else {
+				iface = ULDestUPF.GetInterface(models.UpInterfaceType_N9, smContext.Dnn)
 			}
+
+			if upIP, err := iface.IP(smContext.SelectedPDUSessionType); err != nil {
+				logger.CtxLog.Errorln("ActivateTunnelAndPDR failed", err)
+				return
+			} else {
+				ULPDR.PDI = PDI{
+					SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceAccess},
+					LocalFTeid: &pfcpType.FTEID{
+						V4:          true,
+						Ipv4Address: upIP,
+						Teid:        curULTunnel.TEID,
+					},
+					UEIPAddress: &pfcpType.UEIPAddress{
+						V4:          true,
+						Ipv4Address: smContext.PDUAddress.To4(),
+					},
+				}
+			}
+
 			ULPDR.OuterHeaderRemoval = &pfcpType.OuterHeaderRemoval{
 				OuterHeaderRemovalDescription: pfcpType.OuterHeaderRemovalGtpUUdpIpv4,
 			}
@@ -378,10 +393,17 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 
 			if nextULDest := curDataPathNode.Next(); nextULDest != nil {
 				nextULTunnel := nextULDest.UpLinkTunnel
-				ULFAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
-					OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationGtpUUdpIpv4,
-					Ipv4Address:                    nextULTunnel.DestEndPoint.UPF.UPIPInfo.Ipv4Address,
-					Teid:                           nextULTunnel.TEID,
+				iface = nextULTunnel.DestEndPoint.UPF.GetInterface(models.UpInterfaceType_N9, smContext.Dnn)
+
+				if upIP, err := iface.IP(smContext.SelectedPDUSessionType); err != nil {
+					logger.CtxLog.Errorln("ActivateTunnelAndPDR failed", err)
+					return
+				} else {
+					ULFAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
+						OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationGtpUUdpIpv4,
+						Ipv4Address:                    upIP,
+						Teid:                           nextULTunnel.TEID,
+					}
 				}
 			}
 
@@ -389,24 +411,11 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 
 		// Setup DownLink
 		if curDLTunnel != nil {
+			var iface *UPFInterfaceInfo
 			DLPDR := curDLTunnel.PDR
 			DLDestUPF := curDLTunnel.DestEndPoint.UPF
 
 			DLPDR.Precedence = 32
-			DLPDR.PDI = PDI{
-				SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceCore},
-				LocalFTeid: &pfcpType.FTEID{
-					V4:          true,
-					Ipv4Address: DLDestUPF.UPIPInfo.Ipv4Address,
-					Teid:        curDLTunnel.TEID,
-				},
-
-				// TODO: Should Uncomment this after FR5GC-1029 is solved
-				// UEIPAddress: &pfcpType.UEIPAddress{
-				// 	V4:          true,
-				// 	Ipv4Address: smContext.PDUAddress.To4(),
-				// },
-			}
 
 			// TODO: Should delete this after FR5GC-1029 is solved
 			if curDataPathNode.IsAnchorUPF() {
@@ -414,11 +423,30 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 					V4:          true,
 					Ipv4Address: smContext.PDUAddress.To4(),
 				}
-			}
-
-			if !curDataPathNode.IsAnchorUPF() {
+			} else {
 				DLPDR.OuterHeaderRemoval = &pfcpType.OuterHeaderRemoval{
 					OuterHeaderRemovalDescription: pfcpType.OuterHeaderRemovalGtpUUdpIpv4,
+				}
+
+				iface = DLDestUPF.GetInterface(models.UpInterfaceType_N9, smContext.Dnn)
+				if upIP, err := iface.IP(smContext.SelectedPDUSessionType); err != nil {
+					logger.CtxLog.Errorln("ActivateTunnelAndPDR failed", err)
+					return
+				} else {
+					DLPDR.PDI = PDI{
+						SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceCore},
+						LocalFTeid: &pfcpType.FTEID{
+							V4:          true,
+							Ipv4Address: upIP,
+							Teid:        curDLTunnel.TEID,
+						},
+
+						// TODO: Should Uncomment this after FR5GC-1029 is solved
+						// UEIPAddress: &pfcpType.UEIPAddress{
+						// 	V4:          true,
+						// 	Ipv4Address: smContext.PDUAddress.To4(),
+						// },
+					}
 				}
 			}
 
@@ -437,14 +465,23 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 					Forw: true,
 					Nocp: false,
 				}
-				DLFAR.ForwardingParameters = &ForwardingParameters{
-					DestinationInterface: pfcpType.DestinationInterface{InterfaceValue: pfcpType.DestinationInterfaceAccess},
-					OuterHeaderCreation: &pfcpType.OuterHeaderCreation{
-						OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationGtpUUdpIpv4,
-						Ipv4Address:                    nextDLDest.UPF.UPIPInfo.Ipv4Address,
-						Teid:                           nextDLTunnel.TEID,
-					},
+
+				iface = nextDLDest.UPF.GetInterface(models.UpInterfaceType_N9, smContext.Dnn)
+
+				if upIP, err := iface.IP(smContext.SelectedPDUSessionType); err != nil {
+					logger.CtxLog.Errorln("ActivateTunnelAndPDR failed", err)
+					return
+				} else {
+					DLFAR.ForwardingParameters = &ForwardingParameters{
+						DestinationInterface: pfcpType.DestinationInterface{InterfaceValue: pfcpType.DestinationInterfaceAccess},
+						OuterHeaderCreation: &pfcpType.OuterHeaderCreation{
+							OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationGtpUUdpIpv4,
+							Ipv4Address:                    upIP,
+							Teid:                           nextDLTunnel.TEID,
+						},
+					}
 				}
+
 			} else {
 				if anIP := smContext.Tunnel.ANInformation.IPAddress; anIP != nil {
 					ANUPF := dataPath.FirstDPNode

@@ -124,11 +124,18 @@ type UserPlaneInformation struct {
 
 // UPNode represent the user plane node
 type UPNode struct {
-	Type       string                   `yaml:"type"`
-	NodeID     string                   `yaml:"node_id"`
-	ANIP       string                   `yaml:"an_ip"`
-	Dnn        string                   `yaml:"dnn"`
-	SNssaiInfo models.SnssaiUpfInfoItem `yaml:"snssai_info,omitempty"`
+	Type                 string                   `yaml:"type"`
+	NodeID               string                   `yaml:"node_id"`
+	ANIP                 string                   `yaml:"an_ip"`
+	Dnn                  string                   `yaml:"dnn"`
+	SNssaiInfo           models.SnssaiUpfInfoItem `yaml:"snssai_info,omitempty"`
+	InterfaceUpfInfoList []InterfaceUpfInfoItem   `yaml:"interfaces,omitempty"`
+}
+
+type InterfaceUpfInfoItem struct {
+	InterfaceType   models.UpInterfaceType `yaml:"interfaceType"`
+	Endpoints       []string               `yaml:"endpoints"`
+	NetworkInstance string                 `yaml:"networkInstance"`
 }
 
 type UPLink struct {

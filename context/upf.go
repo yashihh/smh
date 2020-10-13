@@ -1,6 +1,7 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -11,8 +12,11 @@ import (
 	"github.com/google/uuid"
 
 	"bitbucket.org/free5gc-team/idgenerator"
+	"bitbucket.org/free5gc-team/nas/nasMessage"
+	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
+	"bitbucket.org/free5gc-team/smf/factory"
 	"bitbucket.org/free5gc-team/smf/logger"
 )
 
@@ -36,11 +40,13 @@ const (
 )
 
 type UPF struct {
-	uuid       uuid.UUID
-	NodeID     pfcpType.NodeID
-	UPIPInfo   pfcpType.UserPlaneIPResourceInformation
-	UPFStatus  UPFStatus
-	SNssaiInfo SnssaiInfo
+	uuid         uuid.UUID
+	NodeID       pfcpType.NodeID
+	UPIPInfo     pfcpType.UserPlaneIPResourceInformation
+	UPFStatus    UPFStatus
+	SNssaiInfo   SnssaiInfo
+	N3Interfaces []UPFInterfaceInfo
+	N9Interfaces []UPFInterfaceInfo
 
 	pdrPool sync.Map
 	farPool sync.Map
@@ -59,6 +65,65 @@ type UPF struct {
 type UPFSelectionParams struct {
 	Dnn    string
 	SNssai *SNssai
+}
+
+// UPFInterfaceInfo store the UPF interface information
+type UPFInterfaceInfo struct {
+	NetworkInstance       string
+	IPv4EndPointAddresses []net.IP
+	IPv6EndPointAddresses []net.IP
+	EndpointFQDN          string
+}
+
+// NewUPFInterfaceInfo parse the InterfaceUpfInfoItem to generate UPFInterfaceInfo
+func NewUPFInterfaceInfo(i *factory.InterfaceUpfInfoItem) *UPFInterfaceInfo {
+	var interfaceInfo = new(UPFInterfaceInfo)
+
+	interfaceInfo.IPv4EndPointAddresses = make([]net.IP, 0)
+	interfaceInfo.IPv6EndPointAddresses = make([]net.IP, 0)
+
+	logger.CtxLog.Infoln("Endpoints:", i.Endpoints)
+
+	for _, endpoint := range i.Endpoints {
+		eIP := net.ParseIP(endpoint)
+		if eIP == nil {
+			interfaceInfo.EndpointFQDN = endpoint
+		} else if eIPv4 := eIP.To4(); eIPv4 == nil {
+			interfaceInfo.IPv6EndPointAddresses = append(interfaceInfo.IPv6EndPointAddresses, eIP)
+		} else {
+			interfaceInfo.IPv4EndPointAddresses = append(interfaceInfo.IPv4EndPointAddresses, eIPv4)
+		}
+	}
+
+	interfaceInfo.NetworkInstance = i.NetworkInstance
+
+	return interfaceInfo
+}
+
+// IP returns the IP of the user plane IP information of the pduSessType
+func (i *UPFInterfaceInfo) IP(pduSessType uint8) (net.IP, error) {
+
+	if pduSessType == nasMessage.PDUSessionTypeIPv4 && len(i.IPv4EndPointAddresses) != 0 {
+		return i.IPv4EndPointAddresses[0], nil
+	}
+
+	if pduSessType == nasMessage.PDUSessionTypeIPv6 && len(i.IPv6EndPointAddresses) != 0 {
+		return i.IPv6EndPointAddresses[0], nil
+	}
+
+	if i.EndpointFQDN != "" {
+		if resolvedAddr, err := net.ResolveIPAddr("ip", i.EndpointFQDN); err != nil {
+			logger.CtxLog.Errorf("resolve addr [%s] failed", i.EndpointFQDN)
+		} else {
+			if pduSessType == nasMessage.PDUSessionTypeIPv4 {
+				return resolvedAddr.IP.To4(), nil
+			} else if pduSessType == nasMessage.PDUSessionTypeIPv6 {
+				return resolvedAddr.IP.To16(), nil
+			}
+		}
+	}
+
+	return nil, errors.New("not matched ip address")
 }
 
 func (upfSelectionParams *UPFSelectionParams) String() string {
@@ -105,7 +170,7 @@ func (upTunnel *UPTunnel) AddDataPath(dataPath *DataPath) {
 }
 
 // NewUPF returns a new UPF context in SMF
-func NewUPF(nodeID *pfcpType.NodeID) (upf *UPF) {
+func NewUPF(nodeID *pfcpType.NodeID, ifaces []factory.InterfaceUpfInfoItem) (upf *UPF) {
 	upf = new(UPF)
 	upf.uuid = uuid.New()
 
@@ -121,7 +186,41 @@ func NewUPF(nodeID *pfcpType.NodeID) (upf *UPF) {
 	upf.urrIDGenerator = idgenerator.NewGenerator(1, math.MaxUint32)
 	upf.teidGenerator = idgenerator.NewGenerator(1, math.MaxUint32)
 
+	upf.N3Interfaces = make([]UPFInterfaceInfo, 0)
+	upf.N9Interfaces = make([]UPFInterfaceInfo, 0)
+
+	for _, iface := range ifaces {
+		var upIface = NewUPFInterfaceInfo(&iface)
+
+		switch iface.InterfaceType {
+		case models.UpInterfaceType_N3:
+			upf.N3Interfaces = append(upf.N3Interfaces, *upIface)
+		case models.UpInterfaceType_N9:
+			upf.N9Interfaces = append(upf.N9Interfaces, *upIface)
+		}
+
+	}
+
 	return upf
+}
+
+// GetInterface return the UPFInterfaceInfo that match input cond
+func (upf *UPF) GetInterface(interfaceType models.UpInterfaceType, dnn string) *UPFInterfaceInfo {
+	switch interfaceType {
+	case models.UpInterfaceType_N3:
+		for i, iface := range upf.N3Interfaces {
+			if iface.NetworkInstance == dnn {
+				return &upf.N3Interfaces[i]
+			}
+		}
+	case models.UpInterfaceType_N9:
+		for i, iface := range upf.N9Interfaces {
+			if iface.NetworkInstance == dnn {
+				return &upf.N9Interfaces[i]
+			}
+		}
+	}
+	return nil
 }
 
 func (upf *UPF) GenerateTEID() (uint32, error) {
