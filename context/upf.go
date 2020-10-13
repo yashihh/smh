@@ -6,7 +6,6 @@ import (
 	"math"
 	"net"
 	"reflect"
-	"strconv"
 	"sync"
 
 	"github.com/google/uuid"
@@ -128,16 +127,20 @@ func (i *UPFInterfaceInfo) IP(pduSessType uint8) (net.IP, error) {
 }
 
 func (upfSelectionParams *UPFSelectionParams) String() string {
-	Dnn := upfSelectionParams.Dnn
-	SNssai := upfSelectionParams.SNssai
-
 	str := ""
+	Dnn := upfSelectionParams.Dnn
 	if Dnn != "" {
-		str += "\nDnn: " + upfSelectionParams.Dnn + "\n"
+		str += fmt.Sprintf("Dnn: %s\n", Dnn)
 	}
 
+	SNssai := upfSelectionParams.SNssai
 	if SNssai != nil {
-		str += "Sst: " + strconv.Itoa(int(upfSelectionParams.SNssai.Sst)) + "\n"
+		str += fmt.Sprintf("Sst: %d, Sd: %s\n", int(SNssai.Sst), SNssai.Sd)
+	}
+
+	Dnai := upfSelectionParams.Dnai
+	if Dnai != "" {
+		str += fmt.Sprintf("DNAI: %s\n", Dnai)
 	}
 
 	return str
