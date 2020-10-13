@@ -44,7 +44,7 @@ type UPF struct {
 	NodeID       pfcpType.NodeID
 	UPIPInfo     pfcpType.UserPlaneIPResourceInformation
 	UPFStatus    UPFStatus
-	SNssaiInfo   SnssaiInfo
+	SNssaiInfo   SnssaiUPFInfo
 	N3Interfaces []UPFInterfaceInfo
 	N9Interfaces []UPFInterfaceInfo
 
@@ -65,6 +65,7 @@ type UPF struct {
 type UPFSelectionParams struct {
 	Dnn    string
 	SNssai *SNssai
+	Dnai   string
 }
 
 // UPFInterfaceInfo store the UPF interface information

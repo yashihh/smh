@@ -97,16 +97,20 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 			}
 
 			upNode.UPF = NewUPF(&upNode.NodeID, node.InterfaceUpfInfoList)
-			upNode.UPF.SNssaiInfo = SnssaiInfo{
+			upNode.UPF.SNssaiInfo = SnssaiUPFInfo{
 				SNssai: SNssai{
 					Sst: node.SNssaiInfo.SNssai.Sst,
 					Sd:  node.SNssaiInfo.SNssai.Sd,
 				},
-				DnnList: make([]string, 0),
+				DnnList: make([]DnnUPFInfoItem, 0),
 			}
 
 			for _, dnnInfo := range node.SNssaiInfo.DnnUpfInfoList {
-				upNode.UPF.SNssaiInfo.DnnList = append(upNode.UPF.SNssaiInfo.DnnList, dnnInfo.Dnn)
+				upNode.UPF.SNssaiInfo.DnnList = append(upNode.UPF.SNssaiInfo.DnnList, DnnUPFInfoItem{
+					Dnn:             dnnInfo.Dnn,
+					DnaiList:        dnnInfo.DnaiList,
+					PduSessionTypes: dnnInfo.PduSessionTypes,
+				})
 			}
 			logger.InitLog.Traceln("UPNode name: ", name)
 			logger.InitLog.Traceln("UPFIP: ", upNode.UPF.GetUPFIP())
@@ -246,13 +250,15 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 	}
 
 	for _, node := range upi.UPFs {
+		currentSnssai := &node.UPF.SNssaiInfo.SNssai
+		targetSnssai := selection.SNssai
 
-		if node.UPF.UPIPInfo.NetworkInstance != nil {
-			nodeDnn := string(node.UPF.UPIPInfo.NetworkInstance)
-			serviceType := node.UPF.SNssaiInfo.SNssai.Sst
-			if nodeDnn == selection.Dnn && serviceType == selection.SNssai.Sst {
-				destination = node
-				break
+		if currentSnssai.Sd == targetSnssai.Sd && currentSnssai.Sst == targetSnssai.Sst {
+			for _, dnnInfo := range node.UPF.SNssaiInfo.DnnList {
+				if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
+					destination = node
+					break
+				}
 			}
 		}
 	}
