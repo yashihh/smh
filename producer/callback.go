@@ -229,7 +229,7 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 	if srcPccRule != nil {
 		targetPccRule.Datapath = srcPccRule.Datapath
 	} else if targetPccRule.Datapath == nil {
-		createPccRuleDataPath(smContext, targetPccRule)
+		createPccRuleDataPath(smContext, targetPccRule, tcData)
 	}
 
 	if appID := targetPccRule.AppID; appID != "" {
@@ -355,13 +355,20 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 	return nil
 }
 
-func createPccRuleDataPath(smContext *smf_context.SMContext, pccRule *smf_context.PCCRule) {
+func createPccRuleDataPath(smContext *smf_context.SMContext,
+	pccRule *smf_context.PCCRule,
+	tcData *smf_context.TrafficControlData) {
+	var targetDNAI string
+	if tcData != nil && len(tcData.RouteToLocs) > 0 {
+		targetDNAI = tcData.RouteToLocs[0].Dnai
+	}
 	upfSelectionParams := &smf_context.UPFSelectionParams{
 		Dnn: smContext.Dnn,
 		SNssai: &smf_context.SNssai{
 			Sst: smContext.Snssai.Sst,
 			Sd:  smContext.Snssai.Sd,
 		},
+		Dnai: targetDNAI,
 	}
 	createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(upfSelectionParams)
 	createdDataPath := smf_context.GenerateDataPath(createdUpPath, smContext)
