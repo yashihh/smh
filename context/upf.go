@@ -5,6 +5,7 @@ import (
 	"math"
 	"net"
 	"reflect"
+	"regexp"
 	"strconv"
 	"sync"
 
@@ -17,7 +18,14 @@ import (
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
+	"bitbucket.org/free5gc-team/smf/factory"
 	"bitbucket.org/free5gc-team/smf/logger"
+)
+
+var (
+	ipv4Regex = regexp.MustCompile(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`)
+	ipv6Regex = regexp.MustCompile(`^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$`)
+	fqdnRegex = regexp.MustCompile(`^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9])).([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}.[a-zA-Z]{2,3})$`)
 )
 
 var upfPool sync.Map
@@ -76,20 +84,26 @@ type UPFInterfaceInfo struct {
 }
 
 // NewUPFInterfaceInfo parse the InterfaceUpfInfoItem to generate UPFInterfaceInfo
-func NewUPFInterfaceInfo(i *models.InterfaceUpfInfoItem) *UPFInterfaceInfo {
+func NewUPFInterfaceInfo(i *factory.InterfaceUpfInfoItem) *UPFInterfaceInfo {
 	var interfaceInfo = new(UPFInterfaceInfo)
 
-	interfaceInfo.IPv4EndPointAddresses = make([]net.IP, 0, len(i.Ipv4EndpointAddresses))
-	for _, ipv4Address := range i.Ipv4EndpointAddresses {
-		interfaceInfo.IPv4EndPointAddresses = append(interfaceInfo.IPv4EndPointAddresses, net.ParseIP(ipv4Address))
+	interfaceInfo.IPv4EndPointAddresses = make([]net.IP, 0)
+	interfaceInfo.IPv6EndPointAddresses = make([]net.IP, 0)
+
+	fmt.Println(i.Endpoints)
+
+	for _, endpoint := range i.Endpoints {
+		if ipv4Regex.MatchString(endpoint) {
+			interfaceInfo.IPv4EndPointAddresses = append(interfaceInfo.IPv4EndPointAddresses, net.ParseIP(endpoint).To4())
+		} else if ipv6Regex.MatchString(endpoint) {
+			interfaceInfo.IPv6EndPointAddresses = append(interfaceInfo.IPv6EndPointAddresses, net.ParseIP(endpoint))
+		} else if fqdnRegex.MatchString(endpoint) {
+			interfaceInfo.EndpointFQDN = endpoint
+		} else {
+			logger.AppLog.Errorln("Error UPF interface endpoint %s", endpoint)
+		}
 	}
 
-	interfaceInfo.IPv6EndPointAddresses = make([]net.IP, 0, len(i.Ipv6EndpointAddresses))
-	for _, ipv6Address := range i.Ipv6EndpointAddresses {
-		interfaceInfo.IPv6EndPointAddresses = append(interfaceInfo.IPv4EndPointAddresses, net.ParseIP(ipv6Address))
-	}
-
-	interfaceInfo.EndpointFQDN = i.EndpointFqdn
 	interfaceInfo.NetworkInstance = i.NetworkInstance
 
 	return interfaceInfo
@@ -165,7 +179,7 @@ func (upTunnel *UPTunnel) AddDataPath(dataPath *DataPath) {
 }
 
 // NewUPF returns a new UPF context in SMF
-func NewUPF(nodeID *pfcpType.NodeID, ifaces []models.InterfaceUpfInfoItem) (upf *UPF) {
+func NewUPF(nodeID *pfcpType.NodeID, ifaces []factory.InterfaceUpfInfoItem) (upf *UPF) {
 	upf = new(UPF)
 	upf.uuid = uuid.New()
 
