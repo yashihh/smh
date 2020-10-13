@@ -133,9 +133,9 @@ type UPNode struct {
 }
 
 type InterfaceUpfInfoItem struct {
-	InterfaceType   models.UpInterfaceType `json:"interfaceType" yaml:"interfaceType" bson:"interfaceType" mapstructure:"InterfaceType"`
-	Endpoints       []string               `json:"endpoints,omitempty" yaml:"endpoints" bson:"endpoints" mapstructure:"Endpoints"`
-	NetworkInstance string                 `json:"networkInstance,omitempty" yaml:"networkInstance" bson:"networkInstance" mapstructure:"NetworkInstance"`
+	InterfaceType   models.UpInterfaceType `yaml:"interfaceType"`
+	Endpoints       []string               `yaml:"endpoints"`
+	NetworkInstance string                 `yaml:"networkInstance"`
 }
 
 type UPLink struct {

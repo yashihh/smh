@@ -1,15 +1,13 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net"
 	"reflect"
-	"regexp"
 	"strconv"
 	"sync"
-
-	"errors"
 
 	"github.com/google/uuid"
 
@@ -20,11 +18,6 @@ import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"bitbucket.org/free5gc-team/smf/factory"
 	"bitbucket.org/free5gc-team/smf/logger"
-)
-
-var (
-	ipv4Regex = regexp.MustCompile(`^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`)
-	ipv6Regex = regexp.MustCompile(`^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$`)
 )
 
 var upfPool sync.Map
@@ -89,15 +82,16 @@ func NewUPFInterfaceInfo(i *factory.InterfaceUpfInfoItem) *UPFInterfaceInfo {
 	interfaceInfo.IPv4EndPointAddresses = make([]net.IP, 0)
 	interfaceInfo.IPv6EndPointAddresses = make([]net.IP, 0)
 
-	fmt.Println(i.Endpoints)
+	logger.CtxLog.Infoln("Endpoints:", i.Endpoints)
 
 	for _, endpoint := range i.Endpoints {
-		if ipv4Regex.MatchString(endpoint) {
-			interfaceInfo.IPv4EndPointAddresses = append(interfaceInfo.IPv4EndPointAddresses, net.ParseIP(endpoint).To4())
-		} else if ipv6Regex.MatchString(endpoint) {
-			interfaceInfo.IPv6EndPointAddresses = append(interfaceInfo.IPv6EndPointAddresses, net.ParseIP(endpoint))
-		} else {
+		eIP := net.ParseIP(endpoint)
+		if eIP == nil {
 			interfaceInfo.EndpointFQDN = endpoint
+		} else if eIPv4 := eIP.To4(); eIPv4 == nil {
+			interfaceInfo.IPv6EndPointAddresses = append(interfaceInfo.IPv6EndPointAddresses, eIP)
+		} else {
+			interfaceInfo.IPv4EndPointAddresses = append(interfaceInfo.IPv4EndPointAddresses, eIPv4)
 		}
 	}
 
@@ -119,7 +113,7 @@ func (i *UPFInterfaceInfo) IP(pduSessType uint8) (net.IP, error) {
 
 	if i.EndpointFQDN != "" {
 		if resolvedAddr, err := net.ResolveIPAddr("ip", i.EndpointFQDN); err != nil {
-			logger.AppLog.Errorf("resolve addr [%s] failed", i.EndpointFQDN)
+			logger.CtxLog.Errorf("resolve addr [%s] failed", i.EndpointFQDN)
 		} else {
 			if pduSessType == nasMessage.PDUSessionTypeIPv4 {
 				return resolvedAddr.IP.To4(), nil
