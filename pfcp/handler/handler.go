@@ -103,7 +103,7 @@ func HandlePfcpAssociationReleaseRequest(msg *pfcpUdp.Message) {
 	upf := smf_context.RetrieveUPFNodeByNodeID(*pfcpMsg.NodeID)
 
 	if upf != nil {
-		smf_context.RemoveUPFNodeByNodeId(*pfcpMsg.NodeID)
+		smf_context.RemoveUPFNodeByNodeID(*pfcpMsg.NodeID)
 		cause.CauseValue = pfcpType.CauseRequestAccepted
 	} else {
 		cause.CauseValue = pfcpType.CauseNoEstablishedPfcpAssociation
@@ -116,7 +116,7 @@ func HandlePfcpAssociationReleaseResponse(msg *pfcpUdp.Message) {
 	pfcpMsg := msg.PfcpMessage.Body.(pfcp.PFCPAssociationReleaseResponse)
 
 	if pfcpMsg.Cause.CauseValue == pfcpType.CauseRequestAccepted {
-		smf_context.RemoveUPFNodeByNodeId(*pfcpMsg.NodeID)
+		smf_context.RemoveUPFNodeByNodeID(*pfcpMsg.NodeID)
 	}
 }
 
