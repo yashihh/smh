@@ -248,24 +248,26 @@ func (upf *UPF) PFCPAddr() *net.UDPAddr {
 }
 
 func RetrieveUPFNodeByNodeID(nodeID pfcpType.NodeID) *UPF {
-	var upf *UPF = nil
+	var targetUPF *UPF = nil
 	upfPool.Range(func(key, value interface{}) bool {
-		if reflect.DeepEqual(value.(*UPF).NodeID, nodeID) && upf.NodeID.NodeIdType != nodeID.NodeIdType &&
-			(upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn || nodeID.NodeIdType == pfcpType.NodeIdTypeFqdn) {
-			upfNodeIdIP := upf.NodeID.ResolveNodeIdToIp().To4()
+		curUPF := value.(*UPF)
+		if curUPF.NodeID.NodeIdType != nodeID.NodeIdType &&
+			(curUPF.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn || nodeID.NodeIdType == pfcpType.NodeIdTypeFqdn) {
+			curUPFNodeIdIP := curUPF.NodeID.ResolveNodeIdToIp().To4()
 			nodeIdIP := nodeID.ResolveNodeIdToIp().To4()
-			logger.CtxLog.Tracef("RetrieveUPF - upfNodeIdIP:[%+v], nodeIdIP:[%+v]", upfNodeIdIP, nodeIdIP)
-			if reflect.DeepEqual(upfNodeIdIP, nodeIdIP) {
+			logger.CtxLog.Tracef("RetrieveUPF - upfNodeIdIP:[%+v], nodeIdIP:[%+v]", curUPFNodeIdIP, nodeIdIP)
+			if reflect.DeepEqual(curUPFNodeIdIP, nodeIdIP) {
+				targetUPF = curUPF
 				return false
 			}
-		} else if reflect.DeepEqual(upf.NodeID, nodeID) {
+		} else if reflect.DeepEqual(curUPF.NodeID, nodeID) {
+			targetUPF = curUPF
 			return false
 		}
-		upf = nil
 		return true
 	})
 
-	return upf
+	return targetUPF
 }
 
 func RemoveUPFNodeByNodeID(nodeID pfcpType.NodeID) bool {
