@@ -234,7 +234,7 @@ func GenerateDataPath(upPath UPPath, smContext *SMContext) *DataPath {
 func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionParams) bool {
 
 	var source *UPNode
-	var destination *UPNode
+	var destinations []*UPNode
 
 	for _, node := range upi.AccessNetwork {
 
@@ -249,23 +249,12 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 		return false
 	}
 
-	for _, node := range upi.UPFs {
-		currentSnssai := &node.UPF.SNssaiInfo.SNssai
-		targetSnssai := selection.SNssai
+	destinations = upi.selectMatchUPF(selection)
 
-		if currentSnssai.Sd == targetSnssai.Sd && currentSnssai.Sst == targetSnssai.Sst {
-			for _, dnnInfo := range node.UPF.SNssaiInfo.DnnList {
-				if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
-					destination = node
-					break
-				}
-			}
-		}
-	}
-
-	if destination == nil {
+	if len(destinations) == 0 {
 		logger.CtxLog.Errorf("Can't find UPF with DNN [%s]\n", selection.Dnn)
-		logger.CtxLog.Errorf("Can't find UPF with Service Type [%d]\n", selection.SNssai.Sst)
+		logger.CtxLog.Errorf("Can't find UPF with S-NSSAI [sst: %d sd: %s]\n",
+			selection.SNssai.Sst, selection.SNssai.Sd)
 		return false
 	}
 
@@ -276,7 +265,7 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 		visited[upNode] = false
 	}
 
-	path, pathExist := getPathBetween(source, destination, visited, selection)
+	path, pathExist := getPathBetween(source, destinations[0], visited, selection)
 
 	if pathExist {
 		if path[0].Type == UPNODE_AN {
@@ -286,6 +275,25 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 	}
 
 	return pathExist
+}
+
+func (upi *UserPlaneInformation) selectMatchUPF(selection *UPFSelectionParams) []*UPNode {
+	var upList = make([]*UPNode, 0)
+
+	for _, upNode := range upi.UPFs {
+		currentSnssai := &upNode.UPF.SNssaiInfo.SNssai
+		targetSnssai := selection.SNssai
+
+		if currentSnssai.Sd == targetSnssai.Sd && currentSnssai.Sst == targetSnssai.Sst {
+			for _, dnnInfo := range upNode.UPF.SNssaiInfo.DnnList {
+				if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
+					upList = append(upList, upNode)
+					break
+				}
+			}
+		}
+	}
+	return upList
 }
 
 func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool,
