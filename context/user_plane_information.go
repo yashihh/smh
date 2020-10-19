@@ -252,9 +252,8 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 	destinations = upi.selectMatchUPF(selection)
 
 	if len(destinations) == 0 {
-		logger.CtxLog.Errorf("Can't find UPF with DNN [%s]\n", selection.Dnn)
-		logger.CtxLog.Errorf("Can't find UPF with S-NSSAI [sst: %d sd: %s]\n",
-			selection.SNssai.Sst, selection.SNssai.Sd)
+		logger.CtxLog.Errorf("Can't find UPF with DNN[%s] S-NSSAI[sst: %d sd: %s] DNAI[%s]\n", selection.Dnn,
+			selection.SNssai.Sst, selection.SNssai.Sd, selection.Dnai)
 		return false
 	}
 
