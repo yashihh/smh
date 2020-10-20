@@ -226,11 +226,6 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 		return nil
 	}
 
-	if err := applyTrafficRoutingData(smContext, srcPccRule, targetPccRule,
-		targetPccRule.RefTrafficControlData(), tcData); err != nil {
-		return err
-	}
-
 	if appID := targetPccRule.AppID; appID != "" {
 		var matchedPFD *factory.PfdDataForApp
 		for _, pfdDataForApp := range factory.UERoutingConfig.PfdDatas {
@@ -255,6 +250,11 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 		}
 	}
 
+	if err := applyTrafficRoutingData(smContext, srcPccRule, targetPccRule,
+		targetPccRule.RefTrafficControlData(), tcData); err != nil {
+		return err
+	}
+
 	// Install PCC rule
 	smContext.PCCRules[pccRuleID] = targetPccRule
 
@@ -273,7 +273,7 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 
 	if applyTcID == "" && targetTcData == nil {
 		logger.PduSessLog.Infof("No srcTcData and targetTcData. Nothing to do")
-		//Because TargetPccRule will be installed to smContext, need to update the Datapath
+		// Because targetPccRule may be installed back to smContext later, need to copy the original data path or create new one.
 		if srcPccRule != nil {
 			targetPccRule.Datapath = srcPccRule.Datapath
 		} else if targetPccRule.Datapath == nil {
@@ -338,7 +338,7 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 			SendPFCPRule(smContext, targetPccRule.Datapath)
 		}
 
-		// Now we will install new datapath, and remove old datapath
+		// Now our solution is to install new datapath first, and then remove old datapath
 		if srcPccRule != nil && srcPccRule.Datapath != nil {
 			removeDataPath(smContext, srcPccRule.Datapath)
 			SendPFCPRule(smContext, srcPccRule.Datapath)
