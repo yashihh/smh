@@ -273,6 +273,7 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 
 	if applyTcID == "" && targetTcData == nil {
 		logger.PduSessLog.Infof("No srcTcData and targetTcData. Nothing to do")
+		//Because TargetPccRule will be installed to smContext, need to update the Datapath
 		if srcPccRule != nil {
 			targetPccRule.Datapath = srcPccRule.Datapath
 		} else if targetPccRule.Datapath == nil {
@@ -290,11 +291,6 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 			//If no targetTcData, the default UpPathChgEvent will be the one in srcTcData
 			upPathChgEvt = srcTcData.UpPathChgEvent
 
-			// Remove the old datapath
-			removeDataPath(smContext, srcPccRule.Datapath)
-			SendPFCPRule(smContext, srcPccRule.Datapath)
-
-			createPccRuleDataPath(smContext, targetPccRule, targetTcData)
 		} else {
 			if targetTcData == nil {
 				return fmt.Errorf("No this Traffic control data [%s] to remove", applyTcID)
@@ -335,11 +331,15 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 		}
 
 		if targetPccRule != nil {
+			createPccRuleDataPath(smContext, targetPccRule, targetTcData)
 			if err := applyDataPathWithTrafficControl(smContext, targetPccRule, &targetTraRouting); err != nil {
 				return err
 			}
 			SendPFCPRule(smContext, targetPccRule.Datapath)
-		} else {
+		}
+
+		// Now we will install new datapath, and remove old datapath
+		if srcPccRule != nil && srcPccRule.Datapath != nil {
 			removeDataPath(smContext, srcPccRule.Datapath)
 			SendPFCPRule(smContext, srcPccRule.Datapath)
 		}
