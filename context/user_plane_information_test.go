@@ -24,7 +24,9 @@ var configuration = &factory.UserPlaneInformation{
 					Sst: 1,
 					Sd:  "112232",
 				},
-				DnnUpfInfoList: []models.DnnUpfInfoItem{},
+				DnnUpfInfoList: []models.DnnUpfInfoItem{
+					{Dnn: "internet"},
+				},
 			},
 		},
 		"UPF2": {
@@ -35,7 +37,9 @@ var configuration = &factory.UserPlaneInformation{
 					Sst: 2,
 					Sd:  "112233",
 				},
-				DnnUpfInfoList: []models.DnnUpfInfoItem{},
+				DnnUpfInfoList: []models.DnnUpfInfoItem{
+					{Dnn: "internet"},
+				},
 			},
 		},
 		"UPF3": {
@@ -46,7 +50,9 @@ var configuration = &factory.UserPlaneInformation{
 					Sst: 3,
 					Sd:  "112234",
 				},
-				DnnUpfInfoList: []models.DnnUpfInfoItem{},
+				DnnUpfInfoList: []models.DnnUpfInfoItem{
+					{Dnn: "internet"},
+				},
 			},
 		},
 		"UPF4": {
@@ -57,7 +63,9 @@ var configuration = &factory.UserPlaneInformation{
 					Sst: 1,
 					Sd:  "112235",
 				},
-				DnnUpfInfoList: []models.DnnUpfInfoItem{},
+				DnnUpfInfoList: []models.DnnUpfInfoItem{
+					{Dnn: "internet"},
+				},
 			},
 		},
 	},
@@ -119,49 +127,75 @@ func TestGenerateDefaultPath(t *testing.T) {
 		},
 	}
 
-	upfSelectionParams := &context.UPFSelectionParams{
-		SNssai: &context.SNssai{
-			Sst: 1,
-			Sd:  "112235",
+	var testCases = []struct {
+		name     string
+		param    *context.UPFSelectionParams
+		expected bool
+	}{
+		{
+			"S-NSSAI 01112232 and DNN internet ok",
+			&context.UPFSelectionParams{
+				SNssai: &context.SNssai{
+					Sst: 1,
+					Sd:  "112232",
+				},
+				Dnn: "internet",
+			},
+			true,
 		},
-		Dnn: "internet",
+		{
+			"S-NSSAI 02112233 and DNN internet ok",
+			&context.UPFSelectionParams{
+				SNssai: &context.SNssai{
+					Sst: 2,
+					Sd:  "112233",
+				},
+				Dnn: "internet",
+			},
+			true,
+		},
+		{
+			"S-NSSAI 03112234 and DNN internet ok",
+			&context.UPFSelectionParams{
+				SNssai: &context.SNssai{
+					Sst: 3,
+					Sd:  "112234",
+				},
+				Dnn: "internet",
+			},
+			true,
+		},
+		{
+			"S-NSSAI 01112235 and DNN internet ok",
+			&context.UPFSelectionParams{
+				SNssai: &context.SNssai{
+					Sst: 1,
+					Sd:  "112235",
+				},
+				Dnn: "internet",
+			},
+			true,
+		},
+		{
+			"S-NSSAI 01010203 and DNN internet fail",
+			&context.UPFSelectionParams{
+				SNssai: &context.SNssai{
+					Sst: 1,
+					Sd:  "010203",
+				},
+				Dnn: "internet",
+			},
+			false,
+		},
 	}
 
 	userplaneInformation := context.NewUserPlaneInformation(configuration)
-	userplaneInformation.UPFs["UPF1"].UPF.UPIPInfo.NetworkInstance = []uint8("internet")
-	userplaneInformation.UPFs["UPF2"].UPF.UPIPInfo.NetworkInstance = []uint8("internet")
-	userplaneInformation.UPFs["UPF3"].UPF.UPIPInfo.NetworkInstance = []uint8("internet")
-	userplaneInformation.UPFs["UPF4"].UPF.UPIPInfo.NetworkInstance = []uint8("internet")
-
-	//testcase 1
-	pathExist := userplaneInformation.GenerateDefaultPath(upfSelectionParams)
-	require.Equal(t, pathExist, true)
-
-	//testcase 2
-	upfSelectionParams.SNssai.Sst = 2
-	pathExist = userplaneInformation.GenerateDefaultPath(upfSelectionParams)
-	require.Equal(t, pathExist, true)
-
-	//testcase 3
-	upfSelectionParams.SNssai.Sst = 3
-	pathExist = userplaneInformation.GenerateDefaultPath(upfSelectionParams)
-	require.Equal(t, pathExist, true)
-
-	//testcase 4
-	upfSelectionParams.SNssai.Sst = 4
-	pathExist = userplaneInformation.GenerateDefaultPath(upfSelectionParams)
-	require.Equal(t, pathExist, false)
-
-	//testcase 5
-	upfSelectionParams.SNssai.Sst = 1
-	configuration.UPNodes["UPF1"].SNssaiInfo.SNssai.Sst = 2
-	userplaneInformation = context.NewUserPlaneInformation(configuration)
-	userplaneInformation.UPFs["UPF1"].UPF.UPIPInfo.NetworkInstance = []uint8("internet")
-	userplaneInformation.UPFs["UPF2"].UPF.UPIPInfo.NetworkInstance = []uint8("internet")
-	userplaneInformation.UPFs["UPF3"].UPF.UPIPInfo.NetworkInstance = []uint8("internet")
-	userplaneInformation.UPFs["UPF4"].UPF.UPIPInfo.NetworkInstance = []uint8("internet")
-	pathExist = userplaneInformation.GenerateDefaultPath(upfSelectionParams)
-	require.Equal(t, pathExist, false)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			pathExist := userplaneInformation.GenerateDefaultPath(tc.param)
+			require.Equal(t, pathExist, tc.expected)
+		})
+	}
 }
 
 func TestGetDefaultUPFTopoByDNN(t *testing.T) {

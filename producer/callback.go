@@ -226,11 +226,8 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 		return nil
 	}
 
-	if srcPccRule != nil {
-		targetPccRule.Datapath = srcPccRule.Datapath
-	} else if targetPccRule.Datapath == nil {
-		createPccRuleDataPath(smContext, targetPccRule)
-	}
+	//Create Data path for targetPccRule
+	createPccRuleDataPath(smContext, targetPccRule, tcData)
 
 	if appID := targetPccRule.AppID; appID != "" {
 		var matchedPFD *factory.PfdDataForApp
@@ -260,6 +257,7 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 		targetPccRule.RefTrafficControlData(), tcData); err != nil {
 		return err
 	}
+
 	// Install PCC rule
 	smContext.PCCRules[pccRuleID] = targetPccRule
 
@@ -267,7 +265,7 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 }
 
 func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targetPccRule *smf_context.PCCRule,
-	srcTcID string, targetTcData *smf_context.TrafficControlData) error {
+	applyTcID string, targetTcData *smf_context.TrafficControlData) error {
 	trChanged := false
 	var srcTraRouting, targetTraRouting models.RouteToLocation
 	var upPathChgEvt *models.UpPathChgEvent
@@ -276,9 +274,14 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 		return fmt.Errorf("No pccRule to apply tcData")
 	}
 
+	if applyTcID == "" && targetTcData == nil {
+		logger.PduSessLog.Infof("No srcTcData and targetTcData. Nothing to do")
+		return nil
+	}
+
 	//Set reference to traffic control data
-	if srcTcID != "" {
-		srcTcData, exist := smContext.TrafficControlPool[srcTcID]
+	if applyTcID != "" {
+		srcTcData, exist := smContext.TrafficControlPool[applyTcID]
 		if exist {
 			//TODO: Fix always choosing the first RouteToLocs as srcTraRouting
 			srcTraRouting = srcTcData.RouteToLocs[0]
@@ -286,7 +289,7 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 			upPathChgEvt = srcTcData.UpPathChgEvent
 		} else {
 			if targetTcData == nil {
-				return fmt.Errorf("No this Traffic control data [%s] to remove", srcTcID)
+				return fmt.Errorf("No this Traffic control data [%s] to remove", applyTcID)
 			}
 			//No srcTcData, get related info from SMContext
 			srcTraRouting = models.RouteToLocation{
@@ -324,16 +327,15 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 		}
 
 		if targetPccRule != nil {
-			update := false
-			if srcPccRule != nil {
-				update = true
-			}
-			if err := modifyPccRuleDataPath(smContext, targetPccRule, &targetTraRouting, update); err != nil {
+			if err := applyDataPathWithTrafficControl(smContext, targetPccRule, &targetTraRouting); err != nil {
 				return err
 			}
 			SendPFCPRule(smContext, targetPccRule.Datapath)
-		} else {
-			removePccRuleDataPath(smContext, srcPccRule)
+		}
+
+		// Now our solution is to install new datapath first, and then remove old datapath
+		if srcPccRule != nil && srcPccRule.Datapath != nil {
+			removeDataPath(smContext, srcPccRule.Datapath)
 			SendPFCPRule(smContext, srcPccRule.Datapath)
 		}
 
@@ -345,9 +347,9 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 
 		if targetTcData != nil {
 			// Install traffic control data
-			smContext.TrafficControlPool[srcTcID] = targetTcData
+			smContext.TrafficControlPool[applyTcID] = targetTcData
 		} else { // Remove traffic control data
-			delete(smContext.TrafficControlPool, srcTcID)
+			delete(smContext.TrafficControlPool, applyTcID)
 		}
 	} else {
 		return fmt.Errorf("Traffic control data ref invalid")
@@ -355,24 +357,8 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 	return nil
 }
 
-func createPccRuleDataPath(smContext *smf_context.SMContext, pccRule *smf_context.PCCRule) {
-	upfSelectionParams := &smf_context.UPFSelectionParams{
-		Dnn: smContext.Dnn,
-		SNssai: &smf_context.SNssai{
-			Sst: smContext.Snssai.Sst,
-			Sd:  smContext.Snssai.Sd,
-		},
-	}
-	createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(upfSelectionParams)
-	createdDataPath := smf_context.GenerateDataPath(createdUpPath, smContext)
-	createdDataPath.ActivateTunnelAndPDR(smContext)
-	smContext.Tunnel.AddDataPath(createdDataPath)
-
-	pccRule.Datapath = createdDataPath
-}
-
-func modifyPccRuleDataPath(smContext *smf_context.SMContext, pccRule *smf_context.PCCRule,
-	targetTraRouting *models.RouteToLocation, update bool) error {
+func applyDataPathWithTrafficControl(smContext *smf_context.SMContext, pccRule *smf_context.PCCRule,
+	targetTraRouting *models.RouteToLocation) error {
 	var routeProf factory.RouteProfile
 	routeProfExist := false
 	// specify N6 routing information
@@ -385,17 +371,9 @@ func modifyPccRuleDataPath(smContext *smf_context.SMContext, pccRule *smf_contex
 	for curDPNode := pccRule.Datapath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
 		if curDPNode.DownLinkTunnel != nil && curDPNode.DownLinkTunnel.PDR != nil {
 			curDPNode.DownLinkTunnel.PDR.Precedence = uint32(pccRule.Precedence)
-			if update {
-				curDPNode.DownLinkTunnel.PDR.State = smf_context.RULE_UPDATE
-				curDPNode.DownLinkTunnel.PDR.FAR.State = smf_context.RULE_UPDATE
-			}
 		}
 		if curDPNode.UpLinkTunnel != nil && curDPNode.UpLinkTunnel.PDR != nil {
 			curDPNode.UpLinkTunnel.PDR.Precedence = uint32(pccRule.Precedence)
-			if update {
-				curDPNode.UpLinkTunnel.PDR.State = smf_context.RULE_UPDATE
-				curDPNode.UpLinkTunnel.PDR.FAR.State = smf_context.RULE_UPDATE
-			}
 		}
 		if curDPNode.IsAnchorUPF() {
 			curDLFAR := curDPNode.DownLinkTunnel.PDR.FAR
@@ -424,19 +402,6 @@ func modifyPccRuleDataPath(smContext *smf_context.SMContext, pccRule *smf_contex
 		}
 	}
 	return nil
-}
-
-func removePccRuleDataPath(smContext *smf_context.SMContext, pccRule *smf_context.PCCRule) {
-	for curDPNode := pccRule.Datapath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
-		if curDPNode.DownLinkTunnel != nil && curDPNode.DownLinkTunnel.PDR != nil {
-			curDPNode.DownLinkTunnel.PDR.State = smf_context.RULE_REMOVE
-			curDPNode.DownLinkTunnel.PDR.FAR.State = smf_context.RULE_REMOVE
-		}
-		if curDPNode.UpLinkTunnel != nil && curDPNode.UpLinkTunnel.PDR != nil {
-			curDPNode.UpLinkTunnel.PDR.State = smf_context.RULE_REMOVE
-			curDPNode.UpLinkTunnel.PDR.FAR.State = smf_context.RULE_REMOVE
-		}
-	}
 }
 
 func updatePccRuleDataPathFlowDescription(pccRule *smf_context.PCCRule,

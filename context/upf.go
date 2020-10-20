@@ -6,7 +6,6 @@ import (
 	"math"
 	"net"
 	"reflect"
-	"strconv"
 	"sync"
 
 	"github.com/google/uuid"
@@ -44,7 +43,7 @@ type UPF struct {
 	NodeID       pfcpType.NodeID
 	UPIPInfo     pfcpType.UserPlaneIPResourceInformation
 	UPFStatus    UPFStatus
-	SNssaiInfo   SnssaiInfo
+	SNssaiInfo   SnssaiUPFInfo
 	N3Interfaces []UPFInterfaceInfo
 	N9Interfaces []UPFInterfaceInfo
 
@@ -65,6 +64,7 @@ type UPF struct {
 type UPFSelectionParams struct {
 	Dnn    string
 	SNssai *SNssai
+	Dnai   string
 }
 
 // UPFInterfaceInfo store the UPF interface information
@@ -127,16 +127,20 @@ func (i *UPFInterfaceInfo) IP(pduSessType uint8) (net.IP, error) {
 }
 
 func (upfSelectionParams *UPFSelectionParams) String() string {
-	Dnn := upfSelectionParams.Dnn
-	SNssai := upfSelectionParams.SNssai
-
 	str := ""
+	Dnn := upfSelectionParams.Dnn
 	if Dnn != "" {
-		str += "\nDnn: " + upfSelectionParams.Dnn + "\n"
+		str += fmt.Sprintf("Dnn: %s\n", Dnn)
 	}
 
+	SNssai := upfSelectionParams.SNssai
 	if SNssai != nil {
-		str += "Sst: " + strconv.Itoa(int(upfSelectionParams.SNssai.Sst)) + "\n"
+		str += fmt.Sprintf("Sst: %d, Sd: %s\n", int(SNssai.Sst), SNssai.Sd)
+	}
+
+	Dnai := upfSelectionParams.Dnai
+	if Dnai != "" {
+		str += fmt.Sprintf("DNAI: %s\n", Dnai)
 	}
 
 	return str
