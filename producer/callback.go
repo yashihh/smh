@@ -226,6 +226,9 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 		return nil
 	}
 
+	//Create Data path for targetPccRule
+	createPccRuleDataPath(smContext, targetPccRule, tcData)
+
 	if appID := targetPccRule.AppID; appID != "" {
 		var matchedPFD *factory.PfdDataForApp
 		for _, pfdDataForApp := range factory.UERoutingConfig.PfdDatas {
@@ -273,12 +276,6 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 
 	if applyTcID == "" && targetTcData == nil {
 		logger.PduSessLog.Infof("No srcTcData and targetTcData. Nothing to do")
-		// Because targetPccRule may be installed back to smContext later, need to copy the original data path or create new one.
-		if srcPccRule != nil {
-			targetPccRule.Datapath = srcPccRule.Datapath
-		} else if targetPccRule.Datapath == nil {
-			createPccRuleDataPath(smContext, targetPccRule, targetTcData)
-		}
 		return nil
 	}
 
@@ -290,7 +287,6 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 			srcTraRouting = srcTcData.RouteToLocs[0]
 			//If no targetTcData, the default UpPathChgEvent will be the one in srcTcData
 			upPathChgEvt = srcTcData.UpPathChgEvent
-
 		} else {
 			if targetTcData == nil {
 				return fmt.Errorf("No this Traffic control data [%s] to remove", applyTcID)
@@ -331,7 +327,6 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 		}
 
 		if targetPccRule != nil {
-			createPccRuleDataPath(smContext, targetPccRule, targetTcData)
 			if err := applyDataPathWithTrafficControl(smContext, targetPccRule, &targetTraRouting); err != nil {
 				return err
 			}
