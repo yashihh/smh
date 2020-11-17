@@ -37,6 +37,7 @@ func maskBits(mask net.IPMask) int {
 	return cnt
 }
 
+// IPAddrWithOffset add offset on base ip
 func IPAddrWithOffset(ip net.IP, offset int) net.IP {
 	var retIP = make(net.IP, len(ip))
 	copy(retIP, ip)
@@ -57,6 +58,7 @@ func IPAddrWithOffset(ip net.IP, offset int) net.IP {
 	return retIP
 }
 
+// IPAddrOffset calculate the input ip with base ip offset
 func IPAddrOffset(in, base net.IP) int {
 	var offset = 0
 	var exp = 1
