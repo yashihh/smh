@@ -99,6 +99,8 @@ type SMContext struct {
 	PendingUPF                          PendingUPF
 	PDUSessionRelease_DUE_TO_DUP_PDU_ID bool
 
+	DNNInfo *SnssaiSmfDnnInfo
+
 	// SM Policy related
 	PCCRules           map[string]*PCCRule
 	SessionRules       map[string]*SessionRule
