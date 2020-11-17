@@ -42,6 +42,28 @@ func SetupNFProfile(config *factory.Config) {
 
 	//set smfInfo
 	SmfInfo = &models.SmfInfo{
-		SNssaiSmfInfoList: &smfContext.SnssaiInfos,
+		SNssaiSmfInfoList: SNssaiSmfInfo(),
 	}
+}
+
+func SNssaiSmfInfo() *[]models.SnssaiSmfInfoItem {
+	snssaiInfo := make([]models.SnssaiSmfInfoItem, 0)
+	for _, snssai := range smfContext.SnssaiInfos {
+		var snssaiInfoModel models.SnssaiSmfInfoItem
+		snssaiInfoModel.SNssai = &models.Snssai{
+			Sst: snssai.Snssai.Sst,
+			Sd:  snssai.Snssai.Sd,
+		}
+		dnnModelList := make([]models.DnnSmfInfoItem, 0)
+
+		for dnn := range snssai.DnnInfos {
+			dnnModelList = append(dnnModelList, models.DnnSmfInfoItem{
+				Dnn: dnn,
+			})
+		}
+
+		snssaiInfoModel.DnnSmfInfoList = &dnnModelList
+	}
+
+	return &snssaiInfo
 }

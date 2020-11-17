@@ -120,8 +120,6 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 			}
 		}
 	}
-
-	smContext.PDUAddress = AllocUEIP()
 }
 
 func (smContext *SMContext) HandlePDUSessionReleaseRequest(req *nasMessage.PDUSessionReleaseRequest) {

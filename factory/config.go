@@ -23,16 +23,25 @@ type Info struct {
 }
 
 type Configuration struct {
-	SmfName              string                     `yaml:"smfName,omitempty"`
-	Sbi                  *Sbi                       `yaml:"sbi,omitempty"`
-	PFCP                 *PFCP                      `yaml:"pfcp,omitempty"`
-	DNN                  map[string]DNNInfo         `yaml:"dnn,omitempty"`
-	NrfUri               string                     `yaml:"nrfUri,omitempty"`
-	UserPlaneInformation UserPlaneInformation       `yaml:"userplane_information"`
-	UESubnet             string                     `yaml:"ue_subnet"`
-	ServiceNameList      []string                   `yaml:"serviceNameList,omitempty"`
-	SNssaiInfo           []models.SnssaiSmfInfoItem `yaml:"snssai_info,omitempty"`
-	ULCL                 bool                       `yaml:"ulcl,omitempty"`
+	SmfName              string               `yaml:"smfName,omitempty"`
+	Sbi                  *Sbi                 `yaml:"sbi,omitempty"`
+	PFCP                 *PFCP                `yaml:"pfcp,omitempty"`
+	NrfUri               string               `yaml:"nrfUri,omitempty"`
+	UserPlaneInformation UserPlaneInformation `yaml:"userplane_information"`
+	ServiceNameList      []string             `yaml:"serviceNameList,omitempty"`
+	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty"`
+	ULCL                 bool                 `yaml:"ulcl,omitempty"`
+}
+
+type SnssaiInfoItem struct {
+	SNssai   *models.Snssai      `yaml:"sNssai"`
+	DnnInfos []SnssaiDnnInfoItem `yaml:"dnnInfos"`
+}
+
+type SnssaiDnnInfoItem struct {
+	Dnn      string `yaml:"dnn"`
+	DNS      DNS    `yaml:"dns"`
+	UESubnet string `yaml:"ueSubnet"`
 }
 
 type Sbi struct {
@@ -52,10 +61,6 @@ type TLS struct {
 type PFCP struct {
 	Addr string `yaml:"addr,omitempty"`
 	Port uint16 `yaml:"port,omitempty"`
-}
-
-type DNNInfo struct {
-	DNS DNS `yaml:"dns,omitempty"`
 }
 
 type DNS struct {

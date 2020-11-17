@@ -54,6 +54,13 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SetCreateData(createData)
 	smContext.SmStatusNotifyUri = createData.SmContextStatusUri
 
+	// DNN Information from config
+	smContext.DNNInfo = smf_context.RetrieveDnnInformation(*createData.SNssai, createData.Dnn)
+	if smContext.DNNInfo == nil {
+		logger.PduSessLog.Errorf("S-NSSAI[sst: %d, sd: %s] DNN[%s] not matched DNN Config",
+			createData.SNssai.Sst, createData.SNssai.Sd, createData.Dnn)
+	}
+
 	// Query UDM
 	if problemDetails, err := consumer.SendNFDiscoveryUDM(); err != nil {
 		logger.PduSessLog.Warnf("Send NF Discovery Serving UDM Error[%v]", err)
@@ -61,6 +68,13 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		logger.PduSessLog.Warnf("Send NF Discovery Serving UDM Problem[%+v]", problemDetails)
 	} else {
 		logger.PduSessLog.Infoln("Send NF Discovery Serving UDM Successfully")
+	}
+
+	// IP Allocation
+	if ip, err := smContext.DNNInfo.UeIPAllocator.Allocate(); err != nil {
+		logger.PduSessLog.Errorln("failed allocate IP address for this SM:", err)
+	} else {
+		smContext.PDUAddress = ip
 	}
 
 	smPlmnID := createData.Guami.PlmnId

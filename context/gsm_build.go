@@ -2,7 +2,6 @@ package context
 
 import (
 	"encoding/hex"
-	"net"
 
 	"bitbucket.org/free5gc-team/nas"
 	"bitbucket.org/free5gc-team/nas/nasConvert"
@@ -113,34 +112,26 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 	pDUSessionEstablishmentAccept.DNN.SetDNN(dnn)
 
 	if smContext.ProtocolConfigurationOptions.DNSIPv4Request || smContext.ProtocolConfigurationOptions.DNSIPv6Request {
-		dnnInfo, exist := SMF_Self().DNNInfo[smContext.Dnn]
-		if !exist {
-			logger.GsmLog.Warnf("No default DNS IP for DNN [%s]\n", smContext.Dnn)
-		}
-
-		if exist || smContext.ProtocolConfigurationOptions.IPv4LinkMTURequest {
+		if smContext.ProtocolConfigurationOptions.IPv4LinkMTURequest {
 			pDUSessionEstablishmentAccept.ExtendedProtocolConfigurationOptions =
 				nasType.NewExtendedProtocolConfigurationOptions(
 					nasMessage.PDUSessionEstablishmentAcceptExtendedProtocolConfigurationOptionsType,
 				)
 			protocolConfigurationOptions := nasConvert.NewProtocolConfigurationOptions()
 
-			// DNS IP
-			if exist {
-				if smContext.ProtocolConfigurationOptions.DNSIPv4Request {
-					DNSIPv4Addr := net.ParseIP(dnnInfo.DNS.IPv4Addr)
-					err := protocolConfigurationOptions.AddDNSServerIPv4Address(DNSIPv4Addr)
-					if err != nil {
-						logger.GsmLog.Warnln("Error while adding DNS IPv4 Addr: ", err)
-					}
+			// IPv4 DNS
+			if smContext.ProtocolConfigurationOptions.DNSIPv4Request {
+				err := protocolConfigurationOptions.AddDNSServerIPv4Address(smContext.DNNInfo.DNS.IPv4Addr)
+				if err != nil {
+					logger.GsmLog.Warnln("Error while adding DNS IPv4 Addr: ", err)
 				}
+			}
 
-				if smContext.ProtocolConfigurationOptions.DNSIPv6Request {
-					DNSIPv6Addr := net.ParseIP(dnnInfo.DNS.IPv6Addr)
-					err := protocolConfigurationOptions.AddDNSServerIPv6Address(DNSIPv6Addr)
-					if err != nil {
-						logger.GsmLog.Warnln("Error while adding DNS IPv6 Addr: ", err)
-					}
+			// IPv6 DNS
+			if smContext.ProtocolConfigurationOptions.DNSIPv6Request {
+				err := protocolConfigurationOptions.AddDNSServerIPv6Address(smContext.DNNInfo.DNS.IPv6Addr)
+				if err != nil {
+					logger.GsmLog.Warnln("Error while adding DNS IPv6 Addr: ", err)
 				}
 			}
 
