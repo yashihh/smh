@@ -57,15 +57,6 @@ type SMFContext struct {
 	LocalSEIDCount      uint64
 }
 
-// func AllocUEIP() net.IP {
-// 	var newIP = make(net.IP, len(smfContext.UEAddressTemp))
-// 	smfContext.UEAddressLock.Lock()
-// 	defer smfContext.UEAddressLock.Unlock()
-// 	smfContext.UEAddressTemp[3]++
-// 	copy(newIP, smfContext.UEAddressTemp)
-// 	return newIP
-// }
-
 // RetrieveDnnInformation gets the corresponding dnn info from S-NSSAI and DNN
 func RetrieveDnnInformation(Snssai models.Snssai, dnn string) *SnssaiSmfDnnInfo {
 	for _, snssaiInfo := range SMF_Self().SnssaiInfos {
@@ -170,7 +161,8 @@ func InitSmfContext(config *factory.Config) {
 			dnnInfo.DNS.IPv4Addr = net.ParseIP(dnnInfoConfig.DNS.IPv4Addr).To4()
 			dnnInfo.DNS.IPv6Addr = net.ParseIP(dnnInfoConfig.DNS.IPv6Addr).To4()
 			if allocator, err := NewIPAllocator(dnnInfoConfig.UESubnet); err != nil {
-				logger.InitLog.Errorln(err)
+				logger.InitLog.Errorf("create ip allocator[%s] failed: %s", dnnInfoConfig.UESubnet, err)
+				continue
 			} else {
 				dnnInfo.UeIPAllocator = allocator
 			}

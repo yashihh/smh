@@ -114,6 +114,7 @@ func TestIPAllocator(t *testing.T) {
 
 		ip, err = alloc.Allocate()
 		require.NotNil(t, err)
+		require.Nil(t, ip)
 
 	})
 
@@ -132,6 +133,7 @@ func TestIPAllocator(t *testing.T) {
 
 		ip, err = alloc.Allocate()
 		require.NotNil(t, err)
+		require.Nil(t, ip)
 
 		alloc.Release(net.ParseIP("60.60.0.22").To4())
 
