@@ -97,24 +97,26 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 			}
 
 			upNode.UPF = NewUPF(&upNode.NodeID, node.InterfaceUpfInfoList)
-			upNode.UPF.SNssaiInfo = SnssaiUPFInfo{
-				SNssai: SNssai{
-					Sst: node.SNssaiInfo.SNssai.Sst,
-					Sd:  node.SNssaiInfo.SNssai.Sd,
-				},
-				DnnList: make([]DnnUPFInfoItem, 0),
-			}
+			snssaiInfos := make([]SnssaiUPFInfo, 0)
+			for _, snssaiInfoConfig := range node.SNssaiInfos {
+				snssaiInfo := SnssaiUPFInfo{
+					SNssai: SNssai{
+						Sst: snssaiInfoConfig.SNssai.Sst,
+						Sd:  snssaiInfoConfig.SNssai.Sd,
+					},
+					DnnList: make([]DnnUPFInfoItem, 0),
+				}
 
-			for _, dnnInfo := range node.SNssaiInfo.DnnUpfInfoList {
-				upNode.UPF.SNssaiInfo.DnnList = append(upNode.UPF.SNssaiInfo.DnnList, DnnUPFInfoItem{
-					Dnn:             dnnInfo.Dnn,
-					DnaiList:        dnnInfo.DnaiList,
-					PduSessionTypes: dnnInfo.PduSessionTypes,
-				})
+				for _, dnnInfoConfig := range snssaiInfoConfig.DnnUpfInfoList {
+					snssaiInfo.DnnList = append(snssaiInfo.DnnList, DnnUPFInfoItem{
+						Dnn:             dnnInfoConfig.Dnn,
+						DnaiList:        dnnInfoConfig.DnaiList,
+						PduSessionTypes: dnnInfoConfig.PduSessionTypes,
+					})
+				}
+				snssaiInfos = append(snssaiInfos, snssaiInfo)
 			}
-			logger.InitLog.Traceln("UPNode name: ", name)
-			logger.InitLog.Traceln("UPFIP: ", upNode.UPF.GetUPFIP())
-			logger.InitLog.Traceln("Snssai: ", upNode.UPF.SNssaiInfo)
+			upNode.UPF.SNssaiInfos = snssaiInfos
 			upfPool[name] = upNode
 		default:
 			logger.InitLog.Warningf("invalid UPNodeType: %s\n", upNode.Type)
@@ -255,6 +257,9 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 		logger.CtxLog.Errorf("Can't find UPF with DNN[%s] S-NSSAI[sst: %d sd: %s] DNAI[%s]\n", selection.Dnn,
 			selection.SNssai.Sst, selection.SNssai.Sd, selection.Dnai)
 		return false
+	} else {
+		logger.CtxLog.Tracef("Find UPF with DNN[%s] S-NSSAI[sst: %d sd: %s] DNAI[%s]\n", selection.Dnn,
+			selection.SNssai.Sst, selection.SNssai.Sd, selection.Dnai)
 	}
 
 	//Run DFS
@@ -280,14 +285,16 @@ func (upi *UserPlaneInformation) selectMatchUPF(selection *UPFSelectionParams) [
 	var upList = make([]*UPNode, 0)
 
 	for _, upNode := range upi.UPFs {
-		currentSnssai := &upNode.UPF.SNssaiInfo.SNssai
-		targetSnssai := selection.SNssai
+		for _, snssaiInfo := range upNode.UPF.SNssaiInfos {
+			currentSnssai := &snssaiInfo.SNssai
+			targetSnssai := selection.SNssai
 
-		if currentSnssai.Sd == targetSnssai.Sd && currentSnssai.Sst == targetSnssai.Sst {
-			for _, dnnInfo := range upNode.UPF.SNssaiInfo.DnnList {
-				if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
-					upList = append(upList, upNode)
-					break
+			if currentSnssai.Equal(targetSnssai) {
+				for _, dnnInfo := range snssaiInfo.DnnList {
+					if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
+						upList = append(upList, upNode)
+						break
+					}
 				}
 			}
 		}
@@ -313,7 +320,7 @@ func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool,
 	for _, nodes := range cur.Links {
 
 		if !visited[nodes] {
-			if selectedSNssai.Sst != nodes.UPF.SNssaiInfo.SNssai.Sst {
+			if !nodes.UPF.isSupportSnssai(selectedSNssai) {
 				visited[nodes] = true
 				continue
 			}

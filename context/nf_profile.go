@@ -63,6 +63,8 @@ func SNssaiSmfInfo() *[]models.SnssaiSmfInfoItem {
 		}
 
 		snssaiInfoModel.DnnSmfInfoList = &dnnModelList
+
+		snssaiInfo = append(snssaiInfo, snssaiInfoModel)
 	}
 
 	return &snssaiInfo
