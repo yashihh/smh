@@ -43,7 +43,7 @@ type UPF struct {
 	NodeID       pfcpType.NodeID
 	UPIPInfo     pfcpType.UserPlaneIPResourceInformation
 	UPFStatus    UPFStatus
-	SNssaiInfo   SnssaiUPFInfo
+	SNssaiInfos  []SnssaiUPFInfo
 	N3Interfaces []UPFInterfaceInfo
 	N9Interfaces []UPFInterfaceInfo
 
@@ -467,4 +467,13 @@ func (upf *UPF) RemoveBAR(bar *BAR) (err error) {
 	upf.barIDGenerator.FreeID(int64(bar.BARID))
 	upf.barPool.Delete(bar.BARID)
 	return nil
+}
+
+func (upf *UPF) isSupportSnssai(snssai *SNssai) bool {
+	for _, snssaiInfo := range upf.SNssaiInfos {
+		if snssaiInfo.SNssai.Equal(snssai) {
+			return true
+		}
+	}
+	return false
 }

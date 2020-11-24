@@ -19,52 +19,69 @@ var configuration = &factory.UserPlaneInformation{
 		"UPF1": {
 			Type:   "UPF",
 			NodeID: "192.168.179.1",
-			SNssaiInfo: models.SnssaiUpfInfoItem{
-				SNssai: &models.Snssai{
-					Sst: 1,
-					Sd:  "112232",
+			SNssaiInfos: []models.SnssaiUpfInfoItem{
+				{
+					SNssai: &models.Snssai{
+						Sst: 1,
+						Sd:  "112232",
+					},
+					DnnUpfInfoList: []models.DnnUpfInfoItem{
+						{Dnn: "internet"},
+					},
 				},
-				DnnUpfInfoList: []models.DnnUpfInfoItem{
-					{Dnn: "internet"},
+				{
+					SNssai: &models.Snssai{
+						Sst: 1,
+						Sd:  "112235",
+					},
+					DnnUpfInfoList: []models.DnnUpfInfoItem{
+						{Dnn: "internet"},
+					},
 				},
 			},
 		},
 		"UPF2": {
 			Type:   "UPF",
 			NodeID: "192.168.179.2",
-			SNssaiInfo: models.SnssaiUpfInfoItem{
-				SNssai: &models.Snssai{
-					Sst: 2,
-					Sd:  "112233",
-				},
-				DnnUpfInfoList: []models.DnnUpfInfoItem{
-					{Dnn: "internet"},
+			SNssaiInfos: []models.SnssaiUpfInfoItem{
+				{
+					SNssai: &models.Snssai{
+						Sst: 2,
+						Sd:  "112233",
+					},
+					DnnUpfInfoList: []models.DnnUpfInfoItem{
+						{Dnn: "internet"},
+					},
 				},
 			},
 		},
 		"UPF3": {
 			Type:   "UPF",
 			NodeID: "192.168.179.3",
-			SNssaiInfo: models.SnssaiUpfInfoItem{
-				SNssai: &models.Snssai{
-					Sst: 3,
-					Sd:  "112234",
-				},
-				DnnUpfInfoList: []models.DnnUpfInfoItem{
-					{Dnn: "internet"},
+			SNssaiInfos: []models.SnssaiUpfInfoItem{
+				{
+					SNssai: &models.Snssai{
+						Sst: 3,
+						Sd:  "112234",
+					},
+					DnnUpfInfoList: []models.DnnUpfInfoItem{
+						{Dnn: "internet"},
+					},
 				},
 			},
 		},
 		"UPF4": {
 			Type:   "UPF",
 			NodeID: "192.168.179.4",
-			SNssaiInfo: models.SnssaiUpfInfoItem{
-				SNssai: &models.Snssai{
-					Sst: 1,
-					Sd:  "112235",
-				},
-				DnnUpfInfoList: []models.DnnUpfInfoItem{
-					{Dnn: "internet"},
+			SNssaiInfos: []models.SnssaiUpfInfoItem{
+				{
+					SNssai: &models.Snssai{
+						Sst: 1,
+						Sd:  "112235",
+					},
+					DnnUpfInfoList: []models.DnnUpfInfoItem{
+						{Dnn: "internet"},
+					},
 				},
 			},
 		},
@@ -193,7 +210,7 @@ func TestGenerateDefaultPath(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			pathExist := userplaneInformation.GenerateDefaultPath(tc.param)
-			require.Equal(t, pathExist, tc.expected)
+			require.Equal(t, tc.expected, pathExist)
 		})
 	}
 }

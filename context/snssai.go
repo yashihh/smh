@@ -7,6 +7,11 @@ type SNssai struct {
 	Sd  string
 }
 
+// Equal return true if two S-NSSAI is equal
+func (s *SNssai) Equal(target *SNssai) bool {
+	return s.Sst == target.Sst && s.Sd == target.Sd
+}
+
 type SnssaiUPFInfo struct {
 	SNssai  SNssai
 	DnnList []DnnUPFInfoItem
