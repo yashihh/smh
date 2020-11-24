@@ -20,6 +20,12 @@ import (
 
 func SendNFRegistration() error {
 
+	var sNssais = []models.Snssai{}
+
+	for _, snssaiSmfInfo := range *smf_context.SmfInfo.SNssaiSmfInfoList {
+		sNssais = append(sNssais, *snssaiSmfInfo.SNssai)
+	}
+
 	//set nfProfile
 	profile := models.NfProfile{
 		NfInstanceId:  smf_context.SMF_Self().NfInstanceID,
@@ -28,6 +34,7 @@ func SendNFRegistration() error {
 		Ipv4Addresses: []string{smf_context.SMF_Self().RegisterIPv4},
 		NfServices:    smf_context.NFServices,
 		SmfInfo:       smf_context.SmfInfo,
+		SNssais:       &sNssais,
 	}
 	var rep models.NfProfile
 	var res *http.Response
