@@ -12,10 +12,10 @@ require (
 	bitbucket.org/free5gc-team/logger_util v0.0.0-20200916200038-727096880b5b
 	bitbucket.org/free5gc-team/nas v0.0.0-20200916194209-0698dd234d50
 	bitbucket.org/free5gc-team/ngap v0.0.0-20200915042202-2cf700b6cfe5
-	bitbucket.org/free5gc-team/openapi v0.0.0-20200915035203-9fc3f0e748b4
+	bitbucket.org/free5gc-team/openapi v0.0.0-20201107101320-b56742e74e07
 	bitbucket.org/free5gc-team/path_util v0.0.0-20200925075253-6a41479bd567
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20200915045257-65f72906e362
-	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20200915035727-57c11712e705
+	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20201124124135-4504aea369c3
 	bitbucket.org/free5gc-team/version v0.0.0-20200915045942-9abe4c17a92c
 	github.com/antihax/optional v1.0.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.0
