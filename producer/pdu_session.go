@@ -448,8 +448,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
-			logger.PduSessLog.Infoln("The SMContext State should be Active State")
-			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+			logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
+				smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -497,8 +497,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			if smContext.SMContextState != smf_context.InActivePending {
 				//Wait till the state becomes Active again
 				//TODO: implement sleep wait in concurrent architecture
-				logger.PduSessLog.Infoln("The SMContext State should be InActivePending State")
-				logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+				logger.PduSessLog.Warnf("SMContext[%s-%02d] should be ActivePending, but actual %s",
+					smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 			}
 			smContext.SMContextState = smf_context.InActive
 			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -524,8 +524,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			if smContext.SMContextState != smf_context.InActivePending {
 				//Wait till the state becomes Active again
 				//TODO: implement sleep wait in concurrent architecture
-				logger.PduSessLog.Infoln("The SMContext State should be InActivePending State")
-				logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+				logger.PduSessLog.Warnf("SMContext[%s-%02d] should be ActivePending, but actual %s",
+					smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 			}
 			logger.PduSessLog.Infoln("[SMF] Send Update SmContext Response")
 			smContext.SMContextState = smf_context.InActivePending
@@ -537,8 +537,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
-			logger.PduSessLog.Infoln("The SMContext State should be Active State")
-			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+			logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
+				smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -581,8 +581,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
-			logger.PduSessLog.Infoln("The SMContext State should be Active State")
-			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+			logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
+				smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -594,8 +594,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
-			logger.PduSessLog.Infoln("The SMContext State should be Active State")
-			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+			logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
+				smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -608,8 +608,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
-			logger.PduSessLog.Infoln("The SMContext State should be Active State")
-			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+			logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
+				smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -634,8 +634,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
-			logger.PduSessLog.Infoln("The SMContext State should be Active State")
-			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+			logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
+				smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -662,8 +662,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
-			logger.PduSessLog.Infoln("The SMContext State should be Active State")
-			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+			logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
+				smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 		}
 		smContext.SMContextState = smf_context.ModificationPending
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -678,8 +678,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if smContext.SMContextState != smf_context.Active {
 			//Wait till the state becomes Active again
 			//TODO: implement sleep wait in concurrent architecture
-			logger.PduSessLog.Infoln("The SMContext State should be Active State")
-			logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+			logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
+				smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 		}
 
 		response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
