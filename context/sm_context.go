@@ -111,6 +111,9 @@ type SMContext struct {
 
 	//PCO Related
 	ProtocolConfigurationOptions *ProtocolConfigurationOptions
+
+	// lock
+	SMLock sync.Mutex
 }
 
 func canonicalName(identifier string, pduSessID int32) (canonical string) {

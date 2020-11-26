@@ -54,6 +54,9 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SetCreateData(createData)
 	smContext.SmStatusNotifyUri = createData.SmContextStatusUri
 
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
+
 	// DNN Information from config
 	smContext.DNNInfo = smf_context.RetrieveDnnInformation(*createData.SNssai, createData.Dnn)
 	if smContext.DNNInfo == nil {
@@ -276,6 +279,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		}
 		return httpResponse
 	}
+
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
 
 	var sendPFCPDelete, sendPFCPModification bool
 	var response models.UpdateSmContextResponse
@@ -823,6 +829,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSmContextRequest) *http_wrapper.Response {
 	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextRelease")
 	smContext := smf_context.GetSMContext(smContextRef)
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
 	// smf_context.RemoveSMContext(smContext.Ref)
 
 	deletedPFCPNode := make(map[string]bool)

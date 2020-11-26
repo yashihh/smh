@@ -21,11 +21,15 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	logger.PduSessLog.Infoln("In HandleSMPolicyUpdateNotify")
 	decision := request.SmPolicyDecision
 	smContext := smf_context.GetSMContext(smContextRef)
+
 	if smContext == nil {
 		logger.PduSessLog.Errorf("SMContext[%s] not found", smContextRef)
 		httpResponse := http_wrapper.NewResponse(http.StatusBadRequest, nil, nil)
 		return httpResponse
 	}
+
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
 
 	if smContext.SMContextState != smf_context.Active {
 		//Wait till the state becomes Active again

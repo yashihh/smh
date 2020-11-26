@@ -220,6 +220,8 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 	SEID := msg.PfcpMessage.Header.SEID
 	smContext := smf_context.GetSMContextBySEID(SEID)
 
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
 	logger.PfcpLog.Infoln("In HandlePfcpSessionModificationResponse")
 
 	if smf_context.SMF_Self().ULCLSupport && smContext.BPManager != nil {
@@ -267,7 +269,6 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 
 		logger.CtxLog.Traceln(ctx.ToString())
 	}
-
 }
 
 func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
@@ -276,6 +277,8 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 	SEID := msg.PfcpMessage.Header.SEID
 
 	smContext := smf_context.GetSMContextBySEID(SEID)
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
 
 	if smContext == nil {
 		logger.PfcpLog.Warnf("PFCP Session Deletion Response Found SM Context NULL, Request Rejected")
@@ -309,6 +312,8 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 
 	SEID := msg.PfcpMessage.Header.SEID
 	smContext := smf_context.GetSMContextBySEID(SEID)
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
 	seqFromUPF := msg.PfcpMessage.Header.SequenceNumber
 
 	var cause pfcpType.Cause
