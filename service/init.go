@@ -84,7 +84,7 @@ func (smf *SMF) Initialize(c *cli.Context) {
 			panic(err)
 		}
 	} else {
-		DefaultSmfConfigPath := path_util.Free5gcPath("free5gc/config/smfcfg.conf")
+		DefaultSmfConfigPath := path_util.Free5gcPath("free5gc/config/smfcfg.yaml")
 		if err := factory.InitConfigFactory(DefaultSmfConfigPath); err != nil {
 			panic(err)
 		}

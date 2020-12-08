@@ -220,7 +220,7 @@ func (node *DataPathNode) GetUPFID() (id string, err error) {
 	var exist bool
 
 	if id, exist = smfContext.UserPlaneInformation.UPFsIPtoID[node_ip]; !exist {
-		err = fmt.Errorf("UPNode IP %s doesn't exist in smfcfg.conf, please sync the config files!", node_ip)
+		err = fmt.Errorf("UPNode IP %s doesn't exist in smfcfg.yaml, please sync the config files!", node_ip)
 		return "", err
 	}
 
