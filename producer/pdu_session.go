@@ -390,6 +390,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	pdrList := []*smf_context.PDR{}
 	farList := []*smf_context.FAR{}
 	barList := []*smf_context.BAR{}
+	qerList := []*smf_context.QER{}
 
 	switch smContextUpdateData.UpCnxState {
 	case models.UpCnxState_ACTIVATING:
@@ -732,7 +733,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if sendPFCPModification {
 			defaultPath := smContext.Tunnel.DataPathPool.GetDefaultPath()
 			ANUPF := defaultPath.FirstDPNode
-			pfcp_message.SendPfcpSessionModificationRequest(ANUPF.UPF.NodeID, smContext, pdrList, farList, barList)
+			pfcp_message.SendPfcpSessionModificationRequest(ANUPF.UPF.NodeID, smContext, pdrList, farList, barList, qerList)
 		}
 
 		if sendPFCPDelete {

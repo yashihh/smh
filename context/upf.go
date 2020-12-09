@@ -50,7 +50,7 @@ type UPF struct {
 	pdrPool sync.Map
 	farPool sync.Map
 	barPool sync.Map
-	// qerPool sync.Map
+	qerPool sync.Map
 	// urrPool        sync.Map
 	pdrIDGenerator *idgenerator.IDGenerator
 	farIDGenerator *idgenerator.IDGenerator
@@ -374,6 +374,22 @@ func (upf *UPF) barID() (uint8, error) {
 	return barID, nil
 }
 
+func (upf *UPF) qerID() (uint32, error) {
+	if upf.UPFStatus != AssociatedSetUpSuccess {
+		err := fmt.Errorf("this upf not associate with smf")
+		return 0, err
+	}
+
+	var qerID uint32
+	if tmpID, err := upf.qerIDGenerator.Allocate(); err != nil {
+		return 0, err
+	} else {
+		qerID = uint32(tmpID)
+	}
+
+	return qerID, nil
+}
+
 func (upf *UPF) AddPDR() (*PDR, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf do not associate with smf")
@@ -392,6 +408,12 @@ func (upf *UPF) AddPDR() (*PDR, error) {
 		return nil, err
 	} else {
 		pdr.FAR = newFAR
+	}
+
+	if newQER, err := upf.AddQER(); err != nil {
+		return nil, err
+	} else {
+		pdr.QER = newQER
 	}
 
 	return pdr, nil
@@ -433,6 +455,24 @@ func (upf *UPF) AddBAR() (*BAR, error) {
 	return bar, nil
 }
 
+func (upf *UPF) AddQER() (*QER, error) {
+
+	if upf.UPFStatus != AssociatedSetUpSuccess {
+		err := fmt.Errorf("this upf do not associate with smf")
+		return nil, err
+	}
+
+	qer := new(QER)
+	if QERID, err := upf.qerID(); err != nil {
+
+	} else {
+		qer.QERID = uint32(QERID)
+		upf.qerPool.Store(qer.QERID, qer)
+	}
+
+	return qer, nil
+}
+
 func (upf *UPF) RemovePDR(pdr *PDR) (err error) {
 
 	if upf.UPFStatus != AssociatedSetUpSuccess {
@@ -466,6 +506,18 @@ func (upf *UPF) RemoveBAR(bar *BAR) (err error) {
 
 	upf.barIDGenerator.FreeID(int64(bar.BARID))
 	upf.barPool.Delete(bar.BARID)
+	return nil
+}
+
+func (upf *UPF) RemoveQER(qer *QER) (err error) {
+
+	if upf.UPFStatus != AssociatedSetUpSuccess {
+		err = fmt.Errorf("this upf not associate with smf")
+		return err
+	}
+
+	upf.barIDGenerator.FreeID(int64(qer.QERID))
+	upf.barPool.Delete(qer.QERID)
 	return nil
 }
 
