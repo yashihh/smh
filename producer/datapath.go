@@ -27,9 +27,7 @@ func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPa
 			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
 				pdrList = append(pdrList, curDataPathNode.DownLinkTunnel.PDR)
 				farList = append(farList, curDataPathNode.DownLinkTunnel.PDR.FAR)
-				if curDataPathNode.DownLinkTunnel.PDR.QER != nil {
-					qerList = append(qerList, curDataPathNode.DownLinkTunnel.PDR.QER)
-				}
+				// skip send QER because uplink and downlink shared one QER
 			}
 
 			pfcp_message.SendPfcpSessionEstablishmentRequest(curDataPathNode.UPF.NodeID, smContext, pdrList, farList, nil, qerList)

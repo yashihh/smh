@@ -214,7 +214,7 @@ func EstablishULCL(smContext *context.SMContext) {
 			pdrList := []*context.PDR{UPLinkPDR, DownLinkPDR}
 			farList := []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR}
 			barList := []*context.BAR{}
-			qerList := []*context.QER{UPLinkPDR.QER, DownLinkPDR.QER}
+			qerList := []*context.QER{UPLinkPDR.QER}
 
 			curDPNodeIP := ulcl.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true
@@ -371,7 +371,7 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 			pdrList := []*context.PDR{UPLinkPDR, DownLinkPDR}
 			farList := []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR}
 			barList := []*context.BAR{}
-			qerList := []*context.QER{UPLinkPDR.QER, DownLinkPDR.QER}
+			qerList := []*context.QER{UPLinkPDR.QER}
 
 			curDPNodeIP := curDPNode.UPF.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true

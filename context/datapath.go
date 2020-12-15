@@ -7,6 +7,7 @@ import (
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/logger"
+	"bitbucket.org/free5gc-team/smf/util"
 	"bitbucket.org/free5gc-team/util_3gpp"
 )
 
@@ -345,8 +346,29 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 		}
 	}
 
+	sessionRule := smContext.SelectedSessionRule()
+	AuthDefQos := sessionRule.AuthDefQos
+
 	//Activate PDR
 	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+		var flowQER *QER
+		if newQER, err := curDataPathNode.UPF.AddQER(); err != nil {
+			logger.PduSessLog.Errorln("new QER failed")
+			return
+		} else {
+			newQER.QFI.QFI = uint8(AuthDefQos.Var5qi)
+			newQER.GateStatus = &pfcpType.GateStatus{
+				ULGate: pfcpType.GateOpen,
+				DLGate: pfcpType.GateOpen,
+			}
+			newQER.MBR = &pfcpType.MBR{
+				ULMBR: util.BitRateTokbps(sessionRule.AuthSessAmbr.Uplink),
+				DLMBR: util.BitRateTokbps(sessionRule.AuthSessAmbr.Downlink),
+			}
+
+			flowQER = newQER
+		}
+
 		logger.CtxLog.Traceln("Calculate ", curDataPathNode.UPF.PFCPAddr().String())
 		curULTunnel := curDataPathNode.UpLinkTunnel
 		curDLTunnel := curDataPathNode.DownLinkTunnel
@@ -355,6 +377,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 		if curULTunnel != nil {
 			ULPDR := curULTunnel.PDR
 			ULDestUPF := curULTunnel.DestEndPoint.UPF
+			ULPDR.QER = flowQER
 
 			ULPDR.Precedence = 32
 
@@ -422,7 +445,6 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 					}
 				}
 			}
-
 		}
 
 		// Setup DownLink
@@ -430,6 +452,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 			var iface *UPFInterfaceInfo
 			DLPDR := curDLTunnel.PDR
 			DLDestUPF := curDLTunnel.DestEndPoint.UPF
+			DLPDR.QER = flowQER
 
 			DLPDR.Precedence = 32
 

@@ -410,12 +410,6 @@ func (upf *UPF) AddPDR() (*PDR, error) {
 		pdr.FAR = newFAR
 	}
 
-	if newQER, err := upf.AddQER(); err != nil {
-		return nil, err
-	} else {
-		pdr.QER = newQER
-	}
-
 	return pdr, nil
 }
 
