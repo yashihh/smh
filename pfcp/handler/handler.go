@@ -308,8 +308,6 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 
 	SEID := msg.PfcpMessage.Header.SEID
 	smContext := smf_context.GetSMContextBySEID(SEID)
-	smContext.SMLock.Lock()
-	defer smContext.SMLock.Unlock()
 	seqFromUPF := msg.PfcpMessage.Header.SequenceNumber
 
 	var cause pfcpType.Cause
@@ -321,6 +319,9 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, SEID)
 		return
 	}
+
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
 
 	if req.ReportType.Dldr {
 		downlinkDataReport := req.DownlinkDataReport
