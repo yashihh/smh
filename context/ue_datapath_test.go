@@ -16,15 +16,15 @@ var config = configuration
 func TestNewUEPreConfigPaths(t *testing.T) {
 	smfContext := context.SMF_Self()
 	smfContext.UserPlaneInformation = context.NewUserPlaneInformation(config)
-	fmt.Println("Start.")
+	fmt.Println("Start")
 	var testcases = []struct {
 		name                  string
 		inSUPI                string
 		inPaths               []factory.Path
-		expectedDataPathNodes []*context.DataPathNode
+		expectedDataPathNodes [][]*context.UPF
 	}{
 		{
-			name:   "singleUPF",
+			name:   "singlePath-singleUPF",
 			inSUPI: "imsi-2089300007487",
 			inPaths: []factory.Path{
 				{
@@ -35,12 +35,14 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 					},
 				},
 			},
-			expectedDataPathNodes: []*context.DataPathNode{
-				buildUeDataPathNode("UPF1"),
+			expectedDataPathNodes: [][]*context.UPF{
+				{
+					getUpf("UPF1"),
+				},
 			},
 		},
 		{
-			name:   "multiUPF",
+			name:   "singlePath-multiUPF",
 			inSUPI: "imsi-2089300007487",
 			inPaths: []factory.Path{
 				{
@@ -52,24 +54,103 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 					},
 				},
 			},
-			expectedDataPathNodes: []*context.DataPathNode{
-				buildUeDataPathNode("UPF1"),
-				buildUeDataPathNode("UPF2"),
+			expectedDataPathNodes: [][]*context.UPF{
+				{
+					getUpf("UPF1"),
+					getUpf("UPF2"),
+				},
 			},
 		},
-	}
-
-	// set the UpLinkTunnel and DownLinkTunnel of expectedDataPathNode
-	for _, tc := range testcases {
-		for index, node := range tc.expectedDataPathNodes {
-			fmt.Printf("index: %d. length: %d.\n", index, len(tc.expectedDataPathNodes))
-			if index != 0 {
-				node.AddPrev(tc.expectedDataPathNodes[index-1])
-			}
-			if index != len(tc.expectedDataPathNodes)-1 {
-				node.AddNext(tc.expectedDataPathNodes[index+1])
-			}
-		}
+		{
+			name:   "multiPath-singleUPF",
+			inSUPI: "imsi-2089300007487",
+			inPaths: []factory.Path{
+				{
+					DestinationIP:   "60.60.0.101",
+					DestinationPort: "12345",
+					UPF: []string{
+						"UPF1",
+					},
+				},
+				{
+					DestinationIP:   "60.60.0.103",
+					DestinationPort: "12345",
+					UPF: []string{
+						"UPF2",
+					},
+				},
+			},
+			expectedDataPathNodes: [][]*context.UPF{
+				{
+					getUpf("UPF1"),
+				},
+				{
+					getUpf("UPF2"),
+				},
+			},
+		},
+		{
+			name:   "multiPath-multiUPF",
+			inSUPI: "imsi-2089300007487",
+			inPaths: []factory.Path{
+				{
+					DestinationIP:   "60.60.0.101",
+					DestinationPort: "12345",
+					UPF: []string{
+						"UPF1",
+						"UPF2",
+					},
+				},
+				{
+					DestinationIP:   "60.60.0.103",
+					DestinationPort: "12345",
+					UPF: []string{
+						"UPF1",
+						"UPF3",
+					},
+				},
+			},
+			expectedDataPathNodes: [][]*context.UPF{
+				{
+					getUpf("UPF1"),
+					getUpf("UPF2"),
+				},
+				{
+					getUpf("UPF1"),
+					getUpf("UPF3"),
+				},
+			},
+		},
+		{
+			name:   "multiPath-single&multiUPF",
+			inSUPI: "imsi-2089300007487",
+			inPaths: []factory.Path{
+				{
+					DestinationIP:   "60.60.0.101",
+					DestinationPort: "12345",
+					UPF: []string{
+						"UPF1",
+					},
+				},
+				{
+					DestinationIP:   "60.60.0.103",
+					DestinationPort: "12345",
+					UPF: []string{
+						"UPF1",
+						"UPF3",
+					},
+				},
+			},
+			expectedDataPathNodes: [][]*context.UPF{
+				{
+					getUpf("UPF1"),
+				},
+				{
+					getUpf("UPF1"),
+					getUpf("UPF3"),
+				},
+			},
+		},
 	}
 
 	for _, tc := range testcases {
@@ -77,13 +158,13 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			retUePreConfigPaths, err := context.NewUEPreConfigPaths(tc.inSUPI, tc.inPaths)
 			require.Nil(t, err)
 			require.NotNil(t, retUePreConfigPaths.PathIDGenerator)
-			for index, path := range tc.inPaths {
-				retDataPath := retUePreConfigPaths.DataPathPool[int64(index+1)]
+			for pathIndex, path := range tc.inPaths {
+				retDataPath := retUePreConfigPaths.DataPathPool[int64(pathIndex+1)]
 				require.Equal(t, path.DestinationIP, retDataPath.Destination.DestinationIP)
 				require.Equal(t, path.DestinationPort, retDataPath.Destination.DestinationPort)
 				retNode := retDataPath.FirstDPNode
-				for _, upfName := range path.UPF {
-					expectedUpf := context.SMF_Self().UserPlaneInformation.UPNodes[upfName].UPF
+				for _, expectedUpf := range tc.expectedDataPathNodes[pathIndex] {
+					require.NotNil(t, retNode.UPF)
 					require.Equal(t, retNode.UPF, expectedUpf)
 					retNode = retNode.DownLinkTunnel.SrcEndPoint
 				}
@@ -93,12 +174,14 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 	}
 }
 
-func buildUeDataPathNode(nodeName string) *context.DataPathNode {
-	newUeNode, err := context.NewUEDataPathNode(nodeName)
+func getUpf(name string) *context.UPF {
+	newUeNode, err := context.NewUEDataPathNode(name)
 
 	if err != nil {
 		return nil
 	}
 
-	return newUeNode
+	Upf := newUeNode.UPF
+
+	return Upf
 }
