@@ -21,17 +21,21 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	logger.PduSessLog.Infoln("In HandleSMPolicyUpdateNotify")
 	decision := request.SmPolicyDecision
 	smContext := smf_context.GetSMContext(smContextRef)
+
 	if smContext == nil {
 		logger.PduSessLog.Errorf("SMContext[%s] not found", smContextRef)
 		httpResponse := http_wrapper.NewResponse(http.StatusBadRequest, nil, nil)
 		return httpResponse
 	}
 
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
+
 	if smContext.SMContextState != smf_context.Active {
 		//Wait till the state becomes Active again
 		//TODO: implement waiting in concurrent architecture
-		logger.PduSessLog.Infoln("The SMContext State should be Active State")
-		logger.PduSessLog.Infoln("SMContext state: ", smContext.SMContextState.String())
+		logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
+			smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 	}
 
 	//TODO: Response data type -

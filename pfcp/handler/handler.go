@@ -268,7 +268,6 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 
 		logger.CtxLog.Traceln(ctx.ToString())
 	}
-
 }
 
 func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
@@ -321,6 +320,9 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, SEID)
 		return
 	}
+
+	smContext.SMLock.Lock()
+	defer smContext.SMLock.Unlock()
 
 	if req.ReportType.Dldr {
 		downlinkDataReport := req.DownlinkDataReport
