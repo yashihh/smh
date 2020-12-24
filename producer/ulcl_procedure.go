@@ -129,7 +129,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 			pdrList := []*context.PDR{upLinkPDR}
 			farList := []*context.FAR{upLinkPDR.FAR}
 			barList := []*context.BAR{}
-			qerList := []*context.QER{upLinkPDR.QER}
+			qerList := upLinkPDR.QER
 
 			lastNode := curDataPathNode.Prev()
 
@@ -214,7 +214,7 @@ func EstablishULCL(smContext *context.SMContext) {
 			pdrList := []*context.PDR{UPLinkPDR, DownLinkPDR}
 			farList := []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR}
 			barList := []*context.BAR{}
-			qerList := []*context.QER{UPLinkPDR.QER}
+			qerList := UPLinkPDR.QER
 
 			curDPNodeIP := ulcl.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true
@@ -252,7 +252,7 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 
 				pdrList = append(pdrList, downLinkPDR)
 				farList = append(farList, downLinkPDR.FAR)
-				qerList = append(qerList, downLinkPDR.QER)
+				qerList = append(qerList, downLinkPDR.QER...)
 
 				curDPNodeIP := curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String()
 				bpMGR.PendingUPF[curDPNodeIP] = true
@@ -371,7 +371,7 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 			pdrList := []*context.PDR{UPLinkPDR, DownLinkPDR}
 			farList := []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR}
 			barList := []*context.BAR{}
-			qerList := []*context.QER{UPLinkPDR.QER}
+			qerList := UPLinkPDR.QER
 
 			curDPNodeIP := curDPNode.UPF.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true

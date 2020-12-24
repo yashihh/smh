@@ -116,12 +116,11 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smPolicyDecision = smPolicyDecisionRsp
 	}
 
+	//dataPath selection
+	smContext.Tunnel = smf_context.NewUPTunnel()
 	if err := ApplySmPolicyFromDecision(smContext, smPolicyDecision); err != nil {
 		logger.PduSessLog.Errorf("apply sm policy decision error: %+v", err)
 	}
-
-	//dataPath selection
-	smContext.Tunnel = smf_context.NewUPTunnel()
 	var defaultPath *smf_context.DataPath
 	upfSelectionParams := &smf_context.UPFSelectionParams{
 		Dnn: createData.Dnn,
@@ -137,7 +136,6 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Tunnel.DataPathPool = uePreConfigPaths.DataPathPool
 		smContext.Tunnel.PathIDGenerator = uePreConfigPaths.PathIDGenerator
 		defaultPath = smContext.Tunnel.DataPathPool.GetDefaultPath()
-		smContext.AllocateLocalSEIDForDataPath(defaultPath)
 		defaultPath.ActivateTunnelAndPDR(smContext)
 		smContext.BPManager = smf_context.NewBPManager(createData.Supi)
 	} else {
@@ -145,7 +143,6 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		//Use default route
 		logger.PduSessLog.Infof("SUPI[%s] has no pre-config route", createData.Supi)
 		defaultUPPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(upfSelectionParams)
-		smContext.AllocateLocalSEIDForUPPath(defaultUPPath)
 		defaultPath = smf_context.GenerateDataPath(defaultUPPath, smContext)
 		if defaultPath != nil {
 			defaultPath.IsDefaultPath = true
@@ -208,7 +205,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 			smContext.CommunicationClient = Namf_Communication.NewAPIClient(communicationConf)
 		}
 	}
-	SendPFCPRule(smContext, defaultPath)
+	SendPFCPRules(smContext)
 
 	response.JsonData = smContext.BuildCreatedData()
 	httpResponse := &http_wrapper.Response{

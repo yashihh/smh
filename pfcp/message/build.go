@@ -93,6 +93,14 @@ func pdrToCreatePDR(pdr *context.PDR) *pfcp.CreatePDR {
 		FarIdValue: pdr.FAR.FARID,
 	}
 
+	for _, qer := range pdr.QER {
+		if qer != nil {
+			createPDR.QERID = append(createPDR.QERID, &pfcpType.QERID{
+				QERID: qer.QERID,
+			})
+		}
+	}
+
 	return createPDR
 }
 

@@ -165,7 +165,6 @@ func (node *DataPathNode) DeactivateUpLinkTunnel(smContext *SMContext) {
 	pdr := node.UpLinkTunnel.PDR
 	far := node.UpLinkTunnel.PDR.FAR
 	bar := node.UpLinkTunnel.PDR.FAR.BAR
-	qer := node.UpLinkTunnel.PDR.QER
 
 	smContext.RemovePDRfromPFCPSession(node.UPF.NodeID, pdr)
 
@@ -186,10 +185,12 @@ func (node *DataPathNode) DeactivateUpLinkTunnel(smContext *SMContext) {
 		}
 	}
 
-	if qer != nil {
-		err = node.UPF.RemoveQER(qer)
-		if err != nil {
-			logger.CtxLog.Warnln("Deactivaed UpLinkTunnel", err)
+	for _, qer := range node.UpLinkTunnel.PDR.QER {
+		if qer != nil {
+			err = node.UPF.RemoveQER(qer)
+			if err != nil {
+				logger.CtxLog.Warnln("Deactivaed UpLinkTunnel", err)
+			}
 		}
 	}
 
@@ -201,7 +202,6 @@ func (node *DataPathNode) DeactivateDownLinkTunnel(smContext *SMContext) {
 	pdr := node.DownLinkTunnel.PDR
 	far := node.DownLinkTunnel.PDR.FAR
 	bar := node.DownLinkTunnel.PDR.FAR.BAR
-	qer := node.UpLinkTunnel.PDR.QER
 
 	smContext.RemovePDRfromPFCPSession(node.UPF.NodeID, pdr)
 
@@ -222,10 +222,12 @@ func (node *DataPathNode) DeactivateDownLinkTunnel(smContext *SMContext) {
 		}
 	}
 
-	if qer != nil {
-		err = node.UPF.RemoveQER(qer)
-		if err != nil {
-			logger.CtxLog.Warnln("Deactivaed UpLinkTunnel", err)
+	for _, qer := range node.UpLinkTunnel.PDR.QER {
+		if qer != nil {
+			err = node.UPF.RemoveQER(qer)
+			if err != nil {
+				logger.CtxLog.Warnln("Deactivaed UpLinkTunnel", err)
+			}
 		}
 	}
 
@@ -330,6 +332,8 @@ func (dataPath *DataPath) String() string {
 
 func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 
+	smContext.AllocateLocalSEIDForDataPath(dataPath)
+
 	firstDPNode := dataPath.FirstDPNode
 	logger.PduSessLog.Traceln("In ActivateTunnelAndPDR")
 	logger.PduSessLog.Traceln(dataPath.String())
@@ -377,7 +381,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 		if curULTunnel != nil {
 			ULPDR := curULTunnel.PDR
 			ULDestUPF := curULTunnel.DestEndPoint.UPF
-			ULPDR.QER = flowQER
+			ULPDR.QER = append(ULPDR.QER, flowQER)
 
 			ULPDR.Precedence = 32
 
@@ -452,7 +456,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 			var iface *UPFInterfaceInfo
 			DLPDR := curDLTunnel.PDR
 			DLDestUPF := curDLTunnel.DestEndPoint.UPF
-			DLPDR.QER = flowQER
+			DLPDR.QER = append(DLPDR.QER, flowQER)
 
 			DLPDR.Precedence = 32
 
