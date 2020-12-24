@@ -1,10 +1,12 @@
 package producer
 
 import (
+	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	smf_context "bitbucket.org/free5gc-team/smf/context"
 	"bitbucket.org/free5gc-team/smf/logger"
 	pfcp_message "bitbucket.org/free5gc-team/smf/pfcp/message"
+	"bitbucket.org/free5gc-team/smf/util"
 )
 
 type PFCPState struct {
@@ -129,6 +131,39 @@ func createPccRuleDataPath(smContext *smf_context.SMContext,
 	}
 
 	pccRule.Datapath = createdDataPath
+}
+
+func addQoSToDataPath(smContext *smf_context.SMContext, datapath *smf_context.DataPath, qos *models.QosData) {
+	if qos == nil {
+		return
+	}
+	for curDataPathNode := datapath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+		if newQER, err := curDataPathNode.UPF.AddQER(); err != nil {
+			logger.PduSessLog.Errorln("new QER failed")
+			return
+		} else {
+			newQER.QFI.QFI = uint8(qos.Var5qi)
+			newQER.GateStatus = &pfcpType.GateStatus{
+				ULGate: pfcpType.GateOpen,
+				DLGate: pfcpType.GateOpen,
+			}
+			newQER.MBR = &pfcpType.MBR{
+				ULMBR: util.BitRateTokbps(qos.MaxbrUl),
+				DLMBR: util.BitRateTokbps(qos.MaxbrDl),
+			}
+			newQER.GBR = &pfcpType.GBR{
+				ULGBR: util.BitRateTokbps(qos.GbrUl),
+				DLGBR: util.BitRateTokbps(qos.GbrDl),
+			}
+
+			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
+				curDataPathNode.UpLinkTunnel.PDR.QER = append(curDataPathNode.UpLinkTunnel.PDR.QER, newQER)
+			}
+			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
+				curDataPathNode.DownLinkTunnel.PDR.QER = append(curDataPathNode.DownLinkTunnel.PDR.QER, newQER)
+			}
+		}
+	}
 }
 
 func removeDataPath(smContext *smf_context.SMContext, datapath *smf_context.DataPath) {

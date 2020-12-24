@@ -194,13 +194,17 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 
 	for pccRuleID, pccRuleModel := range decision.PccRules {
 		srcPccRule, exist := smContext.PCCRules[pccRuleID]
+		var qos *models.QosData
+		if pccRuleModel.RefQosData != nil {
+			qos = decision.QosDecs[pccRuleModel.RefQosData[0]]
+		}
 		if pccRuleModel == nil {
 			logger.PduSessLog.Infof("Remove PCCRule[%s] in SMContext[%s]", pccRuleID, smContext.Ref)
 			if !exist {
 				logger.PduSessLog.Errorf("PCCRule[%s] not exist in SMContext[%s]", pccRuleID, smContext.Ref)
 				continue
 			}
-			err = applyPCCRule(smContext, srcPccRule, nil, pccRuleID, nil)
+			err = applyPCCRule(smContext, srcPccRule, nil, pccRuleID, nil, qos)
 		} else {
 			if exist {
 				logger.PduSessLog.Infof("Modify PCCRule[%s] in SMContext[%s]", pccRuleID, smContext.Ref)
@@ -208,7 +212,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				logger.PduSessLog.Infof("Install PCCRule[%s] in SMContext[%s]", pccRuleID, smContext.Ref)
 			}
 			targetPccRule := smf_context.NewPCCRuleFromModel(pccRuleModel)
-			err = applyPCCRule(smContext, srcPccRule, targetPccRule, pccRuleID, getTcDataFromDecision(targetPccRule, decision))
+			err = applyPCCRule(smContext, srcPccRule, targetPccRule, pccRuleID, getTcDataFromDecision(targetPccRule, decision), qos)
 		}
 	}
 
@@ -217,7 +221,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 }
 
 func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *smf_context.PCCRule,
-	pccRuleID string, tcData *smf_context.TrafficControlData) error {
+	pccRuleID string, tcData *smf_context.TrafficControlData, qos *models.QosData) error {
 	if targetPccRule == nil { //Remove PCC Rule
 		if srcPccRule != nil {
 			if err := applyTrafficRoutingData(smContext, srcPccRule, nil, srcPccRule.RefTrafficControlData(), nil); err != nil {
@@ -232,6 +236,7 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 
 	//Create Data path for targetPccRule
 	createPccRuleDataPath(smContext, targetPccRule, tcData)
+	addQoSToDataPath(smContext, targetPccRule.Datapath, qos)
 
 	if appID := targetPccRule.AppID; appID != "" {
 		var matchedPFD *factory.PfdDataForApp
