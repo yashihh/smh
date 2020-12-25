@@ -356,21 +356,27 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 	//Activate PDR
 	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		var flowQER *QER
-		if newQER, err := curDataPathNode.UPF.AddQER(); err != nil {
-			logger.PduSessLog.Errorln("new QER failed")
-			return
-		} else {
-			newQER.QFI.QFI = uint8(AuthDefQos.Var5qi)
-			newQER.GateStatus = &pfcpType.GateStatus{
-				ULGate: pfcpType.GateOpen,
-				DLGate: pfcpType.GateOpen,
-			}
-			newQER.MBR = &pfcpType.MBR{
-				ULMBR: util.BitRateTokbps(sessionRule.AuthSessAmbr.Uplink),
-				DLMBR: util.BitRateTokbps(sessionRule.AuthSessAmbr.Downlink),
-			}
 
-			flowQER = newQER
+		// if has the sess QoS (QER == 1), this value **SHOULD BE** uint32
+		if oldQER, ok := curDataPathNode.UPF.qerPool.Load(uint32(1)); ok {
+			flowQER = oldQER.(*QER)
+		} else {
+			if newQER, err := curDataPathNode.UPF.AddQER(); err != nil {
+				logger.PduSessLog.Errorln("new QER failed")
+				return
+			} else {
+				newQER.QFI.QFI = uint8(AuthDefQos.Var5qi)
+				newQER.GateStatus = &pfcpType.GateStatus{
+					ULGate: pfcpType.GateOpen,
+					DLGate: pfcpType.GateOpen,
+				}
+				newQER.MBR = &pfcpType.MBR{
+					ULMBR: util.BitRateTokbps(sessionRule.AuthSessAmbr.Uplink),
+					DLMBR: util.BitRateTokbps(sessionRule.AuthSessAmbr.Downlink),
+				}
+
+				flowQER = newQER
+			}
 		}
 
 		logger.CtxLog.Traceln("Calculate ", curDataPathNode.UPF.PFCPAddr().String())

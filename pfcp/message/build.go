@@ -279,9 +279,16 @@ func BuildPfcpSessionEstablishmentRequest(
 		}
 	}
 
+	// QER maybe redundent, so we needs properly needs
+
+	var qerMap = make(map[uint32]*context.QER)
 	for _, qer := range qerList {
-		if qer.State == context.RULE_INITIAL {
-			msg.CreateQER = append(msg.CreateQER, qerToCreateQER(qer))
+
+		qerMap[qer.QERID] = qer
+	}
+	for _, filteredQER := range qerMap {
+		if filteredQER.State == context.RULE_INITIAL {
+			msg.CreateQER = append(msg.CreateQER, qerToCreateQER(filteredQER))
 		}
 	}
 

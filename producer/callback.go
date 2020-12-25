@@ -262,6 +262,16 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 		}
 	}
 
+	if targetPccRule.FlowInfos != nil {
+		flowDescConfig := targetPccRule.FlowInfos[0].FlowDescription
+		uplinkFlowDescription := getUplinkFlowDescription(flowDescConfig)
+		if uplinkFlowDescription == "" {
+			return fmt.Errorf("getUplinkFlowDescription failed")
+		} else {
+			updatePccRuleDataPathFlowDescription(targetPccRule, flowDescConfig, uplinkFlowDescription)
+		}
+	}
+
 	if err := applyTrafficRoutingData(smContext, srcPccRule, targetPccRule,
 		targetPccRule.RefTrafficControlData(), tcData); err != nil {
 		return err
