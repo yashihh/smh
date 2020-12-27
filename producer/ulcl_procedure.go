@@ -29,7 +29,7 @@ func AddPDUSessionAnchorAndULCL(smContext *context.SMContext, nodeID pfcpType.No
 		}
 
 		//Allocate Path PDR and TEID
-		bpMGR.ActivatingPath.ActivateTunnelAndPDR(smContext)
+		bpMGR.ActivatingPath.ActivateTunnelAndPDR(smContext, 255)
 		//N1N2MessageTransfer Here
 
 		//Establish PSA2

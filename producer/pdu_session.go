@@ -136,7 +136,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Tunnel.DataPathPool = uePreConfigPaths.DataPathPool
 		smContext.Tunnel.PathIDGenerator = uePreConfigPaths.PathIDGenerator
 		defaultPath = smContext.Tunnel.DataPathPool.GetDefaultPath()
-		defaultPath.ActivateTunnelAndPDR(smContext)
+		defaultPath.ActivateTunnelAndPDR(smContext, 255)
 		smContext.BPManager = smf_context.NewBPManager(createData.Supi)
 	} else {
 		//UE has no pre-config path.
@@ -147,7 +147,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		if defaultPath != nil {
 			defaultPath.IsDefaultPath = true
 			smContext.Tunnel.AddDataPath(defaultPath)
-			defaultPath.ActivateTunnelAndPDR(smContext)
+			defaultPath.ActivateTunnelAndPDR(smContext, 255)
 		}
 	}
 

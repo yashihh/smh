@@ -330,7 +330,7 @@ func (dataPath *DataPath) String() string {
 	return str
 }
 
-func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
+func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence uint32) {
 
 	smContext.AllocateLocalSEIDForDataPath(dataPath)
 
@@ -389,7 +389,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 			ULDestUPF := curULTunnel.DestEndPoint.UPF
 			ULPDR.QER = append(ULPDR.QER, flowQER)
 
-			ULPDR.Precedence = 32
+			ULPDR.Precedence = precedence
 
 			var iface *UPFInterfaceInfo
 			if curDataPathNode.IsANUPF() {
@@ -464,7 +464,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext) {
 			DLDestUPF := curDLTunnel.DestEndPoint.UPF
 			DLPDR.QER = append(DLPDR.QER, flowQER)
 
-			DLPDR.Precedence = 32
+			DLPDR.Precedence = precedence
 
 			// TODO: Should delete this after FR5GC-1029 is solved
 			if curDataPathNode.IsAnchorUPF() {
