@@ -16,6 +16,7 @@ type PFCPState struct {
 	qerList []*smf_context.QER
 }
 
+// SendPFCPRule send one datapath to UPF
 func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPath) {
 
 	logger.PduSessLog.Infoln("Send PFCP Rule")
@@ -62,6 +63,7 @@ func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPa
 	}
 }
 
+// SendPFCPRules send all datapaths to UPFs
 func SendPFCPRules(smContext *smf_context.SMContext) {
 	var pfcpPool = make(map[string]*PFCPState)
 
