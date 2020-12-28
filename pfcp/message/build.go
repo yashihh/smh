@@ -241,7 +241,10 @@ func farToUpdateFAR(far *context.FAR) *pfcp.UpdateFAR {
 func BuildPfcpSessionEstablishmentRequest(
 	upNodeID pfcpType.NodeID,
 	smContext *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR, qerList []*context.QER) (pfcp.PFCPSessionEstablishmentRequest, error) {
+	pdrList []*context.PDR,
+	farList []*context.FAR,
+	barList []*context.BAR,
+	qerList []*context.QER) (pfcp.PFCPSessionEstablishmentRequest, error) {
 	msg := pfcp.PFCPSessionEstablishmentRequest{}
 
 	msg.NodeID = &context.SMF_Self().CPNodeID
@@ -344,7 +347,10 @@ func BuildPfcpSessionEstablishmentResponse() (pfcp.PFCPSessionEstablishmentRespo
 func BuildPfcpSessionModificationRequest(
 	upNodeID pfcpType.NodeID,
 	smContext *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR, qerList []*context.QER) (pfcp.PFCPSessionModificationRequest, error) {
+	pdrList []*context.PDR,
+	farList []*context.FAR,
+	barList []*context.BAR,
+	qerList []*context.QER) (pfcp.PFCPSessionModificationRequest, error) {
 	msg := pfcp.PFCPSessionModificationRequest{}
 
 	msg.UpdatePDR = make([]*pfcp.UpdatePDR, 0, 2)

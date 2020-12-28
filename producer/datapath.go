@@ -40,7 +40,8 @@ func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPa
 				// skip send QER because uplink and downlink shared one QER
 			}
 
-			pfcp_message.SendPfcpSessionEstablishmentRequest(curDataPathNode.UPF.NodeID, smContext, pdrList, farList, nil, qerList)
+			pfcp_message.SendPfcpSessionEstablishmentRequest(
+				curDataPathNode.UPF.NodeID, smContext, pdrList, farList, nil, qerList)
 		} else {
 			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
 				pdrList = append(pdrList, curDataPathNode.UpLinkTunnel.PDR)
@@ -54,7 +55,8 @@ func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPa
 				farList = append(farList, curDataPathNode.DownLinkTunnel.PDR.FAR)
 			}
 
-			pfcp_message.SendPfcpSessionModificationRequest(curDataPathNode.UPF.NodeID, smContext, pdrList, farList, nil, qerList)
+			pfcp_message.SendPfcpSessionModificationRequest(
+				curDataPathNode.UPF.NodeID, smContext, pdrList, farList, nil, qerList)
 		}
 
 	}
@@ -101,9 +103,11 @@ func SendPFCPRules(smContext *smf_context.SMContext) {
 	for ip, pfcp := range pfcpPool {
 		sessionContext, exist := smContext.PFCPContext[ip]
 		if !exist || sessionContext.RemoteSEID == 0 {
-			pfcp_message.SendPfcpSessionEstablishmentRequest(pfcp.nodeID, smContext, pfcp.pdrList, pfcp.farList, nil, pfcp.qerList)
+			pfcp_message.SendPfcpSessionEstablishmentRequest(
+				pfcp.nodeID, smContext, pfcp.pdrList, pfcp.farList, nil, pfcp.qerList)
 		} else {
-			pfcp_message.SendPfcpSessionModificationRequest(pfcp.nodeID, smContext, pfcp.pdrList, pfcp.farList, nil, pfcp.qerList)
+			pfcp_message.SendPfcpSessionModificationRequest(
+				pfcp.nodeID, smContext, pfcp.pdrList, pfcp.farList, nil, pfcp.qerList)
 		}
 	}
 }

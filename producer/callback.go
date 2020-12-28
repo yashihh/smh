@@ -212,7 +212,9 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 				logger.PduSessLog.Infof("Install PCCRule[%s] in SMContext[%s]", pccRuleID, smContext.Ref)
 			}
 			targetPccRule := smf_context.NewPCCRuleFromModel(pccRuleModel)
-			err = applyPCCRule(smContext, srcPccRule, targetPccRule, pccRuleID, getTcDataFromDecision(targetPccRule, decision), qos)
+			err = applyPCCRule(
+				smContext, srcPccRule, targetPccRule, pccRuleID,
+				getTcDataFromDecision(targetPccRule, decision), qos)
 		}
 	}
 
