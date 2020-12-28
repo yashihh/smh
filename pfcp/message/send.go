@@ -125,8 +125,8 @@ func SendPfcpAssociationReleaseResponse(upNodeID pfcpType.NodeID, cause pfcpType
 func SendPfcpSessionEstablishmentRequest(
 	upNodeID pfcpType.NodeID,
 	ctx *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR) {
-	pfcpMsg, err := BuildPfcpSessionEstablishmentRequest(upNodeID, ctx, pdrList, farList, barList)
+	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR, qerList []*context.QER) {
+	pfcpMsg, err := BuildPfcpSessionEstablishmentRequest(upNodeID, ctx, pdrList, farList, barList, qerList)
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Session Establishment Request failed: %v", err)
 		return
@@ -181,9 +181,9 @@ func SendPfcpSessionEstablishmentResponse(addr *net.UDPAddr) {
 
 func SendPfcpSessionModificationRequest(upNodeID pfcpType.NodeID,
 	ctx *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR) (seqNum uint32) {
+	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR, qerList []*context.QER) (seqNum uint32) {
 
-	pfcpMsg, err := BuildPfcpSessionModificationRequest(upNodeID, ctx, pdrList, farList, barList)
+	pfcpMsg, err := BuildPfcpSessionModificationRequest(upNodeID, ctx, pdrList, farList, barList, qerList)
 
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Session Modification Request failed: %v", err)

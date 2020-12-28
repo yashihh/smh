@@ -2,14 +2,12 @@ package producer
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/antihax/optional"
 
 	"bitbucket.org/free5gc-team/http_wrapper"
 	"bitbucket.org/free5gc-team/nas"
-	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/openapi"
 	"bitbucket.org/free5gc-team/openapi/Namf_Communication"
@@ -111,46 +109,18 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		logger.PduSessLog.Errorln("pcf selection error:", err)
 	}
 
-	smPolicyData := models.SmPolicyContextData{}
-
-	smPolicyData.Supi = smContext.Supi
-	smPolicyData.PduSessionId = smContext.PDUSessionID
-	smPolicyData.NotificationUri = fmt.Sprintf("%s://%s:%d/nsmf-callback/sm-policies/%s",
-		smf_context.SMF_Self().URIScheme,
-		smf_context.SMF_Self().RegisterIPv4,
-		smf_context.SMF_Self().SBIPort,
-		smContext.Ref,
-	)
-	smPolicyData.Dnn = smContext.Dnn
-	smPolicyData.PduSessionType = nasConvert.PDUSessionTypeToModels(smContext.SelectedPDUSessionType)
-	smPolicyData.AccessType = smContext.AnType
-	smPolicyData.RatType = smContext.RatType
-	smPolicyData.Ipv4Address = smContext.PDUAddress.To4().String()
-	smPolicyData.SubsSessAmbr = smContext.DnnConfiguration.SessionAmbr
-	smPolicyData.SubsDefQos = smContext.DnnConfiguration.Var5gQosProfile
-	smPolicyData.SliceInfo = smContext.Snssai
-	smPolicyData.ServingNetwork = &models.NetworkId{
-		Mcc: smContext.ServingNetwork.Mcc,
-		Mnc: smContext.ServingNetwork.Mnc,
-	}
-	smPolicyData.SuppFeat = "F"
-
-	var smPolicyDecision models.SmPolicyDecision
-	if smPolicyDecisionFromPCF, _, err := smContext.SMPolicyClient.
-		DefaultApi.SmPoliciesPost(context.Background(), smPolicyData); err != nil {
-		openapiError := err.(openapi.GenericOpenAPIError)
-		problemDetails := openapiError.Model().(models.ProblemDetails)
-		logger.PduSessLog.Errorln("setup sm policy association failed:", err, problemDetails)
+	var smPolicyDecision *models.SmPolicyDecision
+	if smPolicyDecisionRsp, err := consumer.SendSMPolicyAssociationCreate(smContext); err != nil {
+		logger.PduSessLog.Errorf("")
 	} else {
-		smPolicyDecision = smPolicyDecisionFromPCF
-	}
-
-	if err := ApplySmPolicyFromDecision(smContext, &smPolicyDecision); err != nil {
-		logger.PduSessLog.Errorf("apply sm policy decision error: %+v", err)
+		smPolicyDecision = smPolicyDecisionRsp
 	}
 
 	//dataPath selection
 	smContext.Tunnel = smf_context.NewUPTunnel()
+	if err := ApplySmPolicyFromDecision(smContext, smPolicyDecision); err != nil {
+		logger.PduSessLog.Errorf("apply sm policy decision error: %+v", err)
+	}
 	var defaultPath *smf_context.DataPath
 	upfSelectionParams := &smf_context.UPFSelectionParams{
 		Dnn: createData.Dnn,
@@ -166,20 +136,18 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Tunnel.DataPathPool = uePreConfigPaths.DataPathPool
 		smContext.Tunnel.PathIDGenerator = uePreConfigPaths.PathIDGenerator
 		defaultPath = smContext.Tunnel.DataPathPool.GetDefaultPath()
-		smContext.AllocateLocalSEIDForDataPath(defaultPath)
-		defaultPath.ActivateTunnelAndPDR(smContext)
+		defaultPath.ActivateTunnelAndPDR(smContext, 255)
 		smContext.BPManager = smf_context.NewBPManager(createData.Supi)
 	} else {
 		//UE has no pre-config path.
 		//Use default route
 		logger.PduSessLog.Infof("SUPI[%s] has no pre-config route", createData.Supi)
 		defaultUPPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(upfSelectionParams)
-		smContext.AllocateLocalSEIDForUPPath(defaultUPPath)
 		defaultPath = smf_context.GenerateDataPath(defaultUPPath, smContext)
 		if defaultPath != nil {
 			defaultPath.IsDefaultPath = true
 			smContext.Tunnel.AddDataPath(defaultPath)
-			defaultPath.ActivateTunnelAndPDR(smContext)
+			defaultPath.ActivateTunnelAndPDR(smContext, 255)
 		}
 	}
 
@@ -237,7 +205,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 			smContext.CommunicationClient = Namf_Communication.NewAPIClient(communicationConf)
 		}
 	}
-	SendPFCPRule(smContext, defaultPath)
+	SendPFCPRules(smContext)
 
 	response.JsonData = smContext.BuildCreatedData()
 	httpResponse := &http_wrapper.Response{
@@ -390,6 +358,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	pdrList := []*smf_context.PDR{}
 	farList := []*smf_context.FAR{}
 	barList := []*smf_context.BAR{}
+	qerList := []*smf_context.QER{}
 
 	switch smContextUpdateData.UpCnxState {
 	case models.UpCnxState_ACTIVATING:
@@ -732,7 +701,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if sendPFCPModification {
 			defaultPath := smContext.Tunnel.DataPathPool.GetDefaultPath()
 			ANUPF := defaultPath.FirstDPNode
-			pfcp_message.SendPfcpSessionModificationRequest(ANUPF.UPF.NodeID, smContext, pdrList, farList, barList)
+			pfcp_message.SendPfcpSessionModificationRequest(ANUPF.UPF.NodeID, smContext, pdrList, farList, barList, qerList)
 		}
 
 		if sendPFCPDelete {

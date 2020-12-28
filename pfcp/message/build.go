@@ -93,6 +93,14 @@ func pdrToCreatePDR(pdr *context.PDR) *pfcp.CreatePDR {
 		FarIdValue: pdr.FAR.FARID,
 	}
 
+	for _, qer := range pdr.QER {
+		if qer != nil {
+			createPDR.QERID = append(createPDR.QERID, &pfcpType.QERID{
+				QERID: qer.QERID,
+			})
+		}
+	}
+
 	return createPDR
 }
 
@@ -139,6 +147,21 @@ func barToCreateBAR(bar *context.BAR) *pfcp.CreateBAR {
 	//createBAR.SuggestedBufferingPacketsCount = new(pfcpType.SuggestedBufferingPacketsCount)
 
 	return createBAR
+}
+
+func qerToCreateQER(qer *context.QER) *pfcp.CreateQER {
+
+	createQER := new(pfcp.CreateQER)
+
+	createQER.QERID = new(pfcpType.QERID)
+	createQER.QERID.QERID = qer.QERID
+	createQER.GateStatus = qer.GateStatus
+
+	createQER.QoSFlowIdentifier = &qer.QFI
+	createQER.MaximumBitrate = qer.MBR
+	createQER.GuaranteedBitrate = qer.GBR
+
+	return createQER
 }
 
 func pdrToUpdatePDR(pdr *context.PDR) *pfcp.UpdatePDR {
@@ -218,7 +241,10 @@ func farToUpdateFAR(far *context.FAR) *pfcp.UpdateFAR {
 func BuildPfcpSessionEstablishmentRequest(
 	upNodeID pfcpType.NodeID,
 	smContext *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR) (pfcp.PFCPSessionEstablishmentRequest, error) {
+	pdrList []*context.PDR,
+	farList []*context.FAR,
+	barList []*context.BAR,
+	qerList []*context.QER) (pfcp.PFCPSessionEstablishmentRequest, error) {
 	msg := pfcp.PFCPSessionEstablishmentRequest{}
 
 	msg.NodeID = &context.SMF_Self().CPNodeID
@@ -253,6 +279,19 @@ func BuildPfcpSessionEstablishmentRequest(
 	for _, bar := range barList {
 		if bar.State == context.RULE_INITIAL {
 			msg.CreateBAR = append(msg.CreateBAR, barToCreateBAR(bar))
+		}
+	}
+
+	// QER maybe redundent, so we needs properly needs
+
+	var qerMap = make(map[uint32]*context.QER)
+	for _, qer := range qerList {
+
+		qerMap[qer.QERID] = qer
+	}
+	for _, filteredQER := range qerMap {
+		if filteredQER.State == context.RULE_INITIAL {
+			msg.CreateQER = append(msg.CreateQER, qerToCreateQER(filteredQER))
 		}
 	}
 
@@ -308,7 +347,10 @@ func BuildPfcpSessionEstablishmentResponse() (pfcp.PFCPSessionEstablishmentRespo
 func BuildPfcpSessionModificationRequest(
 	upNodeID pfcpType.NodeID,
 	smContext *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR) (pfcp.PFCPSessionModificationRequest, error) {
+	pdrList []*context.PDR,
+	farList []*context.FAR,
+	barList []*context.BAR,
+	qerList []*context.QER) (pfcp.PFCPSessionModificationRequest, error) {
 	msg := pfcp.PFCPSessionModificationRequest{}
 
 	msg.UpdatePDR = make([]*pfcp.UpdatePDR, 0, 2)
@@ -359,6 +401,13 @@ func BuildPfcpSessionModificationRequest(
 		switch bar.State {
 		case context.RULE_INITIAL:
 			msg.CreateBAR = append(msg.CreateBAR, barToCreateBAR(bar))
+		}
+	}
+
+	for _, qer := range qerList {
+		switch qer.State {
+		case context.RULE_INITIAL:
+			msg.CreateQER = append(msg.CreateQER, qerToCreateQER(qer))
 		}
 	}
 

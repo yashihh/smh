@@ -24,7 +24,7 @@ type PDR struct {
 
 	FAR *FAR
 	URR *URR
-	QER *QER
+	QER []*QER
 
 	State RuleState
 }
@@ -70,6 +70,15 @@ type BAR struct {
 
 // QoS Enhancement Rule
 type QER struct {
+	QERID uint32
+
+	QFI pfcpType.QFI
+
+	GateStatus *pfcpType.GateStatus
+	MBR        *pfcpType.MBR
+	GBR        *pfcpType.GBR
+
+	State RuleState
 }
 
 // Usage Report Rule
