@@ -510,8 +510,8 @@ func (upf *UPF) RemoveQER(qer *QER) (err error) {
 		return err
 	}
 
-	upf.barIDGenerator.FreeID(int64(qer.QERID))
-	upf.barPool.Delete(qer.QERID)
+	upf.qerIDGenerator.FreeID(int64(qer.QERID))
+	upf.qerPool.Delete(qer.QERID)
 	return nil
 }
 
