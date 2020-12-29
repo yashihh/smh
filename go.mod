@@ -10,7 +10,7 @@ require (
 	bitbucket.org/free5gc-team/idgenerator v0.0.0-20201211040458-d68b2cd1a422
 	bitbucket.org/free5gc-team/logger_conf v0.0.0-20201212235533-db34fd2deea0
 	bitbucket.org/free5gc-team/logger_util v0.0.0-20201212235752-9e3276664162
-	bitbucket.org/free5gc-team/nas v0.0.0-20201213001844-18595c2c9b47
+	bitbucket.org/free5gc-team/nas v0.0.0-20201228084809-72542b50e771
 	bitbucket.org/free5gc-team/ngap v0.0.0-20201213001141-924cc2f2b303
 	bitbucket.org/free5gc-team/openapi v0.0.0-20201213000822-44068345955a
 	bitbucket.org/free5gc-team/path_util v0.0.0-20201212235135-42ce24f2b9c9
