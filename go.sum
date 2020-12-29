@@ -23,6 +23,8 @@ bitbucket.org/free5gc-team/logger_util v0.0.0-20201212235752-9e3276664162/go.mod
 bitbucket.org/free5gc-team/nas v0.0.0-20200915042954-4c7174d9820e/go.mod h1:F4Oh8/1QDf7JDYqYhTRVZiX65yCcEQ4Vc7iD5X12o1s=
 bitbucket.org/free5gc-team/nas v0.0.0-20201213001844-18595c2c9b47 h1:IZDyyfMZtxtR4EJ8gfZg6C4HtdYF7JOFC5lZtL+Yu3o=
 bitbucket.org/free5gc-team/nas v0.0.0-20201213001844-18595c2c9b47/go.mod h1:Uf8YaL4qvo0o3Qk8CYfBf/J6DgtX8lYbjVEN7WbE/AM=
+bitbucket.org/free5gc-team/nas v0.0.0-20201228084809-72542b50e771 h1:zH7jVWRLSkJqAq4V/kjwYK3hstEU6nY+oYgUkcrqukI=
+bitbucket.org/free5gc-team/nas v0.0.0-20201228084809-72542b50e771/go.mod h1:Uf8YaL4qvo0o3Qk8CYfBf/J6DgtX8lYbjVEN7WbE/AM=
 bitbucket.org/free5gc-team/ngap v0.0.0-20200915042202-2cf700b6cfe5 h1:rM0nyZ0W7dIwz01SX/afMBh98ZCKhFjCxIwGpLgiv3g=
 bitbucket.org/free5gc-team/ngap v0.0.0-20200915042202-2cf700b6cfe5/go.mod h1:SS2wgYuOLbU109qmeLyn1P9pI/QP4Bg/9k7cG24I2Hs=
 bitbucket.org/free5gc-team/ngap v0.0.0-20201213001141-924cc2f2b303 h1:VgJD6nSQDCi2Ueye5MQXPoqiLTuVIpke0brfnm/rdT4=
