@@ -268,18 +268,21 @@ func BuildPfcpSessionEstablishmentRequest(
 		if pdr.State == context.RULE_INITIAL {
 			msg.CreatePDR = append(msg.CreatePDR, pdrToCreatePDR(pdr))
 		}
+		pdr.State = context.RULE_CREATE
 	}
 
 	for _, far := range farList {
 		if far.State == context.RULE_INITIAL {
 			msg.CreateFAR = append(msg.CreateFAR, farToCreateFAR(far))
 		}
+		far.State = context.RULE_CREATE
 	}
 
 	for _, bar := range barList {
 		if bar.State == context.RULE_INITIAL {
 			msg.CreateBAR = append(msg.CreateBAR, barToCreateBAR(bar))
 		}
+		bar.State = context.RULE_CREATE
 	}
 
 	// QER maybe redundent, so we needs properly needs
@@ -293,6 +296,7 @@ func BuildPfcpSessionEstablishmentRequest(
 		if filteredQER.State == context.RULE_INITIAL {
 			msg.CreateQER = append(msg.CreateQER, qerToCreateQER(filteredQER))
 		}
+		filteredQER.State = context.RULE_CREATE
 	}
 
 	msg.PDNType = &pfcpType.PDNType{
@@ -380,6 +384,7 @@ func BuildPfcpSessionModificationRequest(
 				},
 			})
 		}
+		pdr.State = context.RULE_CREATE
 	}
 
 	for _, far := range farList {
@@ -395,6 +400,7 @@ func BuildPfcpSessionModificationRequest(
 				},
 			})
 		}
+		far.State = context.RULE_CREATE
 	}
 
 	for _, bar := range barList {
@@ -409,6 +415,7 @@ func BuildPfcpSessionModificationRequest(
 		case context.RULE_INITIAL:
 			msg.CreateQER = append(msg.CreateQER, qerToCreateQER(qer))
 		}
+		qer.State = context.RULE_CREATE
 	}
 
 	return msg, nil
