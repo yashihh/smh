@@ -165,6 +165,7 @@ func (node *DataPathNode) DeactivateUpLinkTunnel(smContext *SMContext) {
 	pdr := node.UpLinkTunnel.PDR
 	far := node.UpLinkTunnel.PDR.FAR
 	bar := node.UpLinkTunnel.PDR.FAR.BAR
+	qerList := node.UpLinkTunnel.PDR.QER
 
 	smContext.RemovePDRfromPFCPSession(node.UPF.NodeID, pdr)
 
@@ -185,7 +186,7 @@ func (node *DataPathNode) DeactivateUpLinkTunnel(smContext *SMContext) {
 		}
 	}
 
-	for _, qer := range node.UpLinkTunnel.PDR.QER {
+	for _, qer := range qerList {
 		if qer != nil {
 			err = node.UPF.RemoveQER(qer)
 			if err != nil {
@@ -202,6 +203,7 @@ func (node *DataPathNode) DeactivateDownLinkTunnel(smContext *SMContext) {
 	pdr := node.DownLinkTunnel.PDR
 	far := node.DownLinkTunnel.PDR.FAR
 	bar := node.DownLinkTunnel.PDR.FAR.BAR
+	qerList := node.DownLinkTunnel.PDR.QER
 
 	smContext.RemovePDRfromPFCPSession(node.UPF.NodeID, pdr)
 
@@ -222,7 +224,7 @@ func (node *DataPathNode) DeactivateDownLinkTunnel(smContext *SMContext) {
 		}
 	}
 
-	for _, qer := range node.UpLinkTunnel.PDR.QER {
+	for _, qer := range qerList {
 		if qer != nil {
 			err = node.UPF.RemoveQER(qer)
 			if err != nil {
