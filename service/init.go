@@ -73,7 +73,6 @@ func (*SMF) GetCliCmd() (flags []cli.Flag) {
 }
 
 func (smf *SMF) Initialize(c *cli.Context) error {
-
 	config = Config{
 		smfcfg:    c.String("smfcfg"),
 		uerouting: c.String("uerouting"),
@@ -101,14 +100,11 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 		}
 	}
 
+	smf.setLogLevel()
+
 	if err := factory.CheckConfigVersion(); err != nil {
 		return err
 	}
-
-	initLog.Infof("SMF config %s ", factory.GetSmfVersionInfo())
-	initLog.Infof("UE-Routing config %s ", factory.GetUeRoutingVersionInfo())
-
-	smf.setLogLevel()
 
 	return nil
 }
