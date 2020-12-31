@@ -43,7 +43,13 @@ func main() {
 	}
 }
 
-func action(c *cli.Context) {
-	SMF.Initialize(c)
+func action(c *cli.Context) error {
+
+	if err := SMF.Initialize(c); err != nil {
+		return err
+	}
+
 	SMF.Start()
+
+	return nil
 }

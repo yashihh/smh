@@ -72,7 +72,7 @@ func (*SMF) GetCliCmd() (flags []cli.Flag) {
 	return smfCLi
 }
 
-func (smf *SMF) Initialize(c *cli.Context) {
+func (smf *SMF) Initialize(c *cli.Context) error {
 
 	config = Config{
 		smfcfg:    c.String("smfcfg"),
@@ -81,27 +81,36 @@ func (smf *SMF) Initialize(c *cli.Context) {
 
 	if config.smfcfg != "" {
 		if err := factory.InitConfigFactory(config.smfcfg); err != nil {
-			panic(err)
+			return err
 		}
 	} else {
 		DefaultSmfConfigPath := path_util.Free5gcPath("free5gc/config/smfcfg.yaml")
 		if err := factory.InitConfigFactory(DefaultSmfConfigPath); err != nil {
-			panic(err)
+			return err
 		}
 	}
 
 	if config.uerouting != "" {
 		if err := factory.InitRoutingConfigFactory(config.uerouting); err != nil {
-			panic(err)
+			return err
 		}
 	} else {
 		DefaultUERoutingPath := path_util.Free5gcPath("free5gc/config/uerouting.yaml")
 		if err := factory.InitRoutingConfigFactory(DefaultUERoutingPath); err != nil {
-			panic(err)
+			return err
 		}
 	}
 
+	if err := factory.CheckConfigVersion(); err != nil {
+		return err
+	}
+
+	initLog.Infof("SMF config %s ", factory.GetSmfVersionInfo())
+	initLog.Infof("UE-Routing config %s ", factory.GetUeRoutingVersionInfo())
+
 	smf.setLogLevel()
+
+	return nil
 }
 
 func (smf *SMF) setLogLevel() {
