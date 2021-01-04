@@ -160,6 +160,7 @@ func NewSMContext(identifier string, pduSessID int32) (smContext *SMContext) {
 	return smContext
 }
 
+//*** add unit test ***//
 func GetSMContext(ref string) (smContext *SMContext) {
 	if value, ok := smContextPool.Load(ref); ok {
 		smContext = value.(*SMContext)
@@ -168,6 +169,7 @@ func GetSMContext(ref string) (smContext *SMContext) {
 	return
 }
 
+//*** add unit test ***//
 func RemoveSMContext(ref string) {
 
 	var smContext *SMContext
@@ -183,6 +185,7 @@ func RemoveSMContext(ref string) {
 	smContextPool.Delete(ref)
 }
 
+//*** add unit test ***//
 func GetSMContextBySEID(SEID uint64) (smContext *SMContext) {
 	if value, ok := seidSMContextMap.Load(SEID); ok {
 		smContext = value.(*SMContext)
@@ -190,6 +193,7 @@ func GetSMContextBySEID(SEID uint64) (smContext *SMContext) {
 	return
 }
 
+//*** add unit test ***//
 func (smContext *SMContext) SetCreateData(createData *models.SmContextCreateData) {
 
 	smContext.Gpsi = createData.Gpsi
