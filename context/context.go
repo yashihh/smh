@@ -90,8 +90,8 @@ func InitSmfContext(config *factory.Config) {
 		return
 	} else {
 		smfContext.URIScheme = models.UriScheme(sbi.Scheme)
-		smfContext.RegisterIPv4 = "127.0.0.2" // default localhost
-		smfContext.SBIPort = 8000             // default port
+		smfContext.RegisterIPv4 = factory.SMF_DEFAULT_IPV4 // default localhost
+		smfContext.SBIPort = factory.SMF_DEFAULT_PORT_INT  // default port
 		if sbi.RegisterIPv4 != "" {
 			smfContext.RegisterIPv4 = sbi.RegisterIPv4
 		}

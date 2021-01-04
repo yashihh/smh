@@ -22,6 +22,12 @@ type Info struct {
 	Description string `yaml:"description,omitempty"`
 }
 
+const (
+	SMF_DEFAULT_IPV4     = "127.0.0.2"
+	SMF_DEFAULT_PORT     = "8000"
+	SMF_DEFAULT_PORT_INT = 8000
+)
+
 type Configuration struct {
 	SmfName              string               `yaml:"smfName,omitempty"`
 	Sbi                  *Sbi                 `yaml:"sbi,omitempty"`
