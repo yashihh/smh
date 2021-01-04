@@ -78,3 +78,48 @@ func TestIP(t *testing.T) {
 		}
 	})
 }
+
+func TestAddDataPath(t *testing.T) {
+	//AddDataPath is simple, should only have one case
+	var testCases = []struct {
+		tunnel        *context.UPTunnel
+		addedDataPath *context.DataPath
+		expectedExist bool
+	}{
+		{
+			context.NewUPTunnel(),
+			context.NewDataPath(),
+			true,
+		},
+	}
+
+	Convey("", t, func() {
+
+		for i, testcase := range testCases {
+			upTunnel := testcase.tunnel
+			infoStr := fmt.Sprintf("testcase[%d]: Add Datapath", i)
+			Convey(infoStr, func() {
+				upTunnel.AddDataPath(testcase.addedDataPath)
+
+				var resultStr string
+				if testcase.expectedExist {
+					resultStr = "Datapath should exist"
+				} else {
+					resultStr = "Datapath should not exist"
+				}
+
+				Convey(resultStr, func() {
+					var exist bool
+					for _, datapath := range upTunnel.DataPathPool {
+
+						if datapath == testcase.addedDataPath {
+							exist = true
+						}
+					}
+					So(exist, ShouldEqual, testcase.expectedExist)
+				})
+			})
+		}
+	})
+
+}
