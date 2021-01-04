@@ -231,7 +231,6 @@ func (upf *UPF) GetInterface(interfaceType models.UpInterfaceType, dnn string) *
 	return nil
 }
 
-//*** add unit test ***//
 func (upf *UPF) GenerateTEID() (uint32, error) {
 
 	if upf.UPFStatus != AssociatedSetUpSuccess {
@@ -321,13 +320,11 @@ func SelectUPFByDnn(Dnn string) *UPF {
 	return upf
 }
 
-//*** add unit test ***//
 func (upf *UPF) GetUPFIP() string {
 	upfIP := upf.NodeID.ResolveNodeIdToIp().String()
 	return upfIP
 }
 
-//*** add unit test ***//
 func (upf *UPF) GetUPFID() string {
 	upInfo := GetUserPlaneInformation()
 	upfIP := upf.NodeID.ResolveNodeIdToIp().String()
@@ -399,7 +396,6 @@ func (upf *UPF) qerID() (uint32, error) {
 	return qerID, nil
 }
 
-//*** add unit test ***//
 func (upf *UPF) AddPDR() (*PDR, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf do not associate with smf")
@@ -423,7 +419,6 @@ func (upf *UPF) AddPDR() (*PDR, error) {
 	return pdr, nil
 }
 
-//*** add unit test ***//
 func (upf *UPF) AddFAR() (*FAR, error) {
 
 	if upf.UPFStatus != AssociatedSetUpSuccess {
@@ -442,7 +437,6 @@ func (upf *UPF) AddFAR() (*FAR, error) {
 	return far, nil
 }
 
-//*** add unit test ***//
 func (upf *UPF) AddBAR() (*BAR, error) {
 
 	if upf.UPFStatus != AssociatedSetUpSuccess {
@@ -461,7 +455,6 @@ func (upf *UPF) AddBAR() (*BAR, error) {
 	return bar, nil
 }
 
-//*** add unit test ***//
 func (upf *UPF) AddQER() (*QER, error) {
 
 	if upf.UPFStatus != AssociatedSetUpSuccess {
@@ -532,7 +525,6 @@ func (upf *UPF) RemoveQER(qer *QER) (err error) {
 	return nil
 }
 
-//*** add unit test ***//
 func (upf *UPF) isSupportSnssai(snssai *SNssai) bool {
 	for _, snssaiInfo := range upf.SNssaiInfos {
 		if snssaiInfo.SNssai.Equal(snssai) {

@@ -279,3 +279,50 @@ func TestAddQER(t *testing.T) {
 		}
 	})
 }
+
+func TestAddBAR(t *testing.T) {
+	var testCases = []struct {
+		upf           *context.UPF
+		expectedError error
+	}{
+		{
+			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			nil,
+		},
+		{
+			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			fmt.Errorf("this upf do not associate with smf"),
+		},
+	}
+
+	testCases[0].upf.UPFStatus = context.AssociatedSetUpSuccess
+
+	Convey("", t, func() {
+
+		for i, testcase := range testCases {
+			upf := testcase.upf
+			infoStr := fmt.Sprintf("testcase[%d]: ", i)
+			Convey(infoStr, func() {
+				_, err := upf.AddBAR()
+				var resultStr string
+				if testcase.expectedError == nil {
+					resultStr = "AddBAR should success"
+				} else {
+					resultStr = "AddBAR should fail"
+				}
+
+				Convey(resultStr, func() {
+					if testcase.expectedError == nil {
+						So(err, ShouldBeNil)
+					} else {
+						So(err, ShouldNotBeNil)
+						if err != nil {
+							So(err.Error(), ShouldEqual, testcase.expectedError.Error())
+						}
+					}
+
+				})
+			})
+		}
+	})
+}
