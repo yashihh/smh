@@ -335,7 +335,6 @@ func (upf *UPF) GetUPFID() string {
 
 }
 
-//*** add unit test ***//
 func (upf *UPF) pdrID() (uint16, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
@@ -352,7 +351,6 @@ func (upf *UPF) pdrID() (uint16, error) {
 	return pdrID, nil
 }
 
-//*** add unit test ***//
 func (upf *UPF) farID() (uint32, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
@@ -369,7 +367,6 @@ func (upf *UPF) farID() (uint32, error) {
 	return farID, nil
 }
 
-//*** add unit test ***//
 func (upf *UPF) barID() (uint8, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
@@ -386,7 +383,6 @@ func (upf *UPF) barID() (uint8, error) {
 	return barID, nil
 }
 
-//*** add unit test ***//
 func (upf *UPF) qerID() (uint32, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
