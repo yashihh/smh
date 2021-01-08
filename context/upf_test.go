@@ -48,7 +48,7 @@ func TestIP(t *testing.T) {
 		input               *context.UPFInterfaceInfo
 		inputPDUSessionType uint8
 		paramStr            string
-		resultStr           string 
+		resultStr           string
 		expectedIP          string
 		expectedError       error
 	}{
@@ -108,10 +108,10 @@ func TestAddDataPath(t *testing.T) {
 		expectedExist bool
 	}{
 		{
-			tunnel: context.NewUPTunnel(),
+			tunnel:        context.NewUPTunnel(),
 			addedDataPath: context.NewDataPath(),
-			resultStr: "Datapath should exist",
-			expectedExist :true,
+			resultStr:     "Datapath should exist",
+			expectedExist: true,
 		},
 	}
 
@@ -146,13 +146,13 @@ func TestAddPDR(t *testing.T) {
 		expectedError error
 	}{
 		{
-			upf: context.NewUPF(mockIPv4NodeID, mockIfaces),
-			resultStr: "AddPDR should success",
+			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
+			resultStr:     "AddPDR should success",
 			expectedError: nil,
 		},
 		{
-			upf: context.NewUPF(mockIPv4NodeID, mockIfaces),
-			resultStr: "AddPDR should fail",
+			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
+			resultStr:     "AddPDR should fail",
 			expectedError: fmt.Errorf("this upf do not associate with smf"),
 		},
 	}
@@ -190,13 +190,13 @@ func TestAddFAR(t *testing.T) {
 		expectedError error
 	}{
 		{
-			upf: context.NewUPF(mockIPv4NodeID, mockIfaces),
-			resultStr: "AddFAR should success",
+			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
+			resultStr:     "AddFAR should success",
 			expectedError: nil,
 		},
 		{
-			upf: context.NewUPF(mockIPv4NodeID, mockIfaces),
-			resultStr: "AddFAR should fail",
+			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
+			resultStr:     "AddFAR should fail",
 			expectedError: fmt.Errorf("this upf do not associate with smf"),
 		},
 	}
@@ -234,13 +234,13 @@ func TestAddQER(t *testing.T) {
 		expectedError error
 	}{
 		{
-			upf: context.NewUPF(mockIPv4NodeID, mockIfaces),
-			resultStr: "AddQ ER should success",
+			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
+			resultStr:     "AddQ ER should success",
 			expectedError: nil,
 		},
 		{
-			upf: context.NewUPF(mockIPv4NodeID, mockIfaces),
-			resultStr: "AddQER should fail",
+			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
+			resultStr:     "AddQER should fail",
 			expectedError: fmt.Errorf("this upf do not associate with smf"),
 		},
 	}
@@ -278,13 +278,13 @@ func TestAddBAR(t *testing.T) {
 		expectedError error
 	}{
 		{
-			upf: context.NewUPF(mockIPv4NodeID, mockIfaces),
-			resultStr: "AddBAR should success",
+			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
+			resultStr:     "AddBAR should success",
 			expectedError: nil,
 		},
 		{
-			upf: context.NewUPF(mockIPv4NodeID, mockIfaces),
-			resultStr: "AddBAR should fail",
+			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
+			resultStr:     "AddBAR should fail",
 			expectedError: fmt.Errorf("this upf do not associate with smf"),
 		},
 	}
