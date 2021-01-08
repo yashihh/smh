@@ -99,11 +99,13 @@ func TestAddDataPath(t *testing.T) {
 	var testCases = []struct {
 		tunnel        *context.UPTunnel
 		addedDataPath *context.DataPath
+		resultStr     string
 		expectedExist bool
 	}{
 		{
 			context.NewUPTunnel(),
 			context.NewDataPath(),
+			"Datapath should exist",
 			true,
 		},
 	}
@@ -116,14 +118,7 @@ func TestAddDataPath(t *testing.T) {
 			Convey(infoStr, func() {
 				upTunnel.AddDataPath(testcase.addedDataPath)
 
-				var resultStr string
-				if testcase.expectedExist {
-					resultStr = "Datapath should exist"
-				} else {
-					resultStr = "Datapath should not exist"
-				}
-
-				Convey(resultStr, func() {
+				Convey(testcase.resultStr, func() {
 					var exist bool
 					for _, datapath := range upTunnel.DataPathPool {
 
@@ -142,14 +137,17 @@ func TestAddDataPath(t *testing.T) {
 func TestAddPDR(t *testing.T) {
 	var testCases = []struct {
 		upf           *context.UPF
+		resultStr     string
 		expectedError error
 	}{
 		{
 			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			"AddPDR should success",
 			nil,
 		},
 		{
 			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			"AddPDR should fail",
 			fmt.Errorf("this upf do not associate with smf"),
 		},
 	}
@@ -163,14 +161,8 @@ func TestAddPDR(t *testing.T) {
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
 			Convey(infoStr, func() {
 				_, err := upf.AddPDR()
-				var resultStr string
-				if testcase.expectedError == nil {
-					resultStr = "AddPDR should success"
-				} else {
-					resultStr = "AddPDR should fail"
-				}
 
-				Convey(resultStr, func() {
+				Convey(testcase.resultStr, func() {
 					if testcase.expectedError == nil {
 						So(err, ShouldBeNil)
 					} else {
@@ -189,14 +181,17 @@ func TestAddPDR(t *testing.T) {
 func TestAddFAR(t *testing.T) {
 	var testCases = []struct {
 		upf           *context.UPF
+		resultStr     string
 		expectedError error
 	}{
 		{
 			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			"AddFAR should success",
 			nil,
 		},
 		{
 			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			"AddFAR should fail",
 			fmt.Errorf("this upf do not associate with smf"),
 		},
 	}
@@ -210,14 +205,8 @@ func TestAddFAR(t *testing.T) {
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
 			Convey(infoStr, func() {
 				_, err := upf.AddFAR()
-				var resultStr string
-				if testcase.expectedError == nil {
-					resultStr = "AddFAR should success"
-				} else {
-					resultStr = "AddFAR should fail"
-				}
 
-				Convey(resultStr, func() {
+				Convey(testcase.resultStr, func() {
 					if testcase.expectedError == nil {
 						So(err, ShouldBeNil)
 					} else {
@@ -236,14 +225,17 @@ func TestAddFAR(t *testing.T) {
 func TestAddQER(t *testing.T) {
 	var testCases = []struct {
 		upf           *context.UPF
+		resultStr     string
 		expectedError error
 	}{
 		{
 			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			"AddQER should success",
 			nil,
 		},
 		{
 			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			"AddQER should fail",
 			fmt.Errorf("this upf do not associate with smf"),
 		},
 	}
@@ -257,14 +249,8 @@ func TestAddQER(t *testing.T) {
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
 			Convey(infoStr, func() {
 				_, err := upf.AddQER()
-				var resultStr string
-				if testcase.expectedError == nil {
-					resultStr = "AddQER should success"
-				} else {
-					resultStr = "AddQER should fail"
-				}
 
-				Convey(resultStr, func() {
+				Convey(testcase.resultStr, func() {
 					if testcase.expectedError == nil {
 						So(err, ShouldBeNil)
 					} else {
@@ -283,14 +269,17 @@ func TestAddQER(t *testing.T) {
 func TestAddBAR(t *testing.T) {
 	var testCases = []struct {
 		upf           *context.UPF
+		resultStr     string
 		expectedError error
 	}{
 		{
 			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			"AddBAR should success",
 			nil,
 		},
 		{
 			context.NewUPF(mockIPv4NodeID, mockIfaces),
+			"AddBAR should fail",
 			fmt.Errorf("this upf do not associate with smf"),
 		},
 	}
@@ -304,14 +293,8 @@ func TestAddBAR(t *testing.T) {
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
 			Convey(infoStr, func() {
 				_, err := upf.AddBAR()
-				var resultStr string
-				if testcase.expectedError == nil {
-					resultStr = "AddBAR should success"
-				} else {
-					resultStr = "AddBAR should fail"
-				}
 
-				Convey(resultStr, func() {
+				Convey(testcase.resultStr, func() {
 					if testcase.expectedError == nil {
 						So(err, ShouldBeNil)
 					} else {
