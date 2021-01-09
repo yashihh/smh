@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
+
+	"bitbucket.org/free5gc-team/smf/logger"
 )
 
 var SmfConfig Config
@@ -17,13 +19,12 @@ var UERoutingConfig RoutingConfig
 // TODO: Support configuration update from REST api
 func InitConfigFactory(f string) error {
 	if content, err := ioutil.ReadFile(f); err != nil {
-		return fmt.Errorf("[Configuration] %+v", err)
+		return err
 	} else {
-
 		SmfConfig = Config{}
 
 		if yamlErr := yaml.Unmarshal([]byte(content), &SmfConfig); yamlErr != nil {
-			return fmt.Errorf("[Configuration] %+v", yamlErr)
+			return yamlErr
 		}
 	}
 
@@ -32,15 +33,36 @@ func InitConfigFactory(f string) error {
 
 func InitRoutingConfigFactory(f string) error {
 	if content, err := ioutil.ReadFile(f); err != nil {
-		return fmt.Errorf("[Configuration] %+v", err)
+		return err
 	} else {
 		UERoutingConfig = RoutingConfig{}
 
 		if yamlErr := yaml.Unmarshal([]byte(content), &UERoutingConfig); yamlErr != nil {
-			return fmt.Errorf("[Configuration] %+v", yamlErr)
+			return yamlErr
 		}
 	}
 
 	return nil
+}
 
+func CheckConfigVersion() error {
+	currentVersion := SmfConfig.GetVersion()
+
+	if currentVersion != SMF_EXPECTED_CONFIG_VERSION {
+		return fmt.Errorf("SMF config version is [%s], but expected is [%s].",
+			currentVersion, SMF_EXPECTED_CONFIG_VERSION)
+	}
+
+	logger.CfgLog.Infof("SMF config version [%s]", currentVersion)
+
+	currentVersion = UERoutingConfig.GetVersion()
+
+	if currentVersion != UE_ROUTING_EXPECTED_CONFIG_VERSION {
+		return fmt.Errorf("UE-Routing config version is [%s], but expected is [%s].",
+			currentVersion, UE_ROUTING_EXPECTED_CONFIG_VERSION)
+	}
+
+	logger.CfgLog.Infof("UE-Routing config version [%s]", currentVersion)
+
+	return nil
 }

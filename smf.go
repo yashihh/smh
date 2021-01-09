@@ -39,11 +39,17 @@ func main() {
 	app.Flags = SMF.GetCliCmd()
 
 	if err := app.Run(os.Args); err != nil {
-		logger.AppLog.Errorf("SMF Run error: %v", err)
+		appLog.Errorf("SMF Run error: %v", err)
 	}
 }
 
-func action(c *cli.Context) {
-	SMF.Initialize(c)
+func action(c *cli.Context) error {
+	if err := SMF.Initialize(c); err != nil {
+		logger.CfgLog.Errorf("%+v", err)
+		return fmt.Errorf("Failed to initialize !!")
+	}
+
 	SMF.Start()
+
+	return nil
 }

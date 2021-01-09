@@ -14,6 +14,7 @@ import (
 var log *logrus.Logger
 var AppLog *logrus.Entry
 var InitLog *logrus.Entry
+var CfgLog *logrus.Entry
 var GsmLog *logrus.Entry
 var PfcpLog *logrus.Entry
 var PduSessLog *logrus.Entry
@@ -44,6 +45,7 @@ func init() {
 
 	AppLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "App"})
 	InitLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Init"})
+	CfgLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "CFG"})
 	PfcpLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Pfcp"})
 	PduSessLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "PduSess"})
 	GsmLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "GSM"})

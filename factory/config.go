@@ -11,6 +11,11 @@ import (
 	"bitbucket.org/free5gc-team/openapi/models"
 )
 
+const (
+	SMF_EXPECTED_CONFIG_VERSION        = "1.0.0"
+	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.0"
+)
+
 type Config struct {
 	Info          *Info               `yaml:"info"`
 	Configuration *Configuration      `yaml:"configuration"`
@@ -152,4 +157,18 @@ type InterfaceUpfInfoItem struct {
 type UPLink struct {
 	A string `yaml:"A"`
 	B string `yaml:"B"`
+}
+
+func (c *Config) GetVersion() string {
+	if c.Info != nil && c.Info.Version != "" {
+		return c.Info.Version
+	}
+	return ""
+}
+
+func (r *RoutingConfig) GetVersion() string {
+	if r.Info != nil && r.Info.Version != "" {
+		return r.Info.Version
+	}
+	return ""
 }
