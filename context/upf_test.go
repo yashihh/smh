@@ -9,6 +9,7 @@ import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/context"
 	"bitbucket.org/free5gc-team/smf/factory"
+
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -43,7 +44,6 @@ func convertPDUSessTypeToString(PDUtype uint8) string {
 }
 
 func TestIP(t *testing.T) {
-
 	var testCases = []struct {
 		input               *context.UPFInterfaceInfo
 		inputPDUSessionType uint8
@@ -78,18 +78,18 @@ func TestIP(t *testing.T) {
 		},
 	}
 
-	Convey("", t, func() {
+	Convey("Given UPFInterfaceInfo and select PDU Session type, should return correct IP", t, func() {
 		for i, testcase := range testCases {
-
 			upfInterfaceInfo := testcase.input
 			infoStr := fmt.Sprintf("testcase[%d] UPF Interface Info: %+v", i, upfInterfaceInfo)
 
 			Convey(infoStr, func() {
+
 				Convey(testcase.paramStr, func() {
 					ip, err := upfInterfaceInfo.IP(testcase.inputPDUSessionType)
 					testcase.resultStr = "IP addr should be " + testcase.expectedIP
-					Convey(testcase.resultStr, func() {
 
+					Convey(testcase.resultStr, func() {
 						So(ip.String(), ShouldEqual, testcase.expectedIP)
 						So(err, ShouldEqual, testcase.expectedError)
 					})
@@ -115,11 +115,11 @@ func TestAddDataPath(t *testing.T) {
 		},
 	}
 
-	Convey("", t, func() {
-
+	Convey("AddDataPath should indeed add datapath", t, func() {
 		for i, testcase := range testCases {
 			upTunnel := testcase.tunnel
 			infoStr := fmt.Sprintf("testcase[%d]: Add Datapath", i)
+
 			Convey(infoStr, func() {
 				upTunnel.AddDataPath(testcase.addedDataPath)
 
@@ -159,11 +159,11 @@ func TestAddPDR(t *testing.T) {
 
 	testCases[0].upf.UPFStatus = context.AssociatedSetUpSuccess
 
-	Convey("", t, func() {
-
+	Convey("AddPDR should indeed add PDR and report error appropiately", t, func() {
 		for i, testcase := range testCases {
 			upf := testcase.upf
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
+
 			Convey(infoStr, func() {
 				_, err := upf.AddPDR()
 
@@ -203,11 +203,11 @@ func TestAddFAR(t *testing.T) {
 
 	testCases[0].upf.UPFStatus = context.AssociatedSetUpSuccess
 
-	Convey("", t, func() {
-
+	Convey("AddFAR should indeed add FAR and report error appropiately", t, func() {
 		for i, testcase := range testCases {
 			upf := testcase.upf
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
+
 			Convey(infoStr, func() {
 				_, err := upf.AddFAR()
 
@@ -235,7 +235,7 @@ func TestAddQER(t *testing.T) {
 	}{
 		{
 			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
-			resultStr:     "AddQ ER should success",
+			resultStr:     "AddQER should success",
 			expectedError: nil,
 		},
 		{
@@ -247,11 +247,11 @@ func TestAddQER(t *testing.T) {
 
 	testCases[0].upf.UPFStatus = context.AssociatedSetUpSuccess
 
-	Convey("", t, func() {
-
+	Convey("AddQER should indeed add QER and report error appropiately", t, func() {
 		for i, testcase := range testCases {
 			upf := testcase.upf
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
+
 			Convey(infoStr, func() {
 				_, err := upf.AddQER()
 
@@ -291,11 +291,11 @@ func TestAddBAR(t *testing.T) {
 
 	testCases[0].upf.UPFStatus = context.AssociatedSetUpSuccess
 
-	Convey("", t, func() {
-
+	Convey("AddBAR should indeed add BAR and report error appropiately", t, func() {
 		for i, testcase := range testCases {
 			upf := testcase.upf
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
+
 			Convey(infoStr, func() {
 				_, err := upf.AddBAR()
 
