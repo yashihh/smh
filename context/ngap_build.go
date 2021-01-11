@@ -8,8 +8,9 @@ import (
 	"bitbucket.org/free5gc-team/ngap/ngapType"
 )
 
-func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error) {
+const DefaultNonGBR5QI = 9
 
+func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error) {
 	var ANUPF = ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
 	var UpNode = ANUPF.UPF
 	var teidOct = make([]byte, 4)
@@ -24,7 +25,6 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 	if n3IP, err := UpNode.N3Interfaces[0].IP(ctx.SelectedPDUSessionType); err != nil {
 		return nil, err
 	} else {
-
 		ie.Value = ngapType.PDUSessionResourceSetupRequestTransferIEsValue{
 			Present: ngapType.PDUSessionResourceSetupRequestTransferIEsPresentULNGUUPTNLInformation,
 			ULNGUUPTNLInformation: &ngapType.UPTransportLayerInformation{
@@ -58,6 +58,7 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 
 	// QoS Flow Setup Request List
 	// use Default 5qi, arp
+	// TODO: Get QFI from PCF/UDM
 	ie = ngapType.PDUSessionResourceSetupRequestTransferIEs{}
 	ie.Id.Value = ngapType.ProtocolIEIDQosFlowSetupRequestList
 	ie.Criticality.Value = ngapType.CriticalityPresentReject
@@ -67,14 +68,14 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 			List: []ngapType.QosFlowSetupRequestItem{
 				{
 					QosFlowIdentifier: ngapType.QosFlowIdentifier{
-						Value: 0,
+						Value: DefaultNonGBR5QI,
 					},
 					QosFlowLevelQosParameters: ngapType.QosFlowLevelQosParameters{
 						QosCharacteristics: ngapType.QosCharacteristics{
 							Present: ngapType.QosCharacteristicsPresentNonDynamic5QI,
 							NonDynamic5QI: &ngapType.NonDynamic5QIDescriptor{
 								FiveQI: ngapType.FiveQI{
-									Value: 9,
+									Value: DefaultNonGBR5QI,
 								},
 							},
 						},
