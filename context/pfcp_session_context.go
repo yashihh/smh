@@ -22,9 +22,9 @@ type PFCPSessionContext struct {
 	RemoteSEID uint64
 }
 
-func (pfcpSessionContext *PFCPSessionContext) String() (str string) {
+func (pfcpSessionContext *PFCPSessionContext) String() string {
 
-	str += "\n"
+	str := "\n"
 	for pdrID, pdr := range pfcpSessionContext.PDRs {
 		str += fmt.Sprintln("PDR ID: ", pdrID)
 		str += fmt.Sprintf("PDR: %v\n", pdr)
@@ -35,7 +35,7 @@ func (pfcpSessionContext *PFCPSessionContext) String() (str string) {
 	str += fmt.Sprintln("RemoteSEID: ", pfcpSessionContext.RemoteSEID)
 	str += "\n"
 
-	return
+	return str
 }
 
 func (pfcpSessionResponseStatus PFCPSessionResponseStatus) String() string {
