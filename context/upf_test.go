@@ -5,12 +5,12 @@ import (
 	"net"
 	"testing"
 
+	. "github.com/smartystreets/goconvey/convey"
+
 	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/context"
 	"bitbucket.org/free5gc-team/smf/factory"
-
-	. "github.com/smartystreets/goconvey/convey"
 )
 
 var mockIPv4NodeID = &pfcpType.NodeID{
