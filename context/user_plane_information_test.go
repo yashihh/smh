@@ -121,7 +121,6 @@ func TestNewUserPlaneInformation(t *testing.T) {
 	require.Contains(t, userplaneInformation.UPFs["UPF1"].Links, userplaneInformation.UPFs["UPF2"])
 	require.Contains(t, userplaneInformation.UPFs["UPF2"].Links, userplaneInformation.UPFs["UPF3"])
 	require.Contains(t, userplaneInformation.UPFs["UPF3"].Links, userplaneInformation.UPFs["UPF4"])
-
 }
 
 func TestGenerateDefaultPath(t *testing.T) {
@@ -144,7 +143,7 @@ func TestGenerateDefaultPath(t *testing.T) {
 		},
 	}
 
-	var testCases = []struct {
+	testCases := []struct {
 		name     string
 		param    *context.UPFSelectionParams
 		expected bool

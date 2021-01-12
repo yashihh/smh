@@ -5,6 +5,5 @@ import (
 )
 
 func SetupSMFContext(config *factory.Config) error {
-
 	return nil
 }

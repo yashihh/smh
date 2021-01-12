@@ -18,7 +18,6 @@ type PFCPState struct {
 
 // SendPFCPRule send one datapath to UPF
 func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPath) {
-
 	logger.PduSessLog.Infoln("Send PFCP Rule")
 	logger.PduSessLog.Infoln("DataPath: ", dataPath)
 	for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
@@ -51,7 +50,7 @@ func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPa
 
 // SendPFCPRules send all datapaths to UPFs
 func SendPFCPRules(smContext *smf_context.SMContext) {
-	var pfcpPool = make(map[string]*PFCPState)
+	pfcpPool := make(map[string]*PFCPState)
 
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
 		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
@@ -86,7 +85,6 @@ func SendPFCPRules(smContext *smf_context.SMContext) {
 				pfcpState.qerList = append(pfcpState.qerList, qerList...)
 			}
 		}
-
 	}
 	for ip, pfcp := range pfcpPool {
 		sessionContext, exist := smContext.PFCPContext[ip]

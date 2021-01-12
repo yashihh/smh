@@ -68,9 +68,9 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 			upNode.ANIP = net.ParseIP(node.ANIP)
 			anPool[name] = upNode
 		case UPNODE_UPF:
-			//ParseIp() always return 16 bytes
-			//so we can't use the length of return ip to seperate IPv4 and IPv6
-			//This is just a work around
+			// ParseIp() always return 16 bytes
+			// so we can't use the length of return ip to separate IPv4 and IPv6
+			// This is just a work around
 			var ip net.IP
 			if net.ParseIP(node.NodeID).To4() == nil {
 				ip = net.ParseIP(node.NodeID)
@@ -153,12 +153,10 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 }
 
 func (upi *UserPlaneInformation) GetUPFNameByIp(ip string) string {
-
 	return upi.UPFIPToName[ip]
 }
 
 func (upi *UserPlaneInformation) GetUPFNodeIDByName(name string) pfcpType.NodeID {
-
 	return upi.UPFs[name].NodeID
 }
 
@@ -168,7 +166,6 @@ func (upi *UserPlaneInformation) GetUPFNodeByIP(ip string) *UPNode {
 }
 
 func (upi *UserPlaneInformation) GetUPFIDByIP(ip string) string {
-
 	return upi.UPFsIPtoID[ip]
 }
 
@@ -188,7 +185,6 @@ func (upi *UserPlaneInformation) GetDefaultUserPlanePathByDNN(selection *UPFSele
 }
 
 func (upi *UserPlaneInformation) ExistDefaultPath(dnn string) bool {
-
 	_, exist := upi.DefaultUserPlanePath[dnn]
 	return exist
 }
@@ -198,8 +194,8 @@ func GenerateDataPath(upPath UPPath, smContext *SMContext) *DataPath {
 		logger.CtxLog.Errorf("Invalid data path")
 		return nil
 	}
-	var lowerBound = 0
-	var upperBound = len(upPath) - 1
+	lowerBound := 0
+	upperBound := len(upPath) - 1
 	var root *DataPathNode
 	var curDataPathNode *DataPathNode
 	var prevDataPathNode *DataPathNode
@@ -234,12 +230,10 @@ func GenerateDataPath(upPath UPPath, smContext *SMContext) *DataPath {
 }
 
 func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionParams) bool {
-
 	var source *UPNode
 	var destinations []*UPNode
 
 	for _, node := range upi.AccessNetwork {
-
 		if node.Type == UPNODE_AN {
 			source = node
 			break
@@ -262,7 +256,7 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 			selection.SNssai.Sst, selection.SNssai.Sd, selection.Dnai)
 	}
 
-	//Run DFS
+	// Run DFS
 	visited := make(map[*UPNode]bool)
 
 	for _, upNode := range upi.UPNodes {
@@ -282,7 +276,7 @@ func (upi *UserPlaneInformation) GenerateDefaultPath(selection *UPFSelectionPara
 }
 
 func (upi *UserPlaneInformation) selectMatchUPF(selection *UPFSelectionParams) []*UPNode {
-	var upList = make([]*UPNode, 0)
+	upList := make([]*UPNode, 0)
 
 	for _, upNode := range upi.UPFs {
 		for _, snssaiInfo := range upNode.UPF.SNssaiInfos {
@@ -304,11 +298,9 @@ func (upi *UserPlaneInformation) selectMatchUPF(selection *UPFSelectionParams) [
 
 func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool,
 	selection *UPFSelectionParams) (path []*UPNode, pathExist bool) {
-
 	visited[cur] = true
 
 	if reflect.DeepEqual(*cur, *dest) {
-
 		path = make([]*UPNode, 0)
 		path = append(path, cur)
 		pathExist = true
@@ -318,7 +310,6 @@ func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool,
 	selectedSNssai := selection.SNssai
 
 	for _, nodes := range cur.Links {
-
 		if !visited[nodes] {
 			if !nodes.UPF.isSupportSnssai(selectedSNssai) {
 				visited[nodes] = true
@@ -340,5 +331,4 @@ func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool,
 	}
 
 	return nil, false
-
 }

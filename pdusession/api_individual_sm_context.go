@@ -50,7 +50,6 @@ func HTTPReleaseSmContext(c *gin.Context) {
 		smContextRef, req.Body.(models.ReleaseSmContextRequest))
 
 	c.Status(http.StatusNoContent)
-
 }
 
 // RetrieveSmContext - Retrieve SM Context

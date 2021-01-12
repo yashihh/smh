@@ -21,9 +21,11 @@ import (
 	"bitbucket.org/free5gc-team/smf/logger"
 )
 
-var smContextPool sync.Map
-var canonicalRef sync.Map
-var seidSMContextMap sync.Map
+var (
+	smContextPool    sync.Map
+	canonicalRef     sync.Map
+	seidSMContextMap sync.Map
+)
 
 var smContextCount uint64
 
@@ -93,7 +95,7 @@ type SMContext struct {
 
 	Tunnel    *UPTunnel
 	BPManager *BPManager
-	//NodeID(string form) to PFCP Session Context
+	// NodeID(string form) to PFCP Session Context
 	PFCPContext                         map[string]*PFCPSessionContext
 	SBIPFCPCommunicationChan            chan PFCPSessionResponseStatus
 	PendingUPF                          PendingUPF
@@ -109,7 +111,7 @@ type SMContext struct {
 	// NAS
 	Pti uint8
 
-	//PCO Related
+	// PCO Related
 	ProtocolConfigurationOptions *ProtocolConfigurationOptions
 
 	// lock
@@ -121,7 +123,6 @@ func canonicalName(identifier string, pduSessID int32) (canonical string) {
 }
 
 func ResolveRef(identifier string, pduSessID int32) (ref string, err error) {
-
 	if value, ok := canonicalRef.Load(canonicalName(identifier, pduSessID)); ok {
 		ref = value.(string)
 		err = nil
@@ -171,14 +172,12 @@ func GetSMContext(ref string) (smContext *SMContext) {
 
 //*** add unit test ***//
 func RemoveSMContext(ref string) {
-
 	var smContext *SMContext
 	if value, ok := smContextPool.Load(ref); ok {
 		smContext = value.(*SMContext)
 	}
 
 	for _, pfcpSessionContext := range smContext.PFCPContext {
-
 		seidSMContextMap.Delete(pfcpSessionContext.LocalSEID)
 	}
 
@@ -195,7 +194,6 @@ func GetSMContextBySEID(SEID uint64) (smContext *SMContext) {
 
 //*** add unit test ***//
 func (smContext *SMContext) SetCreateData(createData *models.SmContextCreateData) {
-
 	smContext.Gpsi = createData.Gpsi
 	smContext.Supi = createData.Supi
 	smContext.Dnn = createData.Dnn
@@ -232,7 +230,6 @@ func (smContext *SMContext) PDUAddressToNAS() (addr [12]byte, addrLen uint8) {
 
 // PCFSelection will select PCF for this SM Context
 func (smContext *SMContext) PCFSelection() error {
-
 	// Send NFDiscovery for find PCF
 	localVarOptionals := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
 
@@ -243,6 +240,11 @@ func (smContext *SMContext) PCFSelection() error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if rspCloseErr := res.Body.Close(); rspCloseErr != nil {
+			logger.PduSessLog.Errorf("SmfEventExposureNotification response body cannot close: %+v", rspCloseErr)
+		}
+	}()
 
 	if res != nil {
 		if status := res.StatusCode; status != http.StatusOK {
@@ -271,7 +273,6 @@ func (smContext *SMContext) PCFSelection() error {
 }
 
 func (smContext *SMContext) GetNodeIDByLocalSEID(seid uint64) (nodeID pfcpType.NodeID) {
-
 	for _, pfcpCtx := range smContext.PFCPContext {
 		if pfcpCtx.LocalSEID == seid {
 			nodeID = pfcpCtx.NodeID
@@ -282,9 +283,7 @@ func (smContext *SMContext) GetNodeIDByLocalSEID(seid uint64) (nodeID pfcpType.N
 }
 
 func (smContext *SMContext) AllocateLocalSEIDForUPPath(path UPPath) {
-
 	for _, upNode := range path {
-
 		NodeIDtoIP := upNode.NodeID.ResolveNodeIdToIp().String()
 		if _, exist := smContext.PFCPContext[NodeIDtoIP]; !exist {
 			allocatedSEID := AllocateLocalSEID()
@@ -303,11 +302,9 @@ func (smContext *SMContext) AllocateLocalSEIDForUPPath(path UPPath) {
 func (smContext *SMContext) AllocateLocalSEIDForDataPath(dataPath *DataPath) {
 	logger.PduSessLog.Traceln("In AllocateLocalSEIDForDataPath")
 	for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-
 		NodeIDtoIP := curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String()
 		logger.PduSessLog.Traceln("NodeIDtoIP: ", NodeIDtoIP)
 		if _, exist := smContext.PFCPContext[NodeIDtoIP]; !exist {
-
 			allocatedSEID := AllocateLocalSEID()
 			smContext.PFCPContext[NodeIDtoIP] = &PFCPSessionContext{
 				PDRs:      make(map[uint16]*PDR),
@@ -390,7 +387,6 @@ func (smContext *SMContext) isAllowedPDUSessionType(nasPDUSessionType uint8) boo
 	default:
 		return false
 	}
-
 }
 
 // SM Policy related operation
@@ -423,5 +419,4 @@ func (smContextState SMContextState) String() string {
 	default:
 		return "Unknown State"
 	}
-
 }

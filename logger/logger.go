@@ -11,15 +11,18 @@ import (
 	"bitbucket.org/free5gc-team/logger_util"
 )
 
-var log *logrus.Logger
-var AppLog *logrus.Entry
-var InitLog *logrus.Entry
-var CfgLog *logrus.Entry
-var GsmLog *logrus.Entry
-var PfcpLog *logrus.Entry
-var PduSessLog *logrus.Entry
-var CtxLog *logrus.Entry
-var GinLog *logrus.Entry
+var (
+	log         *logrus.Logger
+	AppLog      *logrus.Entry
+	InitLog     *logrus.Entry
+	CfgLog      *logrus.Entry
+	GsmLog      *logrus.Entry
+	PfcpLog     *logrus.Entry
+	PduSessLog  *logrus.Entry
+	CtxLog      *logrus.Entry
+	ConsumerLog *logrus.Entry
+	GinLog      *logrus.Entry
+)
 
 func init() {
 	log = logrus.New()
@@ -33,12 +36,12 @@ func init() {
 		FieldsOrder:     []string{"component", "category"},
 	}
 
-	free5gcLogHook, err := logger_util.NewFileHook(logger_conf.Free5gcLogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	free5gcLogHook, err := logger_util.NewFileHook(logger_conf.Free5gcLogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
 	if err == nil {
 		log.Hooks.Add(free5gcLogHook)
 	}
 
-	selfLogHook, err := logger_util.NewFileHook(logger_conf.NfLogDir+"smf.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	selfLogHook, err := logger_util.NewFileHook(logger_conf.NfLogDir+"smf.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
 	if err == nil {
 		log.Hooks.Add(selfLogHook)
 	}
@@ -46,10 +49,11 @@ func init() {
 	AppLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "App"})
 	InitLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Init"})
 	CfgLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "CFG"})
-	PfcpLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Pfcp"})
+	PfcpLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "PFCP"})
 	PduSessLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "PduSess"})
 	GsmLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "GSM"})
-	CtxLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Context"})
+	CtxLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "CTX"})
+	ConsumerLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Consumer"})
 	GinLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "GIN"})
 }
 
@@ -57,6 +61,6 @@ func SetLogLevel(level logrus.Level) {
 	log.SetLevel(level)
 }
 
-func SetReportCaller(bool bool) {
-	log.SetReportCaller(bool)
+func SetReportCaller(set bool) {
+	log.SetReportCaller(set)
 }

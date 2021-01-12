@@ -42,7 +42,6 @@ func Run(Dispatch func(*pfcpUdp.Message)) {
 
 			msg := pfcpUdp.NewMessage(remoteAddr, &pfcpMessage)
 			go Dispatch(&msg)
-
 		}
 	}(&Server)
 
@@ -50,10 +49,8 @@ func Run(Dispatch func(*pfcpUdp.Message)) {
 }
 
 func SendPfcp(msg pfcp.Message, addr *net.UDPAddr) {
-
 	err := Server.WriteTo(msg, addr)
 	if err != nil {
 		logger.PfcpLog.Errorf("Failed to send PFCP message: %v", err)
 	}
-
 }

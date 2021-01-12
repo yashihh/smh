@@ -25,7 +25,6 @@ type PDUSessionInfo struct {
 func HandleOAMGetUEPDUSessionInfo(smContextRef string) *http_wrapper.Response {
 	smContext := context.GetSMContext(smContextRef)
 	if smContext == nil {
-
 		httpResponse := &http_wrapper.Response{
 			Header: nil,
 			Status: http.StatusNotFound,
@@ -54,5 +53,4 @@ func HandleOAMGetUEPDUSessionInfo(smContextRef string) *http_wrapper.Response {
 		},
 	}
 	return httpResponse
-
 }

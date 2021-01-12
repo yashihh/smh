@@ -29,7 +29,6 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 
 	selectedPDUSessionType := nasConvert.PDUSessionTypeToModels(smContext.SelectedPDUSessionType)
 	if selectedPDUSessionType == models.PduSessionType_IPV4_V6 {
-
 		onlySupportIPv4 := SMF_Self().OnlySupportIPv4
 		onlySupportIPv6 := SMF_Self().OnlySupportIPv6
 
@@ -43,7 +42,6 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 			pDUSessionEstablishmentAccept.Cause5GSM = nasType.NewCause5GSM(nasMessage.PDUSessionEstablishmentAcceptCause5GSMType)
 			pDUSessionEstablishmentAccept.SetCauseValue(nasMessage.Cause5GSMPDUSessionTypeIPv6OnlyAllowed)
 		}
-
 	}
 	pDUSessionEstablishmentAccept.SetPDUSessionType(smContext.SelectedPDUSessionType)
 
@@ -151,9 +149,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 			pDUSessionEstablishmentAccept.
 				ExtendedProtocolConfigurationOptions.
 				SetExtendedProtocolConfigurationOptionsContents(pcoContents)
-
 		}
-
 	}
 	return m.PlainNasEncode()
 }
@@ -175,7 +171,6 @@ func BuildGSMPDUSessionEstablishmentReject(smContext *SMContext, cause uint8) ([
 }
 
 func BuildGSMPDUSessionReleaseCommand(smContext *SMContext) ([]byte, error) {
-
 	m := nas.NewMessage()
 	m.GsmMessage = nas.NewGsmMessage()
 	m.GsmHeader.SetMessageType(nas.MsgTypePDUSessionReleaseCommand)
@@ -216,7 +211,6 @@ func BuildGSMPDUSessionModificationCommand(smContext *SMContext) ([]byte, error)
 }
 
 func BuildGSMPDUSessionReleaseReject(smContext *SMContext) ([]byte, error) {
-
 	m := nas.NewMessage()
 	m.GsmMessage = nas.NewGsmMessage()
 	m.GsmHeader.SetMessageType(nas.MsgTypePDUSessionReleaseReject)

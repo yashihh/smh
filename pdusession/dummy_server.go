@@ -32,5 +32,4 @@ func DummyServer() {
 	if err := server.ListenAndServeTLS(smfPemPath, smfkeyPath); err != nil {
 		log.Fatal(err)
 	}
-
 }

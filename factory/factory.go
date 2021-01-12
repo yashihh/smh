@@ -13,8 +13,10 @@ import (
 	"bitbucket.org/free5gc-team/smf/logger"
 )
 
-var SmfConfig Config
-var UERoutingConfig RoutingConfig
+var (
+	SmfConfig       Config
+	UERoutingConfig RoutingConfig
+)
 
 // TODO: Support configuration update from REST api
 func InitConfigFactory(f string) error {
@@ -23,7 +25,7 @@ func InitConfigFactory(f string) error {
 	} else {
 		SmfConfig = Config{}
 
-		if yamlErr := yaml.Unmarshal([]byte(content), &SmfConfig); yamlErr != nil {
+		if yamlErr := yaml.Unmarshal(content, &SmfConfig); yamlErr != nil {
 			return yamlErr
 		}
 	}
@@ -37,7 +39,7 @@ func InitRoutingConfigFactory(f string) error {
 	} else {
 		UERoutingConfig = RoutingConfig{}
 
-		if yamlErr := yaml.Unmarshal([]byte(content), &UERoutingConfig); yamlErr != nil {
+		if yamlErr := yaml.Unmarshal(content, &UERoutingConfig); yamlErr != nil {
 			return yamlErr
 		}
 	}

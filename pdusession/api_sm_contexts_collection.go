@@ -52,7 +52,7 @@ func HTTPPostSmContexts(c *gin.Context) {
 
 	req := http_wrapper.NewRequest(c.Request, request)
 	HTTPResponse := producer.HandlePDUSessionSMContextCreate(req.Body.(models.PostSmContextsRequest))
-	//Http Response to AMF
+	// Http Response to AMF
 	for key, val := range HTTPResponse.Header {
 		c.Header(key, val[0])
 	}

@@ -110,7 +110,6 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 }
 
 func (smf *SMF) setLogLevel() {
-
 	if factory.SmfConfig.Logger == nil {
 		initLog.Warnln("SMF config without log level setting!!!")
 		return
@@ -245,7 +244,7 @@ func (smf *SMF) FilterCli(c *cli.Context) (args []string) {
 
 func (smf *SMF) Start() {
 	context.InitSmfContext(&factory.SmfConfig)
-	//allocate id for each upf
+	// allocate id for each upf
 	context.AllocateUPFID()
 	context.InitSMFUERouting(&factory.UERoutingConfig)
 
@@ -253,7 +252,6 @@ func (smf *SMF) Start() {
 	router := logger_util.NewGinWithLogrus(logger.GinLog)
 
 	err := consumer.SendNFRegistration()
-
 	if err != nil {
 		retry_err := consumer.RetrySendNFRegistration(10)
 		if retry_err != nil {
@@ -316,7 +314,6 @@ func (smf *SMF) Start() {
 	if err != nil {
 		initLog.Fatalln("HTTP server setup failed:", err)
 	}
-
 }
 
 func (smf *SMF) Terminate() {
