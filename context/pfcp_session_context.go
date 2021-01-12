@@ -22,7 +22,8 @@ type PFCPSessionContext struct {
 	RemoteSEID uint64
 }
 
-func (pfcpSessionContext *PFCPSessionContext) ToString() (str string) {
+func (pfcpSessionContext *PFCPSessionContext) String() (str string) {
+
 	str += "\n"
 	for pdrID, pdr := range pfcpSessionContext.PDRs {
 		str += fmt.Sprintln("PDR ID: ", pdrID)
