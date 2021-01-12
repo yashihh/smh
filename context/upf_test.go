@@ -44,7 +44,7 @@ func convertPDUSessTypeToString(PDUtype uint8) string {
 }
 
 func TestIP(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		input               *context.UPFInterfaceInfo
 		inputPDUSessionType uint8
 		paramStr            string
@@ -84,7 +84,6 @@ func TestIP(t *testing.T) {
 			infoStr := fmt.Sprintf("testcase[%d] UPF Interface Info: %+v", i, upfInterfaceInfo)
 
 			Convey(infoStr, func() {
-
 				Convey(testcase.paramStr, func() {
 					ip, err := upfInterfaceInfo.IP(testcase.inputPDUSessionType)
 					testcase.resultStr = "IP addr should be " + testcase.expectedIP
@@ -100,8 +99,8 @@ func TestIP(t *testing.T) {
 }
 
 func TestAddDataPath(t *testing.T) {
-	//AddDataPath is simple, should only have one case
-	var testCases = []struct {
+	// AddDataPath is simple, should only have one case
+	testCases := []struct {
 		tunnel        *context.UPTunnel
 		addedDataPath *context.DataPath
 		resultStr     string
@@ -126,7 +125,6 @@ func TestAddDataPath(t *testing.T) {
 				Convey(testcase.resultStr, func() {
 					var exist bool
 					for _, datapath := range upTunnel.DataPathPool {
-
 						if datapath == testcase.addedDataPath {
 							exist = true
 						}
@@ -136,11 +134,10 @@ func TestAddDataPath(t *testing.T) {
 			})
 		}
 	})
-
 }
 
 func TestAddPDR(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		upf           *context.UPF
 		resultStr     string
 		expectedError error
@@ -176,7 +173,6 @@ func TestAddPDR(t *testing.T) {
 							So(err.Error(), ShouldEqual, testcase.expectedError.Error())
 						}
 					}
-
 				})
 			})
 		}
@@ -184,7 +180,7 @@ func TestAddPDR(t *testing.T) {
 }
 
 func TestAddFAR(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		upf           *context.UPF
 		resultStr     string
 		expectedError error
@@ -220,7 +216,6 @@ func TestAddFAR(t *testing.T) {
 							So(err.Error(), ShouldEqual, testcase.expectedError.Error())
 						}
 					}
-
 				})
 			})
 		}
@@ -228,7 +223,7 @@ func TestAddFAR(t *testing.T) {
 }
 
 func TestAddQER(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		upf           *context.UPF
 		resultStr     string
 		expectedError error
@@ -264,7 +259,6 @@ func TestAddQER(t *testing.T) {
 							So(err.Error(), ShouldEqual, testcase.expectedError.Error())
 						}
 					}
-
 				})
 			})
 		}
@@ -272,7 +266,7 @@ func TestAddQER(t *testing.T) {
 }
 
 func TestAddBAR(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		upf           *context.UPF
 		resultStr     string
 		expectedError error
@@ -308,7 +302,6 @@ func TestAddBAR(t *testing.T) {
 							So(err.Error(), ShouldEqual, testcase.expectedError.Error())
 						}
 					}
-
 				})
 			})
 		}
