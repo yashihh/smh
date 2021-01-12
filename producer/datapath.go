@@ -58,7 +58,7 @@ func SendPFCPRules(smContext *smf_context.SMContext) {
 				pdrList := make([]*smf_context.PDR, 0, 2)
 				farList := make([]*smf_context.FAR, 0, 2)
 				qerList := make([]*smf_context.QER, 0, 2)
-	
+
 				if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
 					pdrList = append(pdrList, curDataPathNode.UpLinkTunnel.PDR)
 					farList = append(farList, curDataPathNode.UpLinkTunnel.PDR.FAR)
@@ -71,7 +71,7 @@ func SendPFCPRules(smContext *smf_context.SMContext) {
 					farList = append(farList, curDataPathNode.DownLinkTunnel.PDR.FAR)
 					// skip send QER because uplink and downlink shared one QER
 				}
-	
+
 				pfcpState := pfcpPool[curDataPathNode.GetNodeIP()]
 				if pfcpState == nil {
 					pfcpPool[curDataPathNode.GetNodeIP()] = &PFCPState{
