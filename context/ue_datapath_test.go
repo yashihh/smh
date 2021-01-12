@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"bitbucket.org/free5gc-team/smf/context"
 	"bitbucket.org/free5gc-team/smf/factory"
-	"github.com/stretchr/testify/require"
 )
 
 var config = configuration
@@ -17,7 +18,7 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 	smfContext := context.SMF_Self()
 	smfContext.UserPlaneInformation = context.NewUserPlaneInformation(config)
 	fmt.Println("Start")
-	var testcases = []struct {
+	testcases := []struct {
 		name                  string
 		inSUPI                string
 		inPaths               []factory.Path
@@ -176,7 +177,6 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 
 func getUpf(name string) *context.UPF {
 	newUeNode, err := context.NewUEDataPathNode(name)
-
 	if err != nil {
 		return nil
 	}

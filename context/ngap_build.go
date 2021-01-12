@@ -11,9 +11,9 @@ import (
 const DefaultNonGBR5QI = 9
 
 func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error) {
-	var ANUPF = ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
-	var UpNode = ANUPF.UPF
-	var teidOct = make([]byte, 4)
+	ANUPF := ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
+	UpNode := ANUPF.UPF
+	teidOct := make([]byte, 4)
 	binary.BigEndian.PutUint32(teidOct, ANUPF.UpLinkTunnel.TEID)
 
 	resourceSetupRequestTransfer := ngapType.PDUSessionResourceSetupRequestTransfer{}
@@ -107,9 +107,9 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 
 // TS 38.413 9.3.4.9
 func BuildPathSwitchRequestAcknowledgeTransfer(ctx *SMContext) ([]byte, error) {
-	var ANUPF = ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
-	var UpNode = ANUPF.UPF
-	var teidOct = make([]byte, 4)
+	ANUPF := ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
+	UpNode := ANUPF.UPF
+	teidOct := make([]byte, 4)
 	binary.BigEndian.PutUint32(teidOct, ANUPF.UpLinkTunnel.TEID)
 
 	pathSwitchRequestAcknowledgeTransfer := ngapType.PathSwitchRequestAcknowledgeTransfer{}
@@ -155,7 +155,6 @@ func BuildPathSwitchRequestAcknowledgeTransfer(ctx *SMContext) ([]byte, error) {
 }
 
 func BuildPathSwitchRequestUnsuccessfulTransfer(causePresent int, causeValue aper.Enumerated) (buf []byte, err error) {
-
 	pathSwitchRequestUnsuccessfulTransfer := ngapType.PathSwitchRequestUnsuccessfulTransfer{}
 
 	pathSwitchRequestUnsuccessfulTransfer.Cause.Present = causePresent
@@ -203,9 +202,9 @@ func BuildPDUSessionResourceReleaseCommandTransfer(ctx *SMContext) (buf []byte, 
 }
 
 func BuildHandoverCommandTransfer(ctx *SMContext) (buf []byte, err error) {
-	var ANUPF = ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
-	var UpNode = ANUPF.UPF
-	var teidOct = make([]byte, 4)
+	ANUPF := ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
+	UpNode := ANUPF.UPF
+	teidOct := make([]byte, 4)
 	binary.BigEndian.PutUint32(teidOct, ANUPF.UpLinkTunnel.TEID)
 	handoverCommandTransfer := ngapType.HandoverCommandTransfer{}
 

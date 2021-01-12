@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/openapi/models"
 	smf_context "bitbucket.org/free5gc-team/smf/context"
-	"github.com/pkg/errors"
 )
 
 // SendSMPolicyAssociationCreate create the session management association to the PCF

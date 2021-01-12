@@ -15,10 +15,10 @@ var NfServiceVersion *[]models.NfServiceVersion
 var SmfInfo *models.SmfInfo
 
 func SetupNFProfile(config *factory.Config) {
-	//Set time
+	// Set time
 	nfSetupTime := time.Now()
 
-	//set NfServiceVersion
+	// set NfServiceVersion
 	NfServiceVersion = &[]models.NfServiceVersion{
 		{
 			ApiVersionInUri: "v1",
@@ -27,7 +27,7 @@ func SetupNFProfile(config *factory.Config) {
 		},
 	}
 
-	//set NFServices
+	// set NFServices
 	NFServices = new([]models.NfService)
 	for _, serviceName := range config.Configuration.ServiceNameList {
 		*NFServices = append(*NFServices, models.NfService{
@@ -40,7 +40,7 @@ func SetupNFProfile(config *factory.Config) {
 		})
 	}
 
-	//set smfInfo
+	// set smfInfo
 	SmfInfo = &models.SmfInfo{
 		SNssaiSmfInfoList: SNssaiSmfInfo(),
 	}

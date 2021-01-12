@@ -33,7 +33,7 @@ func NewPCCRuleFromModel(pccModel *models.PccRule) *PCCRule {
 	pccRule.AppID = pccModel.AppId
 	pccRule.FlowInfos = pccModel.FlowInfos
 	if pccModel.RefTcData != nil {
-		//TODO: now 1 pcc rule only maps to 1 TC data
+		// TODO: now 1 pcc rule only maps to 1 TC data
 		pccRule.refTrafficControlData = pccModel.RefTcData[0]
 	}
 
@@ -45,7 +45,7 @@ func (r *PCCRule) SetRefTrafficControlData(tcID string) {
 	r.refTrafficControlData = tcID
 }
 
-// RefTrafficControlData - returns refernece traffic control data ID
+// RefTrafficControlData - returns reference traffic control data ID
 func (r *PCCRule) RefTrafficControlData() string {
 	return r.refTrafficControlData
 }

@@ -22,28 +22,28 @@ type GTPTunnel struct {
 
 type DataPathNode struct {
 	UPF *UPF
-	//DataPathToAN *DataPathDownLink
-	//DataPathToDN map[string]*DataPathUpLink //uuid to DataPathLink
+	// DataPathToAN *DataPathDownLink
+	// DataPathToDN map[string]*DataPathUpLink //uuid to DataPathLink
 
 	UpLinkTunnel   *GTPTunnel
 	DownLinkTunnel *GTPTunnel
-	//for UE Routing Topology
-	//for special case:
-	//branching & leafnode
+	// for UE Routing Topology
+	// for special case:
+	// branching & leafnode
 
-	//InUse                bool
+	// InUse                bool
 	IsBranchingPoint bool
-	//DLDataPathLinkForPSA *DataPathUpLink
-	//BPUpLinkPDRs         map[string]*DataPathDownLink // uuid to UpLink
+	// DLDataPathLinkForPSA *DataPathUpLink
+	// BPUpLinkPDRs         map[string]*DataPathDownLink // uuid to UpLink
 }
 
 type DataPath struct {
-	//meta data
+	// meta data
 	Activated         bool
 	IsDefaultPath     bool
 	Destination       Destination
 	HasBranchingPoint bool
-	//Data Path Double Link List
+	// Data Path Double Link List
 	FirstDPNode *DataPathNode
 }
 
@@ -83,12 +83,12 @@ func NewDataPathPool() DataPathPool {
 func (node *DataPathNode) AddNext(next *DataPathNode) {
 	node.DownLinkTunnel.SrcEndPoint = next
 }
+
 func (node *DataPathNode) AddPrev(prev *DataPathNode) {
 	node.UpLinkTunnel.SrcEndPoint = prev
 }
 
 func (node *DataPathNode) Next() *DataPathNode {
-
 	if node.DownLinkTunnel == nil {
 		return nil
 	}
@@ -97,7 +97,6 @@ func (node *DataPathNode) Next() *DataPathNode {
 }
 
 func (node *DataPathNode) Prev() *DataPathNode {
-
 	if node.UpLinkTunnel == nil {
 		return nil
 	}
@@ -161,7 +160,6 @@ func (node *DataPathNode) ActivateDownLinkTunnel(smContext *SMContext) error {
 }
 
 func (node *DataPathNode) DeactivateUpLinkTunnel(smContext *SMContext) {
-
 	pdr := node.UpLinkTunnel.PDR
 	far := node.UpLinkTunnel.PDR.FAR
 	bar := node.UpLinkTunnel.PDR.FAR.BAR
@@ -199,7 +197,6 @@ func (node *DataPathNode) DeactivateUpLinkTunnel(smContext *SMContext) {
 }
 
 func (node *DataPathNode) DeactivateDownLinkTunnel(smContext *SMContext) {
-
 	pdr := node.DownLinkTunnel.PDR
 	far := node.DownLinkTunnel.PDR.FAR
 	bar := node.DownLinkTunnel.PDR.FAR.BAR
@@ -246,17 +243,14 @@ func (node *DataPathNode) GetUPFID() (id string, err error) {
 	}
 
 	return id, nil
-
 }
 
 func (node *DataPathNode) GetNodeIP() (ip string) {
-
 	ip = node.UPF.NodeID.ResolveNodeIdToIp().String()
 	return
 }
 
 func (node *DataPathNode) IsANUPF() bool {
-
 	if node.Prev() == nil {
 		return true
 	} else {
@@ -265,13 +259,11 @@ func (node *DataPathNode) IsANUPF() bool {
 }
 
 func (node *DataPathNode) IsAnchorUPF() bool {
-
 	if node.Next() == nil {
 		return true
 	} else {
 		return false
 	}
-
 }
 
 func (node *DataPathNode) GetUpLinkPDR() (pdr *PDR) {
@@ -283,20 +275,16 @@ func (node *DataPathNode) GetUpLinkFAR() (far *FAR) {
 }
 
 func (dataPathPool DataPathPool) GetDefaultPath() (dataPath *DataPath) {
-
 	for _, path := range dataPathPool {
-
 		if path.IsDefaultPath {
 			dataPath = path
 			return
 		}
-
 	}
 	return
 }
 
 func (dataPath *DataPath) String() string {
-
 	firstDPNode := dataPath.FirstDPNode
 
 	var str string
@@ -311,7 +299,6 @@ func (dataPath *DataPath) String() string {
 	str += "DataPath Routing Information\n"
 	index := 1
 	for curDPNode := firstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
-
 		str += strconv.Itoa(index) + "th Node in the Path\n"
 		str += "Current UPF IP: " + curDPNode.GetNodeIP() + "\n"
 		if curDPNode.Prev() != nil {
@@ -333,13 +320,12 @@ func (dataPath *DataPath) String() string {
 }
 
 func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence uint32) {
-
 	smContext.AllocateLocalSEIDForDataPath(dataPath)
 
 	firstDPNode := dataPath.FirstDPNode
 	logger.PduSessLog.Traceln("In ActivateTunnelAndPDR")
 	logger.PduSessLog.Traceln(dataPath.String())
-	//Activate Tunnels
+	// Activate Tunnels
 	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		logger.PduSessLog.Traceln("Current DP Node IP: ", curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String())
 		if err := curDataPathNode.ActivateUpLinkTunnel(smContext); err != nil {
@@ -355,7 +341,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 	sessionRule := smContext.SelectedSessionRule()
 	AuthDefQos := sessionRule.AuthDefQos
 
-	//Activate PDR
+	// Activate PDR
 	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		var flowQER *QER
 
@@ -532,7 +518,6 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 						},
 					}
 				}
-
 			} else {
 				if anIP := smContext.Tunnel.ANInformation.IPAddress; anIP != nil {
 					ANUPF := dataPath.FirstDPNode
@@ -545,7 +530,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 
 					dlOuterHeaderCreation := DLFAR.ForwardingParameters.OuterHeaderCreation
 					dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
-					dlOuterHeaderCreation.Teid = uint32(smContext.Tunnel.ANInformation.TEID)
+					dlOuterHeaderCreation.Teid = smContext.Tunnel.ANInformation.TEID
 					dlOuterHeaderCreation.Ipv4Address = smContext.Tunnel.ANInformation.IPAddress.To4()
 				}
 			}
@@ -571,7 +556,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 func (dataPath *DataPath) DeactivateTunnelAndPDR(smContext *SMContext) {
 	firstDPNode := dataPath.FirstDPNode
 
-	//Deactivate Tunnels
+	// Deactivate Tunnels
 	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		curDataPathNode.DeactivateUpLinkTunnel(smContext)
 		curDataPathNode.DeactivateDownLinkTunnel(smContext)

@@ -39,7 +39,7 @@ func maskBits(mask net.IPMask) int {
 
 // IPAddrWithOffset add offset on base ip
 func IPAddrWithOffset(ip net.IP, offset int) net.IP {
-	var retIP = make(net.IP, len(ip))
+	retIP := make(net.IP, len(ip))
 	copy(retIP, ip)
 
 	var carry int
@@ -60,8 +60,8 @@ func IPAddrWithOffset(ip net.IP, offset int) net.IP {
 
 // IPAddrOffset calculate the input ip with base ip offset
 func IPAddrOffset(in, base net.IP) int {
-	var offset = 0
-	var exp = 1
+	offset := 0
+	exp := 1
 	for i := len(base) - 1; i >= 0; i-- {
 		offset += int(in[i]-base[i]) * exp
 		exp *= 256
@@ -71,7 +71,6 @@ func IPAddrOffset(in, base net.IP) int {
 
 // Allocate will allocate the IP address and returns it
 func (a *IPAllocator) Allocate() (net.IP, error) {
-
 	if offset, err := a.g.Allocate(); err != nil {
 		return nil, errors.New("ip allocation failed" + err.Error())
 	} else {

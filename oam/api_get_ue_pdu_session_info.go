@@ -8,7 +8,6 @@ import (
 )
 
 func HTTPGetUEPDUSessionInfo(c *gin.Context) {
-
 	req := http_wrapper.NewRequest(c.Request, nil)
 	req.Params["smContextRef"] = c.Params.ByName("smContextRef")
 

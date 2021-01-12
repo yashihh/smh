@@ -15,7 +15,6 @@ type UEPreConfigPaths struct {
 }
 
 func NewUEDataPathNode(name string) (node *DataPathNode, err error) {
-
 	upNodes := smfContext.UserPlaneInformation.UPNodes
 
 	if _, exist := upNodes[name]; !exist {
@@ -70,11 +69,8 @@ func NewUEPreConfigPaths(SUPI string, paths []factory.Path) (*UEPreConfigPaths, 
 			if parentNode != nil {
 				newUeNode.AddPrev(parentNode)
 				parentNode.AddNext(newUeNode)
-
 			}
-
 			parentNode = newUeNode
-
 		}
 
 		logger.CtxLog.Traceln("New data path added")

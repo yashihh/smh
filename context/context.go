@@ -148,7 +148,7 @@ func InitSmfContext(config *factory.Config) {
 	smfContext.SnssaiInfos = make([]SnssaiSmfInfo, 0, len(configuration.SNssaiInfo))
 
 	for _, snssaiInfoConfig := range configuration.SNssaiInfo {
-		var snssaiInfo = SnssaiSmfInfo{}
+		snssaiInfo := SnssaiSmfInfo{}
 		snssaiInfo.Snssai = SNssai{
 			Sst: snssaiInfoConfig.SNssai.Sst,
 			Sd:  snssaiInfoConfig.SNssai.Sd,
@@ -157,7 +157,7 @@ func InitSmfContext(config *factory.Config) {
 		snssaiInfo.DnnInfos = make(map[string]*SnssaiSmfDnnInfo)
 
 		for _, dnnInfoConfig := range snssaiInfoConfig.DnnInfos {
-			var dnnInfo = SnssaiSmfDnnInfo{}
+			dnnInfo := SnssaiSmfDnnInfo{}
 			dnnInfo.DNS.IPv4Addr = net.ParseIP(dnnInfoConfig.DNS.IPv4Addr).To4()
 			dnnInfo.DNS.IPv6Addr = net.ParseIP(dnnInfoConfig.DNS.IPv6Addr).To4()
 			if allocator, err := NewIPAllocator(dnnInfoConfig.UESubnet); err != nil {
@@ -190,7 +190,6 @@ func InitSmfContext(config *factory.Config) {
 }
 
 func InitSMFUERouting(routingConfig *factory.RoutingConfig) {
-
 	if !smfContext.ULCLSupport {
 		return
 	}
@@ -216,7 +215,6 @@ func InitSMFUERouting(routingConfig *factory.RoutingConfig) {
 
 		smfContext.UEPreConfigPathPool[supi] = uePreConfigPaths
 	}
-
 }
 
 func SMF_Self() *SMFContext {

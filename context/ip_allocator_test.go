@@ -5,12 +5,13 @@ import (
 	"net"
 	"testing"
 
-	"bitbucket.org/free5gc-team/smf/context"
 	"github.com/stretchr/testify/require"
+
+	"bitbucket.org/free5gc-team/smf/context"
 )
 
 func TestIPAddrWithOffset(t *testing.T) {
-	var testcases = []struct {
+	testcases := []struct {
 		name         string
 		inAddr       string
 		inOffset     int
@@ -51,7 +52,7 @@ func TestIPAddrWithOffset(t *testing.T) {
 }
 
 func TestIPAddrOffset(t *testing.T) {
-	var testcases = []struct {
+	testcases := []struct {
 		name           string
 		inAddr         string
 		baseAddr       string
@@ -115,7 +116,6 @@ func TestIPAllocator(t *testing.T) {
 		ip, err = alloc.Allocate()
 		require.NotNil(t, err)
 		require.Nil(t, ip)
-
 	})
 
 	t.Run("Release", func(t *testing.T) {

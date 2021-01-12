@@ -60,7 +60,7 @@ type UPF struct {
 	teidGenerator  *idgenerator.IDGenerator
 }
 
-//UPFSelectionParams ... parameters for upf selection
+// UPFSelectionParams ... parameters for upf selection
 type UPFSelectionParams struct {
 	Dnn    string
 	SNssai *SNssai
@@ -77,7 +77,7 @@ type UPFInterfaceInfo struct {
 
 // NewUPFInterfaceInfo parse the InterfaceUpfInfoItem to generate UPFInterfaceInfo
 func NewUPFInterfaceInfo(i *factory.InterfaceUpfInfoItem) *UPFInterfaceInfo {
-	var interfaceInfo = new(UPFInterfaceInfo)
+	interfaceInfo := new(UPFInterfaceInfo)
 
 	interfaceInfo.IPv4EndPointAddresses = make([]net.IP, 0)
 	interfaceInfo.IPv6EndPointAddresses = make([]net.IP, 0)
@@ -103,7 +103,6 @@ func NewUPFInterfaceInfo(i *factory.InterfaceUpfInfoItem) *UPFInterfaceInfo {
 //*** add unit test ***//
 // IP returns the IP of the user plane IP information of the pduSessType
 func (i *UPFInterfaceInfo) IP(pduSessType uint8) (net.IP, error) {
-
 	if pduSessType == nasMessage.PDUSessionTypeIPv4 && len(i.IPv4EndPointAddresses) != 0 {
 		return i.IPv4EndPointAddresses[0], nil
 	}
@@ -150,7 +149,6 @@ func (upfSelectionParams *UPFSelectionParams) String() string {
 // UUID return this UPF UUID (allocate by SMF in this time)
 // Maybe allocate by UPF in future
 func (upf *UPF) UUID() string {
-
 	uuid := upf.uuid.String()
 	return uuid
 }
@@ -197,7 +195,7 @@ func NewUPF(nodeID *pfcpType.NodeID, ifaces []factory.InterfaceUpfInfoItem) (upf
 	upf.N9Interfaces = make([]UPFInterfaceInfo, 0)
 
 	for _, iface := range ifaces {
-		var upIface = NewUPFInterfaceInfo(&iface)
+		upIface := NewUPFInterfaceInfo(&iface)
 
 		switch iface.InterfaceType {
 		case models.UpInterfaceType_N3:
@@ -205,7 +203,6 @@ func NewUPF(nodeID *pfcpType.NodeID, ifaces []factory.InterfaceUpfInfoItem) (upf
 		case models.UpInterfaceType_N9:
 			upf.N9Interfaces = append(upf.N9Interfaces, *upIface)
 		}
-
 	}
 
 	return upf
@@ -232,7 +229,6 @@ func (upf *UPF) GetInterface(interfaceType models.UpInterfaceType, dnn string) *
 }
 
 func (upf *UPF) GenerateTEID() (uint32, error) {
-
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf not associate with smf")
 		return 0, err
@@ -329,7 +325,6 @@ func (upf *UPF) GetUPFID() string {
 	upInfo := GetUserPlaneInformation()
 	upfIP := upf.NodeID.ResolveNodeIdToIp().String()
 	return upInfo.GetUPFIDByIP(upfIP)
-
 }
 
 func (upf *UPF) pdrID() (uint16, error) {
@@ -420,7 +415,6 @@ func (upf *UPF) AddPDR() (*PDR, error) {
 }
 
 func (upf *UPF) AddFAR() (*FAR, error) {
-
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf do not associate with smf")
 		return nil, err
@@ -438,7 +432,6 @@ func (upf *UPF) AddFAR() (*FAR, error) {
 }
 
 func (upf *UPF) AddBAR() (*BAR, error) {
-
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf do not associate with smf")
 		return nil, err
@@ -446,9 +439,8 @@ func (upf *UPF) AddBAR() (*BAR, error) {
 
 	bar := new(BAR)
 	if BARID, err := upf.barID(); err != nil {
-
 	} else {
-		bar.BARID = uint8(BARID)
+		bar.BARID = BARID
 		upf.barPool.Store(bar.BARID, bar)
 	}
 
@@ -456,7 +448,6 @@ func (upf *UPF) AddBAR() (*BAR, error) {
 }
 
 func (upf *UPF) AddQER() (*QER, error) {
-
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("this upf do not associate with smf")
 		return nil, err
@@ -464,9 +455,8 @@ func (upf *UPF) AddQER() (*QER, error) {
 
 	qer := new(QER)
 	if QERID, err := upf.qerID(); err != nil {
-
 	} else {
-		qer.QERID = uint32(QERID)
+		qer.QERID = QERID
 		upf.qerPool.Store(qer.QERID, qer)
 	}
 
@@ -475,7 +465,6 @@ func (upf *UPF) AddQER() (*QER, error) {
 
 //*** add unit test ***//
 func (upf *UPF) RemovePDR(pdr *PDR) (err error) {
-
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err = fmt.Errorf("this upf not associate with smf")
 		return err
@@ -488,7 +477,6 @@ func (upf *UPF) RemovePDR(pdr *PDR) (err error) {
 
 //*** add unit test ***//
 func (upf *UPF) RemoveFAR(far *FAR) (err error) {
-
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err = fmt.Errorf("this upf not associate with smf")
 		return err
@@ -501,7 +489,6 @@ func (upf *UPF) RemoveFAR(far *FAR) (err error) {
 
 //*** add unit test ***//
 func (upf *UPF) RemoveBAR(bar *BAR) (err error) {
-
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err = fmt.Errorf("this upf not associate with smf")
 		return err
@@ -514,7 +501,6 @@ func (upf *UPF) RemoveBAR(bar *BAR) (err error) {
 
 //*** add unit test ***//
 func (upf *UPF) RemoveQER(qer *QER) (err error) {
-
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err = fmt.Errorf("this upf not associate with smf")
 		return err

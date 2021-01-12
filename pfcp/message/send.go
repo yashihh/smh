@@ -182,9 +182,7 @@ func SendPfcpSessionEstablishmentResponse(addr *net.UDPAddr) {
 func SendPfcpSessionModificationRequest(upNodeID pfcpType.NodeID,
 	ctx *context.SMContext,
 	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR, qerList []*context.QER) (seqNum uint32) {
-
 	pfcpMsg, err := BuildPfcpSessionModificationRequest(upNodeID, ctx, pdrList, farList, barList, qerList)
-
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Session Modification Request failed: %v", err)
 		return

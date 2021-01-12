@@ -35,7 +35,6 @@ func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (er
 	ctx.Tunnel.ANInformation.TEID = teid
 
 	for _, dataPath := range ctx.Tunnel.DataPathPool {
-
 		if dataPath.Activated {
 			ANUPF := dataPath.FirstDPNode
 			DLPDR := ANUPF.DownLinkTunnel.PDR
@@ -46,7 +45,6 @@ func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (er
 			dlOuterHeaderCreation.Teid = teid
 			dlOuterHeaderCreation.Ipv4Address = ctx.Tunnel.ANInformation.IPAddress.To4()
 		}
-
 	}
 
 	return nil
@@ -73,7 +71,6 @@ func HandlePathSwitchRequestTransfer(b []byte, ctx *SMContext) error {
 	}
 
 	for _, dataPath := range ctx.Tunnel.DataPathPool {
-
 		if dataPath.Activated {
 			ANUPF := dataPath.FirstDPNode
 			DLPDR := ANUPF.DownLinkTunnel.PDR
@@ -85,7 +82,6 @@ func HandlePathSwitchRequestTransfer(b []byte, ctx *SMContext) error {
 			dlOuterHeaderCreation.Ipv4Address = gtpTunnel.TransportLayerAddress.Value.Bytes
 			DLPDR.FAR.State = RULE_UPDATE
 		}
-
 	}
 
 	return nil
@@ -135,7 +131,6 @@ func HandleHandoverRequestAcknowledgeTransfer(b []byte, ctx *SMContext) (err err
 	}
 
 	for _, dataPath := range ctx.Tunnel.DataPathPool {
-
 		if dataPath.Activated {
 			ANUPF := dataPath.FirstDPNode
 			DLPDR := ANUPF.DownLinkTunnel.PDR

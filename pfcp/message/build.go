@@ -136,7 +136,6 @@ func farToCreateFAR(far *context.FAR) *pfcp.CreateFAR {
 }
 
 func barToCreateBAR(bar *context.BAR) *pfcp.CreateBAR {
-
 	createBAR := new(pfcp.CreateBAR)
 
 	createBAR.BARID = new(pfcpType.BARID)
@@ -144,13 +143,12 @@ func barToCreateBAR(bar *context.BAR) *pfcp.CreateBAR {
 
 	createBAR.DownlinkDataNotificationDelay = new(pfcpType.DownlinkDataNotificationDelay)
 
-	//createBAR.SuggestedBufferingPacketsCount = new(pfcpType.SuggestedBufferingPacketsCount)
+	// createBAR.SuggestedBufferingPacketsCount = new(pfcpType.SuggestedBufferingPacketsCount)
 
 	return createBAR
 }
 
 func qerToCreateQER(qer *context.QER) *pfcp.CreateQER {
-
 	createQER := new(pfcp.CreateQER)
 
 	createQER.QERID = new(pfcpType.QERID)
@@ -285,11 +283,10 @@ func BuildPfcpSessionEstablishmentRequest(
 		bar.State = context.RULE_CREATE
 	}
 
-	// QER maybe redundent, so we needs properly needs
+	// QER maybe redundant, so we needs properly needs
 
-	var qerMap = make(map[uint32]*context.QER)
+	qerMap := make(map[uint32]*context.QER)
 	for _, qer := range qerList {
-
 		qerMap[qer.QERID] = qer
 	}
 	for _, filteredQER := range qerMap {

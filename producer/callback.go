@@ -32,8 +32,8 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	defer smContext.SMLock.Unlock()
 
 	if smContext.SMContextState != smf_context.Active {
-		//Wait till the state becomes Active again
-		//TODO: implement waiting in concurrent architecture
+		// Wait till the state becomes Active again
+		// TODO: implement waiting in concurrent architecture
 		logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
 			smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 	}
@@ -45,7 +45,7 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	httpResponse := http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
 	if err := ApplySmPolicyFromDecision(smContext, decision); err != nil {
 		logger.PduSessLog.Errorf("apply sm policy decision error: %+v", err)
-		//TODO: Fill the error body
+		// TODO: Fill the error body
 		httpResponse.Status = http.StatusBadRequest
 	}
 
@@ -79,7 +79,7 @@ func SendUpPathChgEventExposureNotification(
 		notification.EventNotifs[0].SourceDnai = sourceTR.Dnai
 		notification.EventNotifs[0].TargetDnai = targetTR.Dnai
 	}
-	//TODO: sourceUeIpv4Addr, sourceUeIpv6Prefix, targetUeIpv4Addr, targetUeIpv6Prefix
+	// TODO: sourceUeIpv4Addr, sourceUeIpv6Prefix, targetUeIpv4Addr, targetUeIpv6Prefix
 
 	logger.PduSessLog.Infof("Send UpPathChg Event Exposure Notification [%s] to NEF/AF", chgType)
 	configuration := Nsmf_EventExposure.NewConfiguration()
@@ -98,6 +98,11 @@ func SendUpPathChgEventExposureNotification(
 		logger.PduSessLog.Warnln("SMF Event Exposure Notification Failed[HTTP Response is nil]")
 		return
 	}
+	defer func() {
+		if rspCloseErr := httpResponse.Body.Close(); rspCloseErr != nil {
+			logger.PduSessLog.Errorf("SmfEventExposureNotification response body cannot close: %+v", rspCloseErr)
+		}
+	}()
 	if httpResponse.StatusCode != http.StatusOK && httpResponse.StatusCode != http.StatusNoContent {
 		logger.PduSessLog.Warnf("SMF Event Exposure Notification Failed")
 	} else {
@@ -139,8 +144,8 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 	var err error
 	smContext.SMContextState = smf_context.ModificationPending
 	selectedSessionRule := smContext.SelectedSessionRule()
-	if selectedSessionRule == nil { //No active session rule
-		//Update session rules from decision
+	if selectedSessionRule == nil { // No active session rule
+		// Update session rules from decision
 		for id, sessRuleModel := range decision.SessRules {
 			handleSessionRule(smContext, id, sessRuleModel)
 		}
@@ -151,19 +156,19 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 		}
 	} else {
 		selectedSessionRuleID := selectedSessionRule.SessionRuleID
-		//Update session rules from decision
+		// Update session rules from decision
 		for id, sessRuleModel := range decision.SessRules {
 			handleSessionRule(smContext, id, sessRuleModel)
 		}
 		if _, exist := smContext.SessionRules[selectedSessionRuleID]; !exist {
-			//Original active session rule is deleted; choose again
+			// Original active session rule is deleted; choose again
 			for id := range smContext.SessionRules {
 				// Randomly choose a session rule to activate
 				smf_context.SetSessionRuleActivateState(smContext.SessionRules[id], true)
 				break
 			}
 		} else {
-			//Activate original active session rule
+			// Activate original active session rule
 			smf_context.SetSessionRuleActivateState(smContext.SessionRules[selectedSessionRuleID], true)
 		}
 	}
@@ -224,7 +229,7 @@ func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *model
 
 func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *smf_context.PCCRule,
 	pccRuleID string, tcData *smf_context.TrafficControlData, qos *models.QosData) error {
-	if targetPccRule == nil { //Remove PCC Rule
+	if targetPccRule == nil { // Remove PCC Rule
 		if srcPccRule != nil {
 			if err := applyTrafficRoutingData(smContext, srcPccRule, nil, srcPccRule.RefTrafficControlData(), nil); err != nil {
 				return err
@@ -236,7 +241,7 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 		return nil
 	}
 
-	//Create Data path for targetPccRule
+	// Create Data path for targetPccRule
 	createPccRuleDataPath(smContext, targetPccRule, tcData)
 	addQoSToDataPath(smContext, targetPccRule.Datapath, qos)
 
@@ -249,7 +254,7 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 			}
 		}
 
-		//TODO: support multiple PFDs and FlowDescriptions
+		// TODO: support multiple PFDs and FlowDescriptions
 		if matchedPFD != nil && matchedPFD.Pfds != nil && matchedPFD.Pfds[0].FlowDescriptions != nil {
 			flowDescConfig := matchedPFD.Pfds[0].FlowDescriptions[0]
 			uplinkFlowDescription := getUplinkFlowDescription(flowDescConfig)
@@ -300,40 +305,40 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 		return nil
 	}
 
-	//Set reference to traffic control data
+	// Set reference to traffic control data
 	if applyTcID != "" {
 		srcTcData, exist := smContext.TrafficControlPool[applyTcID]
 		if exist {
-			//TODO: Fix always choosing the first RouteToLocs as srcTraRouting
+			// TODO: Fix always choosing the first RouteToLocs as srcTraRouting
 			srcTraRouting = srcTcData.RouteToLocs[0]
-			//If no targetTcData, the default UpPathChgEvent will be the one in srcTcData
+			// If no targetTcData, the default UpPathChgEvent will be the one in srcTcData
 			upPathChgEvt = srcTcData.UpPathChgEvent
 		} else {
 			if targetTcData == nil {
 				return fmt.Errorf("No this Traffic control data [%s] to remove", applyTcID)
 			}
-			//No srcTcData, get related info from SMContext
+			// No srcTcData, get related info from SMContext
 			srcTraRouting = models.RouteToLocation{
-				Dnai: "", //TODO: Get the source DNAI
+				Dnai: "", // TODO: Get the source DNAI
 				RouteInfo: &models.RouteInformation{
 					Ipv4Addr:   smContext.PDUAddress.String(),
-					PortNumber: 2152, //TODO: Get the port from API
+					PortNumber: 2152, // TODO: Get the port from API
 				},
 			}
 		}
 
 		if targetTcData != nil {
-			//TODO: Fix always choosing the first RouteToLocs as targetTraRouting
+			// TODO: Fix always choosing the first RouteToLocs as targetTraRouting
 			targetTraRouting = targetTcData.RouteToLocs[0]
-			//If targetTcData is available, change UpPathChgEvent to the one in targetTcData
+			// If targetTcData is available, change UpPathChgEvent to the one in targetTcData
 			upPathChgEvt = targetTcData.UpPathChgEvent
 		} else {
-			//No targetTcData in decision, roll back to the original traffic routing
+			// No targetTcData in decision, roll back to the original traffic routing
 			targetTraRouting = models.RouteToLocation{
-				Dnai: "", //TODO: Get the source DNAI
+				Dnai: "", // TODO: Get the source DNAI
 				RouteInfo: &models.RouteInformation{
 					Ipv4Addr:   smContext.PDUAddress.String(),
-					PortNumber: 2152, //TODO: Get the port from API
+					PortNumber: 2152, // TODO: Get the port from API
 				},
 			}
 		}
@@ -342,7 +347,7 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 			trChanged = true
 		}
 		if trChanged {
-			//Send Notification to NEF/AF if UP path change type contains "EARLY"
+			// Send Notification to NEF/AF if UP path change type contains "EARLY"
 			SendUpPathChgEventExposureNotification(upPathChgEvt, "EARLY",
 				&srcTraRouting, &targetTraRouting)
 		}
@@ -361,7 +366,7 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 		}
 
 		if trChanged {
-			//Send Notification to NEF/AF if UP path change type contains "LATE"
+			// Send Notification to NEF/AF if UP path change type contains "LATE"
 			SendUpPathChgEventExposureNotification(upPathChgEvt, "LATE",
 				&srcTraRouting, &targetTraRouting)
 		}
@@ -404,8 +409,8 @@ func applyDataPathWithTrafficControl(smContext *smf_context.SMContext, pccRule *
 			if routeProfExist {
 				curDPNode.UpLinkTunnel.PDR.FAR.ForwardingParameters.ForwardingPolicyID = routeProf.ForwardingPolicyID
 			}
-			//TODO: Support the RouteInfo in targetTraRouting
-			//TODO: Check the message is only presents one of RouteInfo or RouteProfId and sends failure message to the PCF
+			// TODO: Support the RouteInfo in targetTraRouting
+			// TODO: Check the message is only presents one of RouteInfo or RouteProfId and sends failure message to the PCF
 			// } else if routeInfo := targetTraRouting.RouteInfo; routeInfo != nil {
 			// 	locToRouteIP := net.ParseIP(routeInfo.Ipv4Addr)
 			// 	curDPNode.UpLinkTunnel.PDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
@@ -416,7 +421,7 @@ func applyDataPathWithTrafficControl(smContext *smf_context.SMContext, pccRule *
 			// }
 		}
 		// get old TEID
-		//TODO: remove this if RAN tunnel issue is fixed, because the AN tunnel is only one
+		// TODO: remove this if RAN tunnel issue is fixed, because the AN tunnel is only one
 		if curDPNode.IsANUPF() {
 			curDPNode.UpLinkTunnel.PDR.PDI.LocalFTeid.Teid =
 				smContext.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode.GetUpLinkPDR().PDI.LocalFTeid.Teid
