@@ -261,7 +261,7 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 
 	logger.CtxLog.Traceln("PFCP Session Context")
 	for _, ctx := range smContext.PFCPContext {
-		logger.CtxLog.Traceln(ctx.ToString())
+		logger.CtxLog.Traceln(ctx.String())
 	}
 }
 

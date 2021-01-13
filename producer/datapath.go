@@ -53,36 +53,38 @@ func SendPFCPRules(smContext *smf_context.SMContext) {
 	pfcpPool := make(map[string]*PFCPState)
 
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
-		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-			pdrList := make([]*smf_context.PDR, 0, 2)
-			farList := make([]*smf_context.FAR, 0, 2)
-			qerList := make([]*smf_context.QER, 0, 2)
+		if dataPath.Activated {
+			for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+				pdrList := make([]*smf_context.PDR, 0, 2)
+				farList := make([]*smf_context.FAR, 0, 2)
+				qerList := make([]*smf_context.QER, 0, 2)
 
-			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
-				pdrList = append(pdrList, curDataPathNode.UpLinkTunnel.PDR)
-				farList = append(farList, curDataPathNode.UpLinkTunnel.PDR.FAR)
-				if curDataPathNode.UpLinkTunnel.PDR.QER != nil {
-					qerList = append(qerList, curDataPathNode.UpLinkTunnel.PDR.QER...)
+				if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
+					pdrList = append(pdrList, curDataPathNode.UpLinkTunnel.PDR)
+					farList = append(farList, curDataPathNode.UpLinkTunnel.PDR.FAR)
+					if curDataPathNode.UpLinkTunnel.PDR.QER != nil {
+						qerList = append(qerList, curDataPathNode.UpLinkTunnel.PDR.QER...)
+					}
 				}
-			}
-			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
-				pdrList = append(pdrList, curDataPathNode.DownLinkTunnel.PDR)
-				farList = append(farList, curDataPathNode.DownLinkTunnel.PDR.FAR)
-				// skip send QER because uplink and downlink shared one QER
-			}
+				if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
+					pdrList = append(pdrList, curDataPathNode.DownLinkTunnel.PDR)
+					farList = append(farList, curDataPathNode.DownLinkTunnel.PDR.FAR)
+					// skip send QER because uplink and downlink shared one QER
+				}
 
-			pfcpState := pfcpPool[curDataPathNode.GetNodeIP()]
-			if pfcpState == nil {
-				pfcpPool[curDataPathNode.GetNodeIP()] = &PFCPState{
-					nodeID:  curDataPathNode.UPF.NodeID,
-					pdrList: pdrList,
-					farList: farList,
-					qerList: qerList,
+				pfcpState := pfcpPool[curDataPathNode.GetNodeIP()]
+				if pfcpState == nil {
+					pfcpPool[curDataPathNode.GetNodeIP()] = &PFCPState{
+						nodeID:  curDataPathNode.UPF.NodeID,
+						pdrList: pdrList,
+						farList: farList,
+						qerList: qerList,
+					}
+				} else {
+					pfcpState.pdrList = append(pfcpState.pdrList, pdrList...)
+					pfcpState.farList = append(pfcpState.farList, farList...)
+					pfcpState.qerList = append(pfcpState.qerList, qerList...)
 				}
-			} else {
-				pfcpState.pdrList = append(pfcpState.pdrList, pdrList...)
-				pfcpState.farList = append(pfcpState.farList, farList...)
-				pfcpState.qerList = append(pfcpState.qerList, qerList...)
 			}
 		}
 	}
