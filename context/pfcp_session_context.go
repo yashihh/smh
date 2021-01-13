@@ -23,7 +23,6 @@ type PFCPSessionContext struct {
 }
 
 func (pfcpSessionContext *PFCPSessionContext) String() string {
-
 	str := "\n"
 	for pdrID, pdr := range pfcpSessionContext.PDRs {
 		str += fmt.Sprintln("PDR ID: ", pdrID)
