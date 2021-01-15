@@ -12,7 +12,7 @@ import (
 
 const MaxPfcpUdpDataSize = 1024
 
-var Server pfcpUdp.PfcpServer
+var Server *pfcpUdp.PfcpServer
 
 var ServerStartTime time.Time
 
@@ -43,7 +43,7 @@ func Run(Dispatch func(*pfcpUdp.Message)) {
 			msg := pfcpUdp.NewMessage(remoteAddr, &pfcpMessage)
 			go Dispatch(&msg)
 		}
-	}(&Server)
+	}(Server)
 
 	ServerStartTime = time.Now()
 }
