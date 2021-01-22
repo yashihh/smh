@@ -19,6 +19,8 @@ import (
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/context"
 	"bitbucket.org/free5gc-team/smf/factory"
+	"bitbucket.org/free5gc-team/smf/pfcp"
+	"bitbucket.org/free5gc-team/smf/pfcp/udp"
 	"bitbucket.org/free5gc-team/smf/producer"
 )
 
@@ -40,6 +42,15 @@ var userPlaneConfig = factory.UserPlaneInformation{
 					DnnUpfInfoList: []models.DnnUpfInfoItem{
 						{Dnn: "internet"},
 					},
+				},
+			},
+			InterfaceUpfInfoList: []factory.InterfaceUpfInfoItem{
+				{
+					InterfaceType: "N3",
+					Endpoints: []string{
+						"127.0.0.8",
+					},
+					NetworkInstance: "internet",
 				},
 			},
 		},
@@ -97,7 +108,6 @@ var testConfig = factory.Config{
 
 func init() {
 	context.InitSmfContext(&testConfig)
-	openapi.InterceptH2CClient()
 }
 
 func initDiscUDMStubNRF() {
@@ -170,7 +180,7 @@ func initDiscPCFStubNRF() {
 					"127.0.0.7",
 				},
 				PcfInfo: &models.PcfInfo{
-					DnnList: []string {
+					DnnList: []string{
 						"free5gc",
 						"internet",
 					},
@@ -216,8 +226,8 @@ func initGetSMDataStubUDM() {
 		{
 			SingleNssai: &models.Snssai{
 				Sst: 1,
-				Sd: "010203",
-			}, 
+				Sd:  "010203",
+			},
 			DnnConfigurations: map[string]models.DnnConfiguration{
 				"internet": models.DnnConfiguration{
 					PduSessionTypes: &models.PduSessionTypes{
@@ -242,7 +252,7 @@ func initGetSMDataStubUDM() {
 						PriorityLevel: 8,
 					},
 					SessionAmbr: &models.Ambr{
-						Uplink: "1000 Kbps", 
+						Uplink:   "1000 Kbps",
 						Downlink: "1000 Kbps",
 					},
 				},
@@ -259,7 +269,103 @@ func initGetSMDataStubUDM() {
 		JSON(SMSubscriptionData)
 }
 
+func initSMPoliciesPostStubPCF() {
+	smPolicyDecision := models.SmPolicyDecision{
+		SessRules: map[string]*models.SessionRule{
+			"SessRuleId-10": &models.SessionRule{
+				AuthSessAmbr: &models.Ambr{
+					Uplink:   "1000 Kbps",
+					Downlink: "1000 Kbps",
+				},
+				AuthDefQos: &models.AuthorizedDefaultQos{
+					Var5qi: 9,
+					Arp: &models.Arp{
+						PriorityLevel: 8,
+					},
+					PriorityLevel: 8,
+				},
+				SessRuleId: "SessRuleId-10",
+			},
+		},
+		PolicyCtrlReqTriggers: []models.PolicyControlRequestTrigger{
+			"PLMN_CH", "RES_MO_RE", "AC_TY_CH", "UE_IP_CH", "PS_DA_OFF",
+			"DEF_QOS_CH", "SE_AMBR_CH", "QOS_NOTIF", "RAT_TY_CH",
+		},
+		SuppFeat: "000f",
+	}
+
+	// intercept URI: http://127.0.0.7:8000/npcf-smpolicycontrol/v1/sm-policies
+
+	gock.New("http://127.0.0.7:8000/npcf-smpolicycontrol/v1").
+		Post("/sm-policies").
+		Reply(http.StatusCreated).
+		JSON(smPolicyDecision)
+}
+
+func initDiscAMFStubNRF() {
+	searchResult := &models.SearchResult{
+		ValidityPeriod: 100,
+		NfInstances: []models.NfProfile{
+			{
+				NfInstanceId: "smf-unit-testing",
+				NfType:       "AMF",
+				NfStatus:     "REGISTERED",
+				PlmnList: &[]models.PlmnId{
+					{
+						Mcc: "208",
+						Mnc: "93",
+					},
+				},
+				Ipv4Addresses: []string{
+					"127.0.0.18",
+				},
+				AmfInfo: &models.AmfInfo{
+					AmfSetId:    "3f8",
+					AmfRegionId: "ca",
+				},
+				NfServices: &[]models.NfService{
+					{
+						ServiceInstanceId: "0",
+						ServiceName:       "namf-comm",
+						Versions: &[]models.NfServiceVersion{
+							{
+								ApiVersionInUri: "v1",
+								ApiFullVersion:  "1.0.0",
+							},
+						},
+						Scheme:          "http",
+						NfServiceStatus: "REGISTERED",
+						IpEndPoints: &[]models.IpEndPoint{
+							{
+								Ipv4Address: "127.0.0.18",
+								Transport:   "TCP",
+								Port:        8000,
+							},
+						},
+						ApiPrefix: "http://127.0.0.18:8000",
+					},
+				},
+			},
+		},
+	}
+
+	// intercept uri: http://127.0.0.10:8000/nnrf-disc/v1/nf-instances?requester-nf-type=SMF&target-nf-instance-id=9d79ae20-f6f6-4020-828b-359757c33070&target-nf-type=AMF
+	gock.New("http://127.0.0.10:8000/nnrf-disc/v1").
+		Get("/nf-instances").
+		MatchParam("target-nf-type", "AMF").
+		MatchParam("requester-nf-type", "SMF").
+		Reply(http.StatusOK).
+		JSON(searchResult)
+}
+
+func initStubPFCP() {
+	udp.Run(pfcp.Dispatch)
+}
+
 func TestHandlePDUSessionSMContextCreate(t *testing.T) {
+	//Activate Gock
+	openapi.InterceptH2CClient()
+	defer openapi.RestoreH2CClient()
 	//Prepare GSM Message
 	GSMMsg := nasMessage.NewPDUSessionEstablishmentRequest(0)
 	//Set GSM Message
@@ -285,6 +391,16 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 	initDiscUDMStubNRF()
 	initGetSMDataStubUDM()
 	initDiscPCFStubNRF()
+	initSMPoliciesPostStubPCF()
+	initDiscAMFStubNRF()
+	initStubPFCP()
+
+	//modify associate setup status
+	allUPFs := context.SMF_Self().UserPlaneInformation.UPFs
+	for _, upfNode := range allUPFs {
+		upfNode.UPF.UPFStatus = context.AssociatedSetUpSuccess
+	}
+
 	testCases := []struct {
 		request              models.PostSmContextsRequest
 		paramStr             string
@@ -327,25 +443,30 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 						AmfId: "cafe00",
 					},
 					AnType: "3GPP_ACCESS",
+					ServingNetwork: &models.PlmnId{
+						Mcc: "208",
+						Mnc: "93",
+					},
 				},
 				BinaryDataN1SmMessage: GSMMsgBytes,
 			},
-			paramStr:  "input wrong GSM Message type\n",
-			resultStr: "PDUSessionSMContextCreate should fail due to wrong GSM type\n",
+			paramStr:  "input correct PostSmContexts Request\n",
+			resultStr: "PDUSessionSMContextCreate should pass\n",
 			expectedHTTPResponse: &http_wrapper.Response{
 				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error: &Nsmf_PDUSession.N1SmError,
+				Status: http.StatusCreated,
+				Body: models.PostSmContextsResponse{
+					JsonData: &models.SmContextCreatedData{
+						SNssai: &models.Snssai{
+							Sst: 1,
+							Sd:  "112232",
+						},
 					},
 				},
 			},
 		},
 	}
 
-	//Find UDM
-	//
 	Convey("Procdure Test: Handle PDUSession SMContext Create", t, func() {
 		for i, testcase := range testCases {
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
@@ -353,13 +474,13 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 			Convey(infoStr, func() {
 				Convey(testcase.paramStr, func() {
 					httpResp := producer.HandlePDUSessionSMContextCreate(testcase.request)
-
+					fmt.Printf("http Response Body %+v", httpResp.Body)
 					Convey(testcase.resultStr, func() {
-						So(true, ShouldEqual, reflect.DeepEqual(httpResp, testcase.expectedHTTPResponse))
+						So(true, ShouldEqual, reflect.DeepEqual(httpResp.Status, testcase.expectedHTTPResponse.Status))
+						So(true, ShouldEqual, reflect.DeepEqual(httpResp.Body, testcase.expectedHTTPResponse.Body))
 					})
 				})
 			})
 		}
 	})
 }
-
