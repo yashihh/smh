@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -24,7 +25,8 @@ var (
 	GinLog      *logrus.Entry
 )
 
-func init() {
+func SetLogInfo(logDir string, logName string) {
+	logger_conf.InitLoggerConf(logDir, logName)
 	log = logrus.New()
 	log.SetReportCaller(false)
 
@@ -36,9 +38,17 @@ func init() {
 		FieldsOrder:     []string{"component", "category"},
 	}
 
+	if err := logger_util.ReFileName(logger_conf.Free5gcLogFile); err != nil {
+		fmt.Fprintf(os.Stderr, "Rename error: %v\n", err)
+	}
+
 	free5gcLogHook, err := logger_util.NewFileHook(logger_conf.Free5gcLogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
 	if err == nil {
 		log.Hooks.Add(free5gcLogHook)
+	}
+
+	if err := logger_util.ReFileName(logger_conf.NfLogDir + "smf.log"); err != nil {
+		fmt.Fprintf(os.Stderr, "Rename error: %v\n", err)
 	}
 
 	selfLogHook, err := logger_util.NewFileHook(logger_conf.NfLogDir+"smf.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)

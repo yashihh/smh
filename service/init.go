@@ -42,6 +42,8 @@ type (
 	Config struct {
 		smfcfg    string
 		uerouting string
+		logpath   string
+		logname   string
 	}
 )
 
@@ -60,13 +62,17 @@ var smfCLi = []cli.Flag{
 		Name:  "uerouting",
 		Usage: "config file",
 	},
+	cli.StringFlag{
+		Name:  "logpath",
+		Usage: "log path",
+	},
+	cli.StringFlag{
+		Name:  "logname",
+		Usage: "merged log file name",
+	},
 }
 
 var initLog *logrus.Entry
-
-func init() {
-	initLog = logger.InitLog
-}
 
 func (*SMF) GetCliCmd() (flags []cli.Flag) {
 	return smfCLi
@@ -76,7 +82,12 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 	config = Config{
 		smfcfg:    c.String("smfcfg"),
 		uerouting: c.String("uerouting"),
+		logpath:   c.String("logpath"),
+		logname:   c.String("logname"),
 	}
+
+	smf.setLogInformation()
+	initLog = logger.InitLog
 
 	if config.smfcfg != "" {
 		if err := factory.InitConfigFactory(config.smfcfg); err != nil {
@@ -107,6 +118,16 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func (smf *SMF) setLogInformation() {
+	logger.SetLogInfo(config.logpath, config.logname)
+	aperLogger.SetLogInfo(config.logpath, config.logname)
+	ngapLogger.SetLogInfo(config.logpath, config.logname)
+	nasLogger.SetLogInfo(config.logpath, config.logname)
+	openApiLogger.SetLogInfo(config.logpath, config.logname)
+	pfcpLogger.SetLogInfo(config.logpath, config.logname)
+	pathUtilLogger.SetLogInfo(config.logpath, config.logname)
 }
 
 func (smf *SMF) setLogLevel() {

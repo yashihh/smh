@@ -25,21 +25,14 @@ var SMF = &service.SMF{}
 
 var appLog *logrus.Entry
 
-func init() {
-	appLog = logger.AppLog
-}
-
 func main() {
 	app := cli.NewApp()
 	app.Name = "smf"
-	fmt.Print(app.Name, "\n")
-	appLog.Infoln("SMF version: ", version.GetVersion())
-	app.Usage = "-free5gccfg common configuration file -smfcfg smf configuration file"
+	app.Usage = "-free5gccfg common configuration file -smfcfg smf configuration file -logpath log path -logname merged log file name"
 	app.Action = action
 	app.Flags = SMF.GetCliCmd()
-
 	if err := app.Run(os.Args); err != nil {
-		appLog.Errorf("SMF Run error: %v", err)
+		fmt.Printf("SMF Run error: %v\n", err)
 	}
 }
 
@@ -48,6 +41,10 @@ func action(c *cli.Context) error {
 		logger.CfgLog.Errorf("%+v", err)
 		return fmt.Errorf("Failed to initialize !!")
 	}
+
+	appLog = logger.AppLog
+	appLog.Infoln(c.App.Name)
+	appLog.Infoln("SMF version: ", version.GetVersion())
 
 	SMF.Start()
 
