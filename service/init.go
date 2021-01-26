@@ -102,11 +102,19 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 		}
 	}
 
-	smf.setLogLevel()
-
 	if err := factory.CheckConfigVersion(); err != nil {
 		return err
 	}
+
+	if _, err := factory.SmfConfig.Validate(); err != nil {
+		return err
+	}
+
+	if _, err := factory.UERoutingConfig.Validate(); err != nil {
+		return err
+	}
+
+	smf.setLogLevel()
 
 	return nil
 }

@@ -5,7 +5,12 @@
 package factory
 
 import (
+	"errors"
+	"fmt"
+	"strconv"
 	"time"
+
+	"github.com/asaskevich/govalidator"
 
 	"bitbucket.org/free5gc-team/logger_util"
 	"bitbucket.org/free5gc-team/openapi/models"
@@ -14,81 +19,242 @@ import (
 const (
 	SMF_EXPECTED_CONFIG_VERSION        = "1.0.0"
 	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.0"
+	SMF_DEFAULT_IPV4                   = "127.0.0.2"
+	SMF_DEFAULT_PORT                   = "8000"
+	SMF_DEFAULT_PORT_INT               = 8000
 )
 
 type Config struct {
-	Info          *Info               `yaml:"info"`
-	Configuration *Configuration      `yaml:"configuration"`
-	Logger        *logger_util.Logger `yaml:"logger"`
+	Info          *Info               `yaml:"info" valid:"required"`
+	Configuration *Configuration      `yaml:"configuration" valid:"required"`
+	Logger        *logger_util.Logger `yaml:"logger" valid:"optional"`
+}
+
+func (c *Config) Validate() (bool, error) {
+	if info := c.Info; info != nil {
+		if result, err := info.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	if configuration := c.Configuration; configuration != nil {
+		if result, err := configuration.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	if logger := c.Logger; logger != nil {
+		if result, err := logger.Validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(c)
+	return result, appendInvalid(err)
 }
 
 type Info struct {
-	Version     string `yaml:"version,omitempty"`
-	Description string `yaml:"description,omitempty"`
+	Version     string `yaml:"version,omitempty" valid:"type(string)"`
+	Description string `yaml:"description,omitempty" valid:"type(string)"`
 }
 
-const (
-	SMF_DEFAULT_IPV4     = "127.0.0.2"
-	SMF_DEFAULT_PORT     = "8000"
-	SMF_DEFAULT_PORT_INT = 8000
-)
+func (i *Info) validate() (bool, error) {
+	result, err := govalidator.ValidateStruct(i)
+	return result, appendInvalid(err)
+}
 
 type Configuration struct {
-	SmfName              string               `yaml:"smfName,omitempty"`
-	Sbi                  *Sbi                 `yaml:"sbi,omitempty"`
-	PFCP                 *PFCP                `yaml:"pfcp,omitempty"`
-	NrfUri               string               `yaml:"nrfUri,omitempty"`
-	UserPlaneInformation UserPlaneInformation `yaml:"userplane_information"`
-	ServiceNameList      []string             `yaml:"serviceNameList,omitempty"`
-	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty"`
-	ULCL                 bool                 `yaml:"ulcl,omitempty"`
+	SmfName              string               `yaml:"smfName,omitempty" valid:"type(string),required"`
+	Sbi                  *Sbi                 `yaml:"sbi,omitempty" valid:"required"`
+	PFCP                 *PFCP                `yaml:"pfcp,omitempty" valid:"required"`
+	NrfUri               string               `yaml:"nrfUri,omitempty" valid:"url,required"`
+	UserPlaneInformation UserPlaneInformation `yaml:"userplane_information" valid:"required"`
+	ServiceNameList      []string             `yaml:"serviceNameList,omitempty" valid:"required"`
+	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty" valid:"required"`
+	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
+}
+
+func (c *Configuration) validate() (bool, error) {
+	if sbi := c.Sbi; sbi != nil {
+		if result, err := sbi.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	if pfcp := c.PFCP; pfcp != nil {
+		if result, err := pfcp.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	if userPlaneInformation := &c.UserPlaneInformation; userPlaneInformation != nil {
+		if result, err := userPlaneInformation.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	for index, serviceName := range c.ServiceNameList {
+		switch {
+		case serviceName == "nsmf-pdusession":
+		case serviceName == "nsmf-event-exposure":
+		case serviceName == "nsmf-oam":
+		default:
+			err := errors.New("Invalid serviceNameList[" + strconv.Itoa(index) + "]: " +
+				serviceName + ", should be nsmf-pdusession, nsmf-event-exposure or nsmf-oam.")
+			return false, err
+		}
+	}
+
+	for _, snssaiInfo := range c.SNssaiInfo {
+		if result, err := snssaiInfo.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(c)
+	return result, appendInvalid(err)
 }
 
 type SnssaiInfoItem struct {
-	SNssai   *models.Snssai      `yaml:"sNssai"`
-	DnnInfos []SnssaiDnnInfoItem `yaml:"dnnInfos"`
+	SNssai   *models.Snssai      `yaml:"sNssai" valid:"required"`
+	DnnInfos []SnssaiDnnInfoItem `yaml:"dnnInfos" valid:"required"`
+}
+
+func (s *SnssaiInfoItem) validate() (bool, error) {
+	if snssai := s.SNssai; snssai != nil {
+		if result := (snssai.Sst >= 0 && snssai.Sst <= 255); !result {
+			err := errors.New("Invalid sNssai.Sst: " + strconv.Itoa(int(snssai.Sst)) + ", should be in range 0~255.")
+			return false, err
+		}
+
+		if result := govalidator.StringMatches(snssai.Sd, "^[0-9A-Fa-f]{6}$"); !result {
+			err := errors.New("Invalid sNssai.Sd: " + snssai.Sd +
+				", should be 3 bytes hex string and in range 000000~FFFFFF.")
+			return false, err
+		}
+	}
+
+	for _, dnnInfo := range s.DnnInfos {
+		if result, err := dnnInfo.validate(); err != nil {
+			return result, err
+		}
+	}
+	result, err := govalidator.ValidateStruct(s)
+	return result, appendInvalid(err)
 }
 
 type SnssaiDnnInfoItem struct {
-	Dnn      string `yaml:"dnn"`
-	DNS      DNS    `yaml:"dns"`
-	UESubnet string `yaml:"ueSubnet"`
+	Dnn      string `yaml:"dnn" valid:"type(string),minstringlength(1),required"`
+	DNS      DNS    `yaml:"dns" valid:"required"`
+	UESubnet string `yaml:"ueSubnet" valid:"ueSubnet,required"`
+}
+
+func (s *SnssaiDnnInfoItem) validate() (bool, error) {
+	govalidator.TagMap["ueSubnet"] = govalidator.Validator(func(str string) bool {
+		return govalidator.IsCIDR(str)
+	})
+
+	if dns := &s.DNS; dns != nil {
+		if result, err := dns.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(s)
+	return result, appendInvalid(err)
 }
 
 type Sbi struct {
-	Scheme       string `yaml:"scheme"`
-	TLS          *TLS   `yaml:"tls"`
-	RegisterIPv4 string `yaml:"registerIPv4,omitempty"` // IP that is registered at NRF.
+	Scheme       string `yaml:"scheme" valid:"scheme,required"`
+	TLS          *TLS   `yaml:"tls" valid:"optional"`
+	RegisterIPv4 string `yaml:"registerIPv4,omitempty" valid:"ipv4,optional"` // IP that is registered at NRF.
 	// IPv6Addr string `yaml:"ipv6Addr,omitempty"`
-	BindingIPv4 string `yaml:"bindingIPv4,omitempty"` // IP used to run the server in the node.
-	Port        int    `yaml:"port,omitempty"`
+	BindingIPv4 string `yaml:"bindingIPv4,omitempty" valid:"ipv4,required"` // IP used to run the server in the node.
+	Port        int    `yaml:"port,omitempty" valid:"port,optional"`
+}
+
+func (s *Sbi) validate() (bool, error) {
+	govalidator.TagMap["scheme"] = govalidator.Validator(func(str string) bool {
+		return str == "https" || str == "http"
+	})
+
+	if tls := s.TLS; tls != nil {
+		if result, err := tls.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(s)
+	return result, appendInvalid(err)
 }
 
 type TLS struct {
-	PEM string `yaml:"pem,omitempty"`
-	Key string `yaml:"key,omitempty"`
+	PEM string `yaml:"pem,omitempty" valid:"type(string),minstringlength(1),required"`
+	Key string `yaml:"key,omitempty" valid:"type(string),minstringlength(1),required"`
+}
+
+func (t *TLS) validate() (bool, error) {
+	result, err := govalidator.ValidateStruct(t)
+	return result, appendInvalid(err)
 }
 
 type PFCP struct {
-	Addr string `yaml:"addr,omitempty"`
-	Port uint16 `yaml:"port,omitempty"`
+	Addr string `yaml:"addr,omitempty" valid:"ipv4,optional"`
+	Port uint16 `yaml:"port,omitempty" valid:"port,optional"`
+}
+
+func (p *PFCP) validate() (bool, error) {
+	result, err := govalidator.ValidateStruct(p)
+	return result, appendInvalid(err)
 }
 
 type DNS struct {
-	IPv4Addr string `yaml:"ipv4,omitempty"`
-	IPv6Addr string `yaml:"ipv6,omitempty"`
+	IPv4Addr string `yaml:"ipv4,omitempty" valid:"ipv4,required"`
+	IPv6Addr string `yaml:"ipv6,omitempty" valid:"ipv6,required"`
+}
+
+func (d *DNS) validate() (bool, error) {
+	result, err := govalidator.ValidateStruct(d)
+	return result, appendInvalid(err)
 }
 
 type Path struct {
-	DestinationIP   string   `yaml:"DestinationIP,omitempty"`
-	DestinationPort string   `yaml:"DestinationPort,omitempty"`
-	UPF             []string `yaml:"UPF,omitempty"`
+	DestinationIP   string   `yaml:"DestinationIP,omitempty" valid:"ipv4,required"`
+	DestinationPort string   `yaml:"DestinationPort,omitempty" valid:"port,optional"`
+	UPF             []string `yaml:"UPF,omitempty" valid:"required"`
+}
+
+func (p *Path) validate() (bool, error) {
+	for _, upf := range p.UPF {
+		if result := len(upf) > 0; !result {
+			err := errors.New("Invalid UPF: " + upf + ", should not be empty")
+			return false, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(p)
+	return result, appendInvalid(err)
 }
 
 type UERoutingInfo struct {
-	SUPI     string `yaml:"SUPI,omitempty"`
-	AN       string `yaml:"AN,omitempty"`
-	PathList []Path `yaml:"PathList,omitempty"`
+	SUPI     string `yaml:"SUPI,omitempty" valid:"supi,required"`
+	AN       string `yaml:"AN,omitempty" valid:"ipv4,required"`
+	PathList []Path `yaml:"PathList,omitempty" valid:"required"`
+}
+
+func (u *UERoutingInfo) validate() (bool, error) {
+	govalidator.TagMap["supi"] = govalidator.Validator(func(str string) bool {
+		return govalidator.StringMatches(str, "imsi-[0-9]{13}$")
+	})
+
+	for _, path := range u.PathList {
+		if result, err := path.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(u)
+	return result, appendInvalid(err)
 }
 
 // RouteProfID is string providing a Route Profile identifier.
@@ -97,66 +263,228 @@ type RouteProfID string
 // RouteProfile maintains the mapping between RouteProfileID and ForwardingPolicyID of UPF
 type RouteProfile struct {
 	// Forwarding Policy ID of the route profile
-	ForwardingPolicyID string `yaml:"forwardingPolicyID,omitempty"`
+	ForwardingPolicyID string `yaml:"forwardingPolicyID,omitempty" valid:"type(string),stringlength(1|255),required"`
+}
+
+func (r *RouteProfile) validate() (bool, error) {
+	result, err := govalidator.ValidateStruct(r)
+	return result, appendInvalid(err)
 }
 
 // PfdContent represents the flow of the application
 type PfdContent struct {
 	// Identifies a PFD of an application identifier.
-	PfdID string `yaml:"pfdID,omitempty"`
+	PfdID string `yaml:"pfdID,omitempty" valid:"type(string),minstringlength(1),required"`
 	// Represents a 3-tuple with protocol, server ip and server port for
 	// UL/DL application traffic.
-	FlowDescriptions []string `yaml:"flowDescriptions,omitempty"`
+	FlowDescriptions []string `yaml:"flowDescriptions,omitempty" valid:"optional"`
 	// Indicates a URL or a regular expression which is used to match the
 	// significant parts of the URL.
-	Urls []string `yaml:"urls,omitempty"`
+	Urls []string `yaml:"urls,omitempty" valid:"optional"`
 	// Indicates an FQDN or a regular expression as a domain name matching
 	// criteria.
-	DomainNames []string `yaml:"domainNames,omitempty"`
+	DomainNames []string `yaml:"domainNames,omitempty" valid:"optional"`
+}
+
+func (p *PfdContent) validate() (bool, error) {
+	for _, flowDescription := range p.FlowDescriptions {
+		if result := len(flowDescription) > 0; !result {
+			err := errors.New("Invalid FlowDescription: " + flowDescription + ", should not be empty.")
+			return false, err
+		}
+	}
+
+	for _, url := range p.Urls {
+		if result := govalidator.IsURL(url); !result {
+			err := errors.New("Invalid Url: " + url + ", should be url.")
+			return false, err
+		}
+	}
+
+	for _, domainName := range p.DomainNames {
+		if result := govalidator.IsDNSName(domainName); !result {
+			err := errors.New("Invalid DomainName: " + domainName + ", should be domainName.")
+			return false, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(p)
+	return result, appendInvalid(err)
 }
 
 // PfdDataForApp represents the PFDs for an application identifier
 type PfdDataForApp struct {
 	// Identifier of an application.
-	AppID string `yaml:"applicationId"`
+	AppID string `yaml:"applicationId" valid:"type(string),minstringlength(1),required"`
 	// PFDs for the application identifier.
-	Pfds []PfdContent `yaml:"pfds"`
+	Pfds []PfdContent `yaml:"pfds" valid:"required"`
 	// Caching time for an application identifier.
-	CachingTime *time.Time `yaml:"cachingTime,omitempty"`
+	CachingTime *time.Time `yaml:"cachingTime,omitempty" valid:"optional"`
+}
+
+func (p *PfdDataForApp) validate() (bool, error) {
+	for _, pfd := range p.Pfds {
+		if result, err := pfd.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(p)
+	return result, appendInvalid(err)
 }
 
 type RoutingConfig struct {
-	Info          *Info                        `yaml:"info"`
-	UERoutingInfo []*UERoutingInfo             `yaml:"ueRoutingInfo"`
-	RouteProf     map[RouteProfID]RouteProfile `yaml:"routeProfile,omitempty"`
-	PfdDatas      []*PfdDataForApp             `yaml:"pfdDataForApp,omitempty"`
+	Info          *Info                        `yaml:"info" valid:"required"`
+	UERoutingInfo []*UERoutingInfo             `yaml:"ueRoutingInfo" valid:"required"`
+	RouteProf     map[RouteProfID]RouteProfile `yaml:"routeProfile,omitempty" valid:"optional"`
+	PfdDatas      []*PfdDataForApp             `yaml:"pfdDataForApp,omitempty" valid:"optional"`
+}
+
+func (r *RoutingConfig) Validate() (bool, error) {
+	if info := r.Info; info != nil {
+		if result, err := info.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	for _, ueRoutingInfo := range r.UERoutingInfo {
+		if result, err := ueRoutingInfo.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	for _, routeProf := range r.RouteProf {
+		if result, err := routeProf.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	for _, pfdData := range r.PfdDatas {
+		if result, err := pfdData.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(r)
+	return result, appendInvalid(err)
 }
 
 // UserPlaneInformation describe core network userplane information
 type UserPlaneInformation struct {
-	UPNodes map[string]UPNode `yaml:"up_nodes"`
-	Links   []UPLink          `yaml:"links"`
+	UPNodes map[string]UPNode `yaml:"up_nodes" valid:"required"`
+	Links   []UPLink          `yaml:"links" valid:"required"`
+}
+
+func (u *UserPlaneInformation) validate() (bool, error) {
+	for _, upNode := range u.UPNodes {
+		if result, err := upNode.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	for _, link := range u.Links {
+		if result, err := link.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(u)
+	return result, appendInvalid(err)
 }
 
 // UPNode represent the user plane node
 type UPNode struct {
-	Type                 string                     `yaml:"type"`
-	NodeID               string                     `yaml:"node_id"`
-	ANIP                 string                     `yaml:"an_ip"`
-	Dnn                  string                     `yaml:"dnn"`
-	SNssaiInfos          []models.SnssaiUpfInfoItem `yaml:"sNssaiUpfInfos,omitempty"`
-	InterfaceUpfInfoList []InterfaceUpfInfoItem     `yaml:"interfaces,omitempty"`
+	Type                 string                     `yaml:"type" valid:"upNodeType,required"`
+	NodeID               string                     `yaml:"node_id" valid:"url,optional"`
+	ANIP                 string                     `yaml:"an_ip" valid:"url,optional"`
+	Dnn                  string                     `yaml:"dnn" valid:"type(string),minstringlength(1),optional"`
+	SNssaiInfos          []models.SnssaiUpfInfoItem `yaml:"sNssaiUpfInfos,omitempty" valid:"optional"`
+	InterfaceUpfInfoList []InterfaceUpfInfoItem     `yaml:"interfaces,omitempty" valid:"optional"`
+}
+
+func (u *UPNode) validate() (bool, error) {
+	govalidator.TagMap["upNodeType"] = govalidator.Validator(func(str string) bool {
+		return str == "AN" || str == "UPF"
+	})
+
+	for _, snssaiInfo := range u.SNssaiInfos {
+		if snssai := snssaiInfo.SNssai; snssai != nil {
+			if result := (snssai.Sst >= 0 && snssai.Sst <= 255); !result {
+				err := errors.New("Invalid sNssai.Sst: " + strconv.Itoa(int(snssai.Sst)) + ", should be in range 0~255.")
+				return false, err
+			}
+
+			if result := govalidator.StringMatches(snssai.Sd, "^[0-9A-Fa-f]{6}$"); !result {
+				err := errors.New("Invalid sNssai.Sd: " + snssai.Sd +
+					", should be 3 bytes hex string and in range 000000~FFFFFF.")
+				return false, err
+			}
+		}
+
+		for _, dnnInfo := range snssaiInfo.DnnUpfInfoList {
+			if result := len(dnnInfo.Dnn) > 0; !result {
+				err := errors.New("Invalid dnnUpfInfoList.dnn: " + dnnInfo.Dnn + ", should not be empty.")
+				return false, err
+			}
+		}
+	}
+
+	for _, interfaceUpfInfo := range u.InterfaceUpfInfoList {
+		if result, err := interfaceUpfInfo.validate(); err != nil {
+			return result, err
+		}
+	}
+	result, err := govalidator.ValidateStruct(u)
+	return result, appendInvalid(err)
 }
 
 type InterfaceUpfInfoItem struct {
-	InterfaceType   models.UpInterfaceType `yaml:"interfaceType"`
-	Endpoints       []string               `yaml:"endpoints"`
-	NetworkInstance string                 `yaml:"networkInstance"`
+	InterfaceType   models.UpInterfaceType `yaml:"interfaceType" valid:"required"`
+	Endpoints       []string               `yaml:"endpoints" valid:"required"`
+	NetworkInstance string                 `yaml:"networkInstance" valid:"type(string),minstringlength(1),required"`
+}
+
+func (i *InterfaceUpfInfoItem) validate() (bool, error) {
+	interfaceType := i.InterfaceType
+	if result := (interfaceType == "N3" || interfaceType == "N9"); !result {
+		err := errors.New("Invalid interfaceType: " + string(interfaceType) + ", should be N3 or N9.")
+		return false, err
+	}
+
+	for _, endpoint := range i.Endpoints {
+		if result := govalidator.IsIPv4(endpoint); !result {
+			err := errors.New("Invalid endpoint:" + endpoint + ", should be IPv4.")
+			return false, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(i)
+	return result, appendInvalid(err)
 }
 
 type UPLink struct {
-	A string `yaml:"A"`
-	B string `yaml:"B"`
+	A string `yaml:"A" valid:"required"`
+	B string `yaml:"B" valid:"required"`
+}
+
+func (u *UPLink) validate() (bool, error) {
+	result, err := govalidator.ValidateStruct(u)
+	return result, appendInvalid(err)
+}
+
+func appendInvalid(err error) error {
+	var errs govalidator.Errors
+
+	if err == nil {
+		return nil
+	}
+
+	es := err.(govalidator.Errors).Errors()
+	for _, e := range es {
+		errs = append(errs, fmt.Errorf("Invalid %w", e))
+	}
+
+	return error(errs)
 }
 
 func (c *Config) GetVersion() string {

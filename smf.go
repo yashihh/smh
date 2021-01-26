@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/urfave/cli"
 
 	"bitbucket.org/free5gc-team/smf/logger"
@@ -40,7 +41,16 @@ func action(c *cli.Context) error {
 	}
 
 	if err := SMF.Initialize(c); err != nil {
-		logger.CfgLog.Errorf("%+v", err)
+		switch errType := err.(type) {
+		case govalidator.Errors:
+			validErrs := err.(govalidator.Errors).Errors()
+			for _, validErr := range validErrs {
+				logger.CfgLog.Errorf("%+v", validErr)
+			}
+		default:
+			logger.CfgLog.Errorf("%+v", errType)
+		}
+		logger.CfgLog.Errorf("[-- PLEASE REFER TO SAMPLE CONFIG FILE COMMENTS --]")
 		return fmt.Errorf("Failed to initialize !!")
 	}
 
