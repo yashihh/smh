@@ -38,59 +38,55 @@ import (
 type SMF struct{}
 
 type (
-	// Config information.
-	Config struct {
-		smfcfg    string
+	// Commands information.
+	Commands struct {
+		config    string
+		log       string
+		log5gc    string
 		uerouting string
-		logpath   string
-		logname   string
 	}
 )
 
-var config Config
+var commands Commands
 
-var smfCLi = []cli.Flag{
+var cLiCmd = []cli.Flag{
 	cli.StringFlag{
-		Name:  "free5gccfg",
-		Usage: "common config file",
+		Name:  "config, c",
+		Usage: "Load configuration from `FILE`",
 	},
 	cli.StringFlag{
-		Name:  "smfcfg",
-		Usage: "config file",
+		Name:  "log, l",
+		Usage: "Output NF log to `FILE`",
 	},
 	cli.StringFlag{
-		Name:  "uerouting",
-		Usage: "config file",
+		Name:  "log5gc, lc",
+		Usage: "Output free5gc log to `FILE`",
 	},
 	cli.StringFlag{
-		Name:  "logpath",
-		Usage: "log path",
-	},
-	cli.StringFlag{
-		Name:  "logname",
-		Usage: "merged log file name",
+		Name:  "uerouting, u",
+		Usage: "Load UE routing configuration from `FILE`",
 	},
 }
 
 var initLog *logrus.Entry
 
 func (*SMF) GetCliCmd() (flags []cli.Flag) {
-	return smfCLi
+	return cLiCmd
 }
 
 func (smf *SMF) Initialize(c *cli.Context) error {
-	config = Config{
-		smfcfg:    c.String("smfcfg"),
+	commands = Commands{
+		config:    c.String("config"),
+		log:       c.String("log"),
+		log5gc:    c.String("log5gc"),
 		uerouting: c.String("uerouting"),
-		logpath:   c.String("logpath"),
-		logname:   c.String("logname"),
 	}
 
-	smf.setLogInformation()
+	smf.initLogger()
 	initLog = logger.InitLog
 
-	if config.smfcfg != "" {
-		if err := factory.InitConfigFactory(config.smfcfg); err != nil {
+	if commands.config != "" {
+		if err := factory.InitConfigFactory(commands.config); err != nil {
 			return err
 		}
 	} else {
@@ -100,8 +96,8 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 		}
 	}
 
-	if config.uerouting != "" {
-		if err := factory.InitRoutingConfigFactory(config.uerouting); err != nil {
+	if commands.uerouting != "" {
+		if err := factory.InitRoutingConfigFactory(commands.uerouting); err != nil {
 			return err
 		}
 	} else {
@@ -120,14 +116,14 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 	return nil
 }
 
-func (smf *SMF) setLogInformation() {
-	logger.SetLogInfo(config.logpath, config.logname)
-	aperLogger.SetLogInfo(config.logpath, config.logname)
-	ngapLogger.SetLogInfo(config.logpath, config.logname)
-	nasLogger.SetLogInfo(config.logpath, config.logname)
-	openApiLogger.SetLogInfo(config.logpath, config.logname)
-	pfcpLogger.SetLogInfo(config.logpath, config.logname)
-	pathUtilLogger.SetLogInfo(config.logpath, config.logname)
+func (smf *SMF) initLogger() {
+	logger.Initialize(commands.log, commands.log5gc)
+	aperLogger.Initialize(commands.log, commands.log5gc)
+	ngapLogger.Initialize(commands.log, commands.log5gc)
+	nasLogger.Initialize(commands.log, commands.log5gc)
+	openApiLogger.Initialize(commands.log, commands.log5gc)
+	pfcpLogger.Initialize(commands.log, commands.log5gc)
+	pathUtilLogger.Initialize(commands.log, commands.log5gc)
 }
 
 func (smf *SMF) setLogLevel() {

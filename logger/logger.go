@@ -25,8 +25,8 @@ var (
 	GinLog      *logrus.Entry
 )
 
-func SetLogInfo(logDir string, logName string) {
-	logger_conf.InitLoggerConf(logDir, logName)
+func Initialize(logNf string, log5gc string) {
+	logger_conf.InitLoggerConf(logNf, log5gc)
 	log = logrus.New()
 	log.SetReportCaller(false)
 
@@ -38,20 +38,21 @@ func SetLogInfo(logDir string, logName string) {
 		FieldsOrder:     []string{"component", "category"},
 	}
 
-	if err := logger_util.ReFileName(logger_conf.Free5gcLogFile); err != nil {
-		fmt.Fprintf(os.Stderr, "Rename error: %v\n", err)
-	}
-
 	free5gcLogHook, err := logger_util.NewFileHook(logger_conf.Free5gcLogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
 	if err == nil {
 		log.Hooks.Add(free5gcLogHook)
 	}
 
-	if err := logger_util.ReFileName(logger_conf.NfLogDir + "smf.log"); err != nil {
+	_, logFile := logger_conf.SplitFullPath(logNf)
+	if logFile == "" {
+		logFile = "smf.log"
+	}
+
+	if err := logger_util.ReFileName(logger_conf.NfLogDir + logFile); err != nil {
 		fmt.Fprintf(os.Stderr, "Rename error: %v\n", err)
 	}
 
-	selfLogHook, err := logger_util.NewFileHook(logger_conf.NfLogDir+"smf.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
+	selfLogHook, err := logger_util.NewFileHook(logger_conf.NfLogDir+logFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
 	if err == nil {
 		log.Hooks.Add(selfLogHook)
 	}

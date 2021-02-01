@@ -28,7 +28,7 @@ var appLog *logrus.Entry
 func main() {
 	app := cli.NewApp()
 	app.Name = "smf"
-	app.Usage = "-free5gccfg common configuration file -smfcfg smf configuration file -logpath log path -logname merged log file name"
+	app.Usage = "5G Session Management Function (SMF)"
 	app.Action = action
 	app.Flags = SMF.GetCliCmd()
 	if err := app.Run(os.Args); err != nil {
