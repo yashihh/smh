@@ -381,6 +381,8 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 	buff.Read(GSMMsgBytes)
 
 	GSMMsgWrongType := nasMessage.NewPDUSessionModificationRequest(0)
+	//Set GSM Message
+	GSMMsgWrongType.PDUSESSIONMODIFICATIONREQUESTMessageIdentity.SetMessageType(nas.MsgTypePDUSessionModificationRequest)
 	//Encode GSM Message
 	buff = new(bytes.Buffer)
 	GSMMsgWrongType.EncodePDUSessionModificationRequest(buff)
@@ -467,14 +469,14 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 		},
 	}
 
-	Convey("Procdure Test: Handle PDUSession SMContext Create", t, func() {
+	Convey("Procedure Test: Handle PDUSession SMContext Create", t, func() {
 		for i, testcase := range testCases {
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
 
 			Convey(infoStr, func() {
 				Convey(testcase.paramStr, func() {
 					httpResp := producer.HandlePDUSessionSMContextCreate(testcase.request)
-					fmt.Printf("http Response Body %+v", httpResp.Body)
+
 					Convey(testcase.resultStr, func() {
 						So(true, ShouldEqual, reflect.DeepEqual(httpResp.Status, testcase.expectedHTTPResponse.Status))
 						So(true, ShouldEqual, reflect.DeepEqual(httpResp.Body, testcase.expectedHTTPResponse.Body))
