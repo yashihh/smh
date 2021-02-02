@@ -62,6 +62,7 @@ var userPlaneConfig = factory.UserPlaneInformation{
 		},
 	},
 }
+
 var testConfig = factory.Config{
 	Info: &factory.Info{
 		Version:     "1.0.0",
@@ -153,7 +154,6 @@ func initDiscUDMStubNRF() {
 		},
 	}
 
-	// intercept uri: http://127.0.0.10:8000/nnrf-disc/v1/nf-instances?requester-nf-type=SMF&target-nf-type=UDM
 	gock.New("http://127.0.0.10:8000/nnrf-disc/v1").
 		Get("/nf-instances").
 		MatchParam("target-nf-type", "UDM").
@@ -211,14 +211,12 @@ func initDiscPCFStubNRF() {
 		},
 	}
 
-	// intercept uri: http://127.0.0.10:8000/nnrf-disc/v1/nf-instances?requester-nf-type=SMF&target-nf-type=PCF
 	gock.New("http://127.0.0.10:8000/nnrf-disc/v1").
 		Get("/nf-instances").
 		MatchParam("target-nf-type", "PCF").
 		MatchParam("requester-nf-type", "SMF").
 		Reply(http.StatusOK).
 		JSON(searchResult)
-
 }
 
 func initGetSMDataStubUDM() {
@@ -229,7 +227,7 @@ func initGetSMDataStubUDM() {
 				Sd:  "010203",
 			},
 			DnnConfigurations: map[string]models.DnnConfiguration{
-				"internet": models.DnnConfiguration{
+				"internet": {
 					PduSessionTypes: &models.PduSessionTypes{
 						DefaultSessionType: "IPV4",
 						AllowedSessionTypes: []models.PduSessionType{
@@ -260,8 +258,6 @@ func initGetSMDataStubUDM() {
 		},
 	}
 
-	//intercept uri: http://127.0.0.3:8000/nudm-sdm/v1/imsi-2089300007487/sm-data?dnn=internet&plmn-id=20893&single-nssai=%7B%22sst%22%3A1%2C%22sd%22%3A%22010203%22%7D
-
 	gock.New("http://127.0.0.3:8000/nudm-sdm/v1/imsi-2089300007487").
 		Get("/sm-data").
 		MatchParam("dnn", "internet").
@@ -272,7 +268,7 @@ func initGetSMDataStubUDM() {
 func initSMPoliciesPostStubPCF() {
 	smPolicyDecision := models.SmPolicyDecision{
 		SessRules: map[string]*models.SessionRule{
-			"SessRuleId-10": &models.SessionRule{
+			"SessRuleId-10": {
 				AuthSessAmbr: &models.Ambr{
 					Uplink:   "1000 Kbps",
 					Downlink: "1000 Kbps",
@@ -293,8 +289,6 @@ func initSMPoliciesPostStubPCF() {
 		},
 		SuppFeat: "000f",
 	}
-
-	// intercept URI: http://127.0.0.7:8000/npcf-smpolicycontrol/v1/sm-policies
 
 	gock.New("http://127.0.0.7:8000/npcf-smpolicycontrol/v1").
 		Post("/sm-policies").
@@ -349,7 +343,6 @@ func initDiscAMFStubNRF() {
 		},
 	}
 
-	// intercept uri: http://127.0.0.10:8000/nnrf-disc/v1/nf-instances?requester-nf-type=SMF&target-nf-instance-id=9d79ae20-f6f6-4020-828b-359757c33070&target-nf-type=AMF
 	gock.New("http://127.0.0.10:8000/nnrf-disc/v1").
 		Get("/nf-instances").
 		MatchParam("target-nf-type", "AMF").
@@ -363,32 +356,36 @@ func initStubPFCP() {
 }
 
 func TestHandlePDUSessionSMContextCreate(t *testing.T) {
-	//Activate Gock
+	// Activate Gock
 	openapi.InterceptH2CClient()
 	defer openapi.RestoreH2CClient()
-	//Prepare GSM Message
+	// Prepare GSM Message
 	GSMMsg := nasMessage.NewPDUSessionEstablishmentRequest(0)
-	//Set GSM Message
+	// Set GSM Message
 	GSMMsg.PDUSessionID.SetPDUSessionID(10)
 	GSMMsg.PTI.SetPTI(1)
 	GSMMsg.PDUSessionType = nasType.NewPDUSessionType(nasMessage.PDUSessionEstablishmentRequestPDUSessionTypeType)
 	GSMMsg.PDUSessionType.SetPDUSessionTypeValue(nasMessage.PDUSessionTypeIPv4)
 	GSMMsg.PDUSESSIONESTABLISHMENTREQUESTMessageIdentity.SetMessageType(nas.MsgTypePDUSessionEstablishmentRequest)
-	//Encode GSM Message
+	// Encode GSM Message
 	buff := new(bytes.Buffer)
 	GSMMsg.EncodePDUSessionEstablishmentRequest(buff)
 	GSMMsgBytes := make([]byte, buff.Len())
-	buff.Read(GSMMsgBytes)
+	if _, err := buff.Read(GSMMsgBytes); err != nil {
+		fmt.Println("GSM message bytes buffer read failed")
+	}
 
 	GSMMsgWrongType := nasMessage.NewPDUSessionModificationRequest(0)
-	//Set GSM Message
+	// Set GSM Message
 	GSMMsgWrongType.PDUSESSIONMODIFICATIONREQUESTMessageIdentity.SetMessageType(nas.MsgTypePDUSessionModificationRequest)
-	//Encode GSM Message
+	// Encode GSM Message
 	buff = new(bytes.Buffer)
 	GSMMsgWrongType.EncodePDUSessionModificationRequest(buff)
 	GSMMsgWrongType.PDUSESSIONMODIFICATIONREQUESTMessageIdentity.SetMessageType(nas.MsgTypePDUSessionModificationRequest)
 	GSMMsgWrongTypeBytes := make([]byte, buff.Len())
-	buff.Read(GSMMsgWrongTypeBytes)
+	if _, err := buff.Read(GSMMsgWrongTypeBytes); err != nil {
+		fmt.Println("GSM message bytes buffer read failed")
+	}
 
 	initDiscUDMStubNRF()
 	initGetSMDataStubUDM()
@@ -397,7 +394,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 	initDiscAMFStubNRF()
 	initStubPFCP()
 
-	//modify associate setup status
+	// modify associate setup status
 	allUPFs := context.SMF_Self().UserPlaneInformation.UPFs
 	for _, upfNode := range allUPFs {
 		upfNode.UPF.UPFStatus = context.AssociatedSetUpSuccess
