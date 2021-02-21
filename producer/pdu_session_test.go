@@ -27,8 +27,7 @@ import (
 var userPlaneConfig = factory.UserPlaneInformation{
 	UPNodes: map[string]factory.UPNode{
 		"GNodeB": {
-			Type:   "AN",
-			NodeID: "192.168.179.100",
+			Type: "AN",
 		},
 		"UPF1": {
 			Type:   "UPF",
