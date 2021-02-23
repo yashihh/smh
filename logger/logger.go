@@ -8,7 +8,6 @@ import (
 	formatter "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 
-	"bitbucket.org/free5gc-team/logger_conf"
 	"bitbucket.org/free5gc-team/logger_util"
 )
 
@@ -25,8 +24,7 @@ var (
 	GinLog      *logrus.Entry
 )
 
-func Initialize(logNf string, log5gc string) {
-	logger_conf.InitLoggerConf(logNf, log5gc)
+func Initialize(logNf string, log5gc string) error {
 	log = logrus.New()
 	log.SetReportCaller(false)
 
@@ -38,22 +36,24 @@ func Initialize(logNf string, log5gc string) {
 		FieldsOrder:     []string{"component", "category"},
 	}
 
-	free5gcLogHook, err := logger_util.NewFileHook(logger_conf.Free5gcLogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
-	if err == nil {
+	if file, fullPath := logger_util.SetupLogger(log5gc, "", ""); file != "" {
+		free5gcLogHook, err := logger_util.NewFileHook(fullPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
+		if err != nil {
+			return err
+		}
 		log.Hooks.Add(free5gcLogHook)
 	}
 
-	_, logFile := logger_conf.SplitFullPath(logNf)
-	if logFile == "" {
-		logFile = "smf.log"
-	}
+	if file, fullPath := logger_util.SetupLogger(logNf, "nf", "smf.log"); file != "" {
+		if err := logger_util.ReFileName(fullPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Rename error: %v\n", err)
+			return err
+		}
 
-	if err := logger_util.ReFileName(logger_conf.NfLogDir + logFile); err != nil {
-		fmt.Fprintf(os.Stderr, "Rename error: %v\n", err)
-	}
-
-	selfLogHook, err := logger_util.NewFileHook(logger_conf.NfLogDir+logFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
-	if err == nil {
+		selfLogHook, err := logger_util.NewFileHook(fullPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
+		if err != nil {
+			return err
+		}
 		log.Hooks.Add(selfLogHook)
 	}
 
@@ -66,6 +66,8 @@ func Initialize(logNf string, log5gc string) {
 	CtxLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "CTX"})
 	ConsumerLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "Consumer"})
 	GinLog = log.WithFields(logrus.Fields{"component": "SMF", "category": "GIN"})
+
+	return nil
 }
 
 func SetLogLevel(level logrus.Level) {

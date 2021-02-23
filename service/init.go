@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -49,7 +50,7 @@ type (
 
 var commands Commands
 
-var cLiCmd = []cli.Flag{
+var cliCmd = []cli.Flag{
 	cli.StringFlag{
 		Name:  "config, c",
 		Usage: "Load configuration from `FILE`",
@@ -71,7 +72,7 @@ var cLiCmd = []cli.Flag{
 var initLog *logrus.Entry
 
 func (*SMF) GetCliCmd() (flags []cli.Flag) {
-	return cLiCmd
+	return cliCmd
 }
 
 func (smf *SMF) Initialize(c *cli.Context) error {
@@ -82,7 +83,10 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 		uerouting: c.String("uerouting"),
 	}
 
-	smf.initLogger()
+	if err := smf.initLogger(); err != nil {
+		return err
+	}
+
 	initLog = logger.InitLog
 
 	if commands.config != "" {
@@ -116,14 +120,36 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 	return nil
 }
 
-func (smf *SMF) initLogger() {
-	logger.Initialize(commands.log, commands.log5gc)
-	aperLogger.Initialize(commands.log, commands.log5gc)
-	ngapLogger.Initialize(commands.log, commands.log5gc)
-	nasLogger.Initialize(commands.log, commands.log5gc)
-	openApiLogger.Initialize(commands.log, commands.log5gc)
-	pfcpLogger.Initialize(commands.log, commands.log5gc)
-	pathUtilLogger.Initialize(commands.log, commands.log5gc)
+func (smf *SMF) initLogger() error {
+	var loggerErrors []string
+
+	if err := logger.Initialize(commands.log, commands.log5gc); err != nil {
+		loggerErrors = append(loggerErrors, err.Error())
+	}
+	if err := aperLogger.Initialize(commands.log, commands.log5gc); err != nil {
+		loggerErrors = append(loggerErrors, err.Error())
+	}
+	if err := ngapLogger.Initialize(commands.log, commands.log5gc); err != nil {
+		loggerErrors = append(loggerErrors, err.Error())
+	}
+	if err := nasLogger.Initialize(commands.log, commands.log5gc); err != nil {
+		loggerErrors = append(loggerErrors, err.Error())
+	}
+	if err := openApiLogger.Initialize(commands.log, commands.log5gc); err != nil {
+		loggerErrors = append(loggerErrors, err.Error())
+	}
+	if err := pfcpLogger.Initialize(commands.log, commands.log5gc); err != nil {
+		loggerErrors = append(loggerErrors, err.Error())
+	}
+	if err := pathUtilLogger.Initialize(commands.log, commands.log5gc); err != nil {
+		loggerErrors = append(loggerErrors, err.Error())
+	}
+
+	if len(loggerErrors) != 0 {
+		return fmt.Errorf(strings.Join(loggerErrors, "\n"))
+	}
+
+	return nil
 }
 
 func (smf *SMF) setLogLevel() {
