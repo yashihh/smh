@@ -24,8 +24,8 @@ bitbucket.org/free5gc-team/nas v0.0.0-20200915042954-4c7174d9820e/go.mod h1:F4Oh
 bitbucket.org/free5gc-team/nas v0.0.0-20201231073918-452c53585d76 h1:7M24WWuem56R/XE8TeLQSG9PaPmNCJdfpo4dWMgoF5E=
 bitbucket.org/free5gc-team/nas v0.0.0-20201231073918-452c53585d76/go.mod h1:Uf8YaL4qvo0o3Qk8CYfBf/J6DgtX8lYbjVEN7WbE/AM=
 bitbucket.org/free5gc-team/ngap v0.0.0-20200915042202-2cf700b6cfe5/go.mod h1:SS2wgYuOLbU109qmeLyn1P9pI/QP4Bg/9k7cG24I2Hs=
-bitbucket.org/free5gc-team/ngap v0.0.0-20201213001141-924cc2f2b303 h1:VgJD6nSQDCi2Ueye5MQXPoqiLTuVIpke0brfnm/rdT4=
-bitbucket.org/free5gc-team/ngap v0.0.0-20201213001141-924cc2f2b303/go.mod h1:io8hGes5X7tehqFx+V3vEBykfsFG+fns2n6hvzhLKOk=
+bitbucket.org/free5gc-team/ngap v0.0.0-20210224161958-710a4451ac65 h1:35t0K61SevG2iy68zm1vXFtjO3oqvgDuQGr8D67RBfY=
+bitbucket.org/free5gc-team/ngap v0.0.0-20210224161958-710a4451ac65/go.mod h1:io8hGes5X7tehqFx+V3vEBykfsFG+fns2n6hvzhLKOk=
 bitbucket.org/free5gc-team/openapi v0.0.0-20200915035203-9fc3f0e748b4/go.mod h1:OPBqpY9KpaTgGnmZMNUe+yVx56L0cCmvBHnZ6llCKhs=
 bitbucket.org/free5gc-team/openapi v0.0.0-20201213000822-44068345955a h1:dZvevccclR5MtkftamLuFWt5kNiYdopRxumVsPo9zwQ=
 bitbucket.org/free5gc-team/openapi v0.0.0-20201213000822-44068345955a/go.mod h1:KrJP+t+p0iRc8QjcU1udTSvndqlOTtg/OU9nxMsRpXY=
