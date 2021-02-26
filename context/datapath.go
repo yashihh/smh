@@ -235,7 +235,6 @@ func (node *DataPathNode) DeactivateDownLinkTunnel(smContext *SMContext) {
 	teid := node.DownLinkTunnel.TEID
 	node.UPF.teidGenerator.FreeID(int64(teid))
 	node.DownLinkTunnel = &GTPTunnel{}
-
 }
 
 func (node *DataPathNode) GetUPFID() (id string, err error) {
