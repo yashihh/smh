@@ -770,10 +770,6 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 
 	releaseTunnel(smContext)
 
-	if ip := smContext.PDUAddress; ip != nil {
-		smContext.DNNInfo.UeIPAllocator.Release(ip)
-	}
-
 	var httpResponse *http_wrapper.Response
 	PFCPResponseStatus := <-smContext.SBIPFCPCommunicationChan
 
