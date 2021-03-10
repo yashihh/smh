@@ -37,6 +37,11 @@ func main() {
 }
 
 func action(c *cli.Context) error {
+	if err := initLogFile(c.String("log"), c.String("log5gc")); err != nil {
+		logger.AppLog.Errorf("%+v", err)
+		return err
+	}
+
 	if err := SMF.Initialize(c); err != nil {
 		logger.CfgLog.Errorf("%+v", err)
 		return fmt.Errorf("Failed to initialize !!")
@@ -48,5 +53,12 @@ func action(c *cli.Context) error {
 
 	SMF.Start()
 
+	return nil
+}
+
+func initLogFile(logNfPath, log5gcPath string) error {
+	if err := logger.LogFileHook(logNfPath, log5gcPath); err != nil {
+		return err
+	}
 	return nil
 }

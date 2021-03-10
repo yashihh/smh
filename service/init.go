@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -42,8 +41,6 @@ type (
 	// Commands information.
 	Commands struct {
 		config    string
-		log       string
-		log5gc    string
 		uerouting string
 	}
 )
@@ -78,13 +75,7 @@ func (*SMF) GetCliCmd() (flags []cli.Flag) {
 func (smf *SMF) Initialize(c *cli.Context) error {
 	commands = Commands{
 		config:    c.String("config"),
-		log:       c.String("log"),
-		log5gc:    c.String("log5gc"),
 		uerouting: c.String("uerouting"),
-	}
-
-	if err := smf.initLogger(); err != nil {
-		return err
 	}
 
 	initLog = logger.InitLog
@@ -115,38 +106,6 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 
 	if err := factory.CheckConfigVersion(); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (smf *SMF) initLogger() error {
-	var loggerErrors []string
-
-	if err := logger.Initialize(commands.log, commands.log5gc); err != nil {
-		loggerErrors = append(loggerErrors, err.Error())
-	}
-	if err := aperLogger.Initialize(commands.log, commands.log5gc); err != nil {
-		loggerErrors = append(loggerErrors, err.Error())
-	}
-	if err := ngapLogger.Initialize(commands.log, commands.log5gc); err != nil {
-		loggerErrors = append(loggerErrors, err.Error())
-	}
-	if err := nasLogger.Initialize(commands.log, commands.log5gc); err != nil {
-		loggerErrors = append(loggerErrors, err.Error())
-	}
-	if err := openApiLogger.Initialize(commands.log, commands.log5gc); err != nil {
-		loggerErrors = append(loggerErrors, err.Error())
-	}
-	if err := pfcpLogger.Initialize(commands.log, commands.log5gc); err != nil {
-		loggerErrors = append(loggerErrors, err.Error())
-	}
-	if err := pathUtilLogger.Initialize(commands.log, commands.log5gc); err != nil {
-		loggerErrors = append(loggerErrors, err.Error())
-	}
-
-	if len(loggerErrors) != 0 {
-		return fmt.Errorf(strings.Join(loggerErrors, "\n"))
 	}
 
 	return nil
