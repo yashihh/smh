@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 
 	"bitbucket.org/free5gc-team/smf/logger"
@@ -23,33 +22,39 @@ import (
 
 var SMF = &service.SMF{}
 
-var appLog *logrus.Entry
-
-func init() {
-	appLog = logger.AppLog
-}
-
 func main() {
 	app := cli.NewApp()
 	app.Name = "smf"
-	fmt.Print(app.Name, "\n")
-	appLog.Infoln("SMF version: ", version.GetVersion())
-	app.Usage = "-free5gccfg common configuration file -smfcfg smf configuration file"
+	app.Usage = "5G Session Management Function (SMF)"
 	app.Action = action
 	app.Flags = SMF.GetCliCmd()
-
 	if err := app.Run(os.Args); err != nil {
-		appLog.Errorf("SMF Run error: %v", err)
+		logger.AppLog.Errorf("SMF Run error: %v\n", err)
 	}
 }
 
 func action(c *cli.Context) error {
+	if err := initLogFile(c.String("log"), c.String("log5gc")); err != nil {
+		logger.AppLog.Errorf("%+v", err)
+		return err
+	}
+
 	if err := SMF.Initialize(c); err != nil {
 		logger.CfgLog.Errorf("%+v", err)
 		return fmt.Errorf("Failed to initialize !!")
 	}
 
+	logger.AppLog.Infoln(c.App.Name)
+	logger.AppLog.Infoln("SMF version: ", version.GetVersion())
+
 	SMF.Start()
 
+	return nil
+}
+
+func initLogFile(logNfPath, log5gcPath string) error {
+	if err := logger.LogFileHook(logNfPath, log5gcPath); err != nil {
+		return err
+	}
 	return nil
 }

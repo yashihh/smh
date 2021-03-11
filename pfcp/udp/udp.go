@@ -24,6 +24,7 @@ func Run(Dispatch func(*pfcpUdp.Message)) {
 	if err != nil {
 		logger.PfcpLog.Errorf("Failed to listen: %v", err)
 	}
+
 	logger.PfcpLog.Infof("Listen on %s", Server.Conn.LocalAddr().String())
 
 	go func(p *pfcpUdp.PfcpServer) {

@@ -38,48 +38,50 @@ import (
 type SMF struct{}
 
 type (
-	// Config information.
-	Config struct {
-		smfcfg    string
+	// Commands information.
+	Commands struct {
+		config    string
 		uerouting string
 	}
 )
 
-var config Config
+var commands Commands
 
-var smfCLi = []cli.Flag{
+var cliCmd = []cli.Flag{
 	cli.StringFlag{
-		Name:  "free5gccfg",
-		Usage: "common config file",
+		Name:  "config, c",
+		Usage: "Load configuration from `FILE`",
 	},
 	cli.StringFlag{
-		Name:  "smfcfg",
-		Usage: "config file",
+		Name:  "log, l",
+		Usage: "Output NF log to `FILE`",
 	},
 	cli.StringFlag{
-		Name:  "uerouting",
-		Usage: "config file",
+		Name:  "log5gc, lc",
+		Usage: "Output free5gc log to `FILE`",
+	},
+	cli.StringFlag{
+		Name:  "uerouting, u",
+		Usage: "Load UE routing configuration from `FILE`",
 	},
 }
 
 var initLog *logrus.Entry
 
-func init() {
-	initLog = logger.InitLog
-}
-
 func (*SMF) GetCliCmd() (flags []cli.Flag) {
-	return smfCLi
+	return cliCmd
 }
 
 func (smf *SMF) Initialize(c *cli.Context) error {
-	config = Config{
-		smfcfg:    c.String("smfcfg"),
+	commands = Commands{
+		config:    c.String("config"),
 		uerouting: c.String("uerouting"),
 	}
 
-	if config.smfcfg != "" {
-		if err := factory.InitConfigFactory(config.smfcfg); err != nil {
+	initLog = logger.InitLog
+
+	if commands.config != "" {
+		if err := factory.InitConfigFactory(commands.config); err != nil {
 			return err
 		}
 	} else {
@@ -89,8 +91,8 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 		}
 	}
 
-	if config.uerouting != "" {
-		if err := factory.InitRoutingConfigFactory(config.uerouting); err != nil {
+	if commands.uerouting != "" {
+		if err := factory.InitRoutingConfigFactory(commands.uerouting); err != nil {
 			return err
 		}
 	} else {
