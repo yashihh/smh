@@ -12,7 +12,7 @@ require (
 	bitbucket.org/free5gc-team/logger_util v0.0.0-20201212235752-9e3276664162
 	bitbucket.org/free5gc-team/nas v0.0.0-20201231073918-452c53585d76
 	bitbucket.org/free5gc-team/ngap v0.0.0-20210224161958-710a4451ac65
-	bitbucket.org/free5gc-team/openapi v0.0.0-20201213000822-44068345955a
+	bitbucket.org/free5gc-team/openapi v0.0.0-20210106141213-a003c6e9f7ce
 	bitbucket.org/free5gc-team/path_util v0.0.0-20201212235135-42ce24f2b9c9
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20210115081222-c4e8192446c4
 	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20201213001611-9c27eae4aec3
@@ -27,5 +27,6 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli v1.22.4
+	gopkg.in/h2non/gock.v1 v1.0.16
 	gopkg.in/yaml.v2 v2.4.0
 )
