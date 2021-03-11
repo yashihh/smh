@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 
 	"bitbucket.org/free5gc-team/smf/logger"
@@ -23,8 +22,6 @@ import (
 
 var SMF = &service.SMF{}
 
-var appLog *logrus.Entry
-
 func main() {
 	app := cli.NewApp()
 	app.Name = "smf"
@@ -32,7 +29,7 @@ func main() {
 	app.Action = action
 	app.Flags = SMF.GetCliCmd()
 	if err := app.Run(os.Args); err != nil {
-		fmt.Printf("SMF Run error: %v\n", err)
+		logger.AppLog.Errorf("SMF Run error: %v\n", err)
 	}
 }
 
@@ -47,9 +44,8 @@ func action(c *cli.Context) error {
 		return fmt.Errorf("Failed to initialize !!")
 	}
 
-	appLog = logger.AppLog
-	appLog.Infoln(c.App.Name)
-	appLog.Infoln("SMF version: ", version.GetVersion())
+	logger.AppLog.Infoln(c.App.Name)
+	logger.AppLog.Infoln("SMF version: ", version.GetVersion())
 
 	SMF.Start()
 
