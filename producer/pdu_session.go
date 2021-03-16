@@ -234,7 +234,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	smContext := smf_context.GetSMContext(smContextRef)
 
 	if smContext == nil {
-		logger.PduSessLog.Warnln("SMContext is nil")
+		logger.PduSessLog.Warnf("SMContext[%s] is not found", smContextRef)
 
 		httpResponse := &http_wrapper.Response{
 			Header: nil,
@@ -324,7 +324,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.SMContextState = smf_context.InActive
 			logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
-			smf_context.RemoveSMContext(smContext.Ref)
 			problemDetails, err := consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
 			if problemDetails != nil || err != nil {
 				if problemDetails != nil {
@@ -769,9 +768,29 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSmContextRequest) *http_wrapper.Response {
 	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextRelease")
 	smContext := smf_context.GetSMContext(smContextRef)
+
+	if smContext == nil {
+		logger.PduSessLog.Warnf("SMContext[%s] is not found", smContextRef)
+
+		httpResponse := &http_wrapper.Response{
+			Header: nil,
+			Status: http.StatusNotFound,
+			Body: models.UpdateSmContextErrorResponse{
+				JsonData: &models.SmContextUpdateError{
+					UpCnxState: models.UpCnxState_DEACTIVATED,
+					Error: &models.ProblemDetails{
+						Type:   "Resource Not Found",
+						Title:  "SMContext Ref is not found",
+						Status: http.StatusNotFound,
+					},
+				},
+			},
+		}
+		return httpResponse
+	}
+
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
-	// smf_context.RemoveSMContext(smContext.Ref)
 
 	smContext.SMContextState = smf_context.PFCPModification
 	logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
@@ -844,6 +863,8 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 		errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseReject"}
 		httpResponse.Body = errResponse
 	}
+
+	smf_context.RemoveSMContext(smContext.Ref)
 
 	return httpResponse
 }
