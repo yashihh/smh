@@ -18,6 +18,7 @@ require (
 	bitbucket.org/free5gc-team/version v0.0.0-20201211040438-c23ed678d8da
 	github.com/antihax/optional v1.0.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.0
+	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/gin-gonic/gin v1.6.3
 	github.com/google/uuid v1.1.2
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
