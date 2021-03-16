@@ -366,6 +366,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if err != nil {
 			logger.PduSessLog.Errorf("Build PDUSession Resource Setup Request Transfer Error(%s)", err.Error())
 		}
+		smContext.UpCnxState = models.UpCnxState_ACTIVATING
 		response.BinaryDataN2SmInformation = n2Buf
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_SETUP_REQ
 	case models.UpCnxState_DEACTIVATED:
@@ -451,6 +452,11 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		sendPFCPModification = true
 		smContext.SMContextState = smf_context.PFCPModification
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+	case models.N2SmInfoType_PDU_RES_SETUP_FAIL:
+		if err := smf_context.
+			HandlePDUSessionResourceSetupResponseTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+			logger.PduSessLog.Errorf("Handle PDUSessionResourceSetupResponseTransfer failed: %+v", err)
+		}
 	case models.N2SmInfoType_PDU_RES_REL_RSP:
 		logger.PduSessLog.Infoln("[SMF] N2 PDUSession Release Complete ")
 		if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
