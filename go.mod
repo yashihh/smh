@@ -3,14 +3,14 @@ module bitbucket.org/free5gc-team/smf
 go 1.14
 
 require (
-	bitbucket.org/free5gc-team/aper v0.0.0-20210310053431-5383aa6d6a0a
+	bitbucket.org/free5gc-team/aper v0.0.0-20210315054243-dc6bff320796
 	bitbucket.org/free5gc-team/flowdesc v0.0.0-20201211040502-ec124a7d65a1
 	bitbucket.org/free5gc-team/http2_util v0.0.0-20201212235925-bd3a307d110a
 	bitbucket.org/free5gc-team/http_wrapper v0.0.0-20201211040440-7c475efe43d4
 	bitbucket.org/free5gc-team/idgenerator v0.0.0-20201211040458-d68b2cd1a422
 	bitbucket.org/free5gc-team/logger_util v0.0.0-20210309092142-45babfcdab5a
 	bitbucket.org/free5gc-team/nas v0.0.0-20210310060525-46f85f0df7d0
-	bitbucket.org/free5gc-team/ngap v0.0.0-20210310061110-12bb918cb5e4
+	bitbucket.org/free5gc-team/ngap v0.0.0-20210316165214-9c3fd3e641ab
 	bitbucket.org/free5gc-team/openapi v0.0.0-20210310054439-5aa53778eb95
 	bitbucket.org/free5gc-team/path_util v0.0.0-20210310053142-9b06de73fd52
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20210310061708-d6ef370bb710
