@@ -64,22 +64,22 @@ func HandlePDUSessionResourceSetupUnsuccessfulTransfer(b []byte, ctx *SMContext)
 
 	switch resourceSetupUnsuccessfulTransfer.Cause.Present {
 	case ngapType.CausePresentRadioNetwork:
-		logger.PduSessLog.Printf("PDU Session Resource Setup Unsuccessful by RadioNetwork[%d]",
+		logger.PduSessLog.Warnf("PDU Session Resource Setup Unsuccessful by RadioNetwork[%d]",
 			resourceSetupUnsuccessfulTransfer.Cause.RadioNetwork.Value)
 	case ngapType.CausePresentTransport:
-		logger.PduSessLog.Printf("PDU Session Resource Setup Unsuccessful by Transport[%d]",
+		logger.PduSessLog.Warnf("PDU Session Resource Setup Unsuccessful by Transport[%d]",
 			resourceSetupUnsuccessfulTransfer.Cause.Transport.Value)
 	case ngapType.CausePresentNas:
-		logger.PduSessLog.Printf("PDU Session Resource Setup Unsuccessful by NAS[%d]",
+		logger.PduSessLog.Warnf("PDU Session Resource Setup Unsuccessful by NAS[%d]",
 			resourceSetupUnsuccessfulTransfer.Cause.Nas.Value)
 	case ngapType.CausePresentProtocol:
-		logger.PduSessLog.Printf("PDU Session Resource Setup Unsuccessful by Protocol[%d]",
+		logger.PduSessLog.Warnf("PDU Session Resource Setup Unsuccessful by Protocol[%d]",
 			resourceSetupUnsuccessfulTransfer.Cause.Protocol.Value)
 	case ngapType.CausePresentMisc:
-		logger.PduSessLog.Printf("PDU Session Resource Setup Unsuccessful by Protocol[%d]",
+		logger.PduSessLog.Warnf("PDU Session Resource Setup Unsuccessful by Protocol[%d]",
 			resourceSetupUnsuccessfulTransfer.Cause.Misc.Value)
 	case ngapType.CausePresentChoiceExtensions:
-		logger.PduSessLog.Printf("PDU Session Resource Setup Unsuccessful by Protocol[%v]",
+		logger.PduSessLog.Warnf("PDU Session Resource Setup Unsuccessful by Protocol[%v]",
 			resourceSetupUnsuccessfulTransfer.Cause.ChoiceExtensions)
 	}
 
