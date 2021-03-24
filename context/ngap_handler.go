@@ -1,10 +1,8 @@
 package context
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 
 	"bitbucket.org/free5gc-team/aper"
 	"bitbucket.org/free5gc-team/ngap/ngapType"
@@ -29,11 +27,11 @@ func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (er
 		return errors.New("resourceSetupResponseTransfer.QosFlowPerTNLInformation.UPTransportLayerInformation.Present")
 	}
 
-	gtpTunnel := QosFlowPerTNLInformation.UPTransportLayerInformation.GTPTunnel
+	GTPTunnel := QosFlowPerTNLInformation.UPTransportLayerInformation.GTPTunnel
 
-	teid := binary.BigEndian.Uint32(gtpTunnel.GTPTEID.Value)
+	teid := binary.BigEndian.Uint32(GTPTunnel.GTPTEID.Value)
 
-	ctx.Tunnel.ANInformation.IPAddress = gtpTunnel.TransportLayerAddress.Value.Bytes
+	ctx.Tunnel.ANInformation.IPAddress = GTPTunnel.TransportLayerAddress.Value.Bytes
 	ctx.Tunnel.ANInformation.TEID = teid
 
 	for _, dataPath := range ctx.Tunnel.DataPathPool {
@@ -100,13 +98,7 @@ func HandlePathSwitchRequestTransfer(b []byte, ctx *SMContext) error {
 	}
 
 	gtpTunnel := pathSwitchRequestTransfer.DLNGUUPTNLInformation.GTPTunnel
-
-	TEIDReader := bytes.NewBuffer(gtpTunnel.GTPTEID.Value)
-
-	teid, err := binary.ReadUvarint(TEIDReader)
-	if err != nil {
-		return fmt.Errorf("Parse TEID error %s", err.Error())
-	}
+	teid := binary.BigEndian.Uint32(gtpTunnel.GTPTEID.Value)
 
 	for _, dataPath := range ctx.Tunnel.DataPathPool {
 		if dataPath.Activated {
@@ -161,12 +153,7 @@ func HandleHandoverRequestAcknowledgeTransfer(b []byte, ctx *SMContext) (err err
 	}
 	DLNGUUPTNLInformation := handoverRequestAcknowledgeTransfer.DLNGUUPTNLInformation
 	GTPTunnel := DLNGUUPTNLInformation.GTPTunnel
-	TEIDReader := bytes.NewBuffer(GTPTunnel.GTPTEID.Value)
-
-	teid, err := binary.ReadUvarint(TEIDReader)
-	if err != nil {
-		return fmt.Errorf("Parse TEID error %s", err.Error())
-	}
+	teid := binary.BigEndian.Uint32(GTPTunnel.GTPTEID.Value)
 
 	for _, dataPath := range ctx.Tunnel.DataPathPool {
 		if dataPath.Activated {
