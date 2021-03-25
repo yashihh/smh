@@ -32,14 +32,19 @@ var userPlaneConfig = factory.UserPlaneInformation{
 		"UPF1": {
 			Type:   "UPF",
 			NodeID: "192.168.179.1",
-			SNssaiInfos: []models.SnssaiUpfInfoItem{
+			SNssaiInfos: []factory.SnssaiUpfInfoItem{
 				{
 					SNssai: &models.Snssai{
 						Sst: 1,
 						Sd:  "112232",
 					},
-					DnnUpfInfoList: []models.DnnUpfInfoItem{
-						{Dnn: "internet"},
+					DnnUpfInfoList: []factory.DnnUpfInfoItem{
+						{
+							Dnn: "internet",
+							Pools: []factory.UEIPPool{
+								{Cidr: "60.60.0.0/16"},
+							},
+						},
 					},
 				},
 			},
@@ -98,7 +103,6 @@ var testConfig = factory.Config{
 							IPv4Addr: "8.8.8.8",
 							IPv6Addr: "2001:4860:4860::8888",
 						},
-						UESubnet: "60.60.0.0/16",
 					},
 				},
 			},
