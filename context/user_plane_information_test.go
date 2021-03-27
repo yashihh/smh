@@ -26,7 +26,14 @@ var configuration = &factory.UserPlaneInformation{
 						Sd:  "112232",
 					},
 					DnnUpfInfoList: []factory.DnnUpfInfoItem{
-						{Dnn: "internet"},
+						{
+							Dnn: "internet",
+							Pools: []factory.UEIPPool{
+								{
+									Cidr: "60.60.0.0/16",
+								},
+							},
+						},
 					},
 				},
 				{
@@ -35,7 +42,14 @@ var configuration = &factory.UserPlaneInformation{
 						Sd:  "112235",
 					},
 					DnnUpfInfoList: []factory.DnnUpfInfoItem{
-						{Dnn: "internet"},
+						{
+							Dnn: "internet",
+							Pools: []factory.UEIPPool{
+								{
+									Cidr: "60.61.0.0/16",
+								},
+							},
+						},
 					},
 				},
 			},
@@ -50,7 +64,14 @@ var configuration = &factory.UserPlaneInformation{
 						Sd:  "112233",
 					},
 					DnnUpfInfoList: []factory.DnnUpfInfoItem{
-						{Dnn: "internet"},
+						{
+							Dnn: "internet",
+							Pools: []factory.UEIPPool{
+								{
+									Cidr: "60.62.0.0/16",
+								},
+							},
+						},
 					},
 				},
 			},
@@ -65,7 +86,14 @@ var configuration = &factory.UserPlaneInformation{
 						Sd:  "112234",
 					},
 					DnnUpfInfoList: []factory.DnnUpfInfoItem{
-						{Dnn: "internet"},
+						{
+							Dnn: "internet",
+							Pools: []factory.UEIPPool{
+								{
+									Cidr: "60.63.0.0/16",
+								},
+							},
+						},
 					},
 				},
 			},
@@ -80,7 +108,14 @@ var configuration = &factory.UserPlaneInformation{
 						Sd:  "112235",
 					},
 					DnnUpfInfoList: []factory.DnnUpfInfoItem{
-						{Dnn: "internet"},
+						{
+							Dnn: "internet",
+							Pools: []factory.UEIPPool{
+								{
+									Cidr: "60.64.0.0/16",
+								},
+							},
+						},
 					},
 				},
 			},

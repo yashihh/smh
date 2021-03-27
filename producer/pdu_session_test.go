@@ -261,7 +261,7 @@ func initGetSMDataStubUDM() {
 		},
 	}
 
-	gock.New("http://127.0.0.3:8000/nudm-sdm/v1/imsi-2089300007487").
+	gock.New("http://127.0.0.3:8000/nudm-sdm/v1/imsi-208930000007487").
 		Get("/sm-data").
 		MatchParam("dnn", "internet").
 		Reply(http.StatusOK).
@@ -427,7 +427,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 		}, {
 			request: models.PostSmContextsRequest{
 				JsonData: &models.SmContextCreateData{
-					Supi:         "imsi-2089300007487",
+					Supi:         "imsi-208930000007487",
 					Pei:          "imeisv-1110000000000000",
 					Gpsi:         "msisdn-0900000000",
 					PduSessionId: 10,

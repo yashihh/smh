@@ -221,7 +221,7 @@ type Path struct {
 
 func (p *Path) validate() (bool, error) {
 	for _, upf := range p.UPF {
-		if result := len(upf) > 0; !result {
+		if result := len(upf); result == 0 {
 			err := errors.New("Invalid UPF: " + upf + ", should not be empty")
 			return false, err
 		}
@@ -232,9 +232,9 @@ func (p *Path) validate() (bool, error) {
 }
 
 type UERoutingInfo struct {
-	Members       []string       `yaml:"members"`
-	AN            string         `yaml:"AN,omitempty" valid:"ipv4,required"`
-	PathList      []Path         `yaml:"PathList,omitempty" valid:"required"`
+	Members       []string       `yaml:"members" valid:"required"`
+	AN            string         `yaml:"AN,omitempty" valid:"ipv4,optional"`
+	PathList      []Path         `yaml:"PathList,omitempty" valid:"optional"`
 	Topology      []UPLink       `yaml:"topology" valid:"required"`
 	SpecificPaths []SpecificPath `yaml:"specificPath,omitempty" valid:"optional"`
 }
@@ -255,6 +255,12 @@ func (u *UERoutingInfo) validate() (bool, error) {
 
 	for _, link := range u.Topology {
 		if result, err := link.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	for _, path := range u.SpecificPaths {
+		if result, err := path.validate(); err != nil {
 			return result, err
 		}
 	}
@@ -453,8 +459,8 @@ func (i *InterfaceUpfInfoItem) validate() (bool, error) {
 }
 
 type SnssaiUpfInfoItem struct {
-	SNssai         *models.Snssai   `json:"sNssai" yaml:"sNssai" bson:"sNssai" mapstructure:"SNssai" valid:"required"`
-	DnnUpfInfoList []DnnUpfInfoItem `json:"dnnUpfInfoList" yaml:"dnnUpfInfoList" bson:"dnnUpfInfoList" mapstructure:"DnnUpfInfoList" valid:"required"`
+	SNssai         *models.Snssai   `yaml:"sNssai" valid:"required"`
+	DnnUpfInfoList []DnnUpfInfoItem `yaml:"dnnUpfInfoList" valid:"required"`
 }
 
 func (s *SnssaiUpfInfoItem) validate() (bool, error) {
@@ -482,16 +488,22 @@ func (s *SnssaiUpfInfoItem) validate() (bool, error) {
 }
 
 type DnnUpfInfoItem struct {
-	Dnn             string                  `json:"dnn" yaml:"dnn" bson:"dnn" mapstructure:"Dnn" valid:"required"`
-	DnaiList        []string                `json:"dnaiList,omitempty" yaml:"dnaiList" bson:"dnaiList" mapstructure:"DnaiList"`
-	PduSessionTypes []models.PduSessionType `json:"pduSessionTypes,omitempty" yaml:"pduSessionTypes" bson:"pduSessionTypes" mapstructure:"PduSessionTypes"`
-	Pools           []UEIPPool              `yaml:"pools"`
+	Dnn             string                  `yaml:"dnn" valid:"required"`
+	DnaiList        []string                `yaml:"dnaiList" valid:"optional"`
+	PduSessionTypes []models.PduSessionType `yaml:"pduSessionTypes" valid:"optional"`
+	Pools           []UEIPPool              `yaml:"pools" valid:"optional"`
 }
 
 func (d *DnnUpfInfoItem) validate() (bool, error) {
 	if result := len(d.Dnn); result == 0 {
 		err := errors.New("Invalid DnnUpfInfoItem.dnn: " + d.Dnn + ", should not be empty.")
 		return false, err
+	}
+
+	for _, pool := range d.Pools {
+		if result, err := pool.validate(); err != nil {
+			return result, err
+		}
 	}
 
 	result, err := govalidator.ValidateStruct(d)
@@ -537,9 +549,25 @@ func (u *UEIPPool) validate() (bool, error) {
 }
 
 type SpecificPath struct {
-	DestinationIP   string   `yaml:"dest,omitempty"`
-	DestinationPort string   `yaml:"DestinationPort,omitempty"`
-	Path            []string `yaml:"path"`
+	DestinationIP   string   `yaml:"dest,omitempty" valid:"cidr,required"`
+	DestinationPort string   `yaml:"DestinationPort,omitempty" valid:"port,optional"`
+	Path            []string `yaml:"path" valid:"required"`
+}
+
+func (p *SpecificPath) validate() (bool, error) {
+	govalidator.TagMap["cidr"] = govalidator.Validator(func(str string) bool {
+		return govalidator.IsCIDR(str)
+	})
+
+	for _, upf := range p.Path {
+		if result := len(upf); result == 0 {
+			err := errors.New("Invalid UPF: " + upf + ", should not be empty")
+			return false, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(p)
+	return result, appendInvalid(err)
 }
 
 func (c *Config) GetVersion() string {

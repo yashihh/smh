@@ -20,16 +20,14 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 	fmt.Println("Start")
 	testcases := []struct {
 		name                  string
-		inSUPI                string
 		inPaths               []factory.SpecificPath
 		expectedDataPathNodes [][]*context.UPF
 	}{
 		{
-			name:   "singlePath-singleUPF",
-			inSUPI: "imsi-208930000007487",
+			name: "singlePath-singleUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101",
+					DestinationIP:   "60.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
@@ -43,11 +41,10 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			},
 		},
 		{
-			name:   "singlePath-multiUPF",
-			inSUPI: "imsi-208930000007487",
+			name: "singlePath-multiUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101",
+					DestinationIP:   "60.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
@@ -63,18 +60,17 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			},
 		},
 		{
-			name:   "multiPath-singleUPF",
-			inSUPI: "imsi-208930000007487",
+			name: "multiPath-singleUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101",
+					DestinationIP:   "60.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
 					},
 				},
 				{
-					DestinationIP:   "60.60.0.103",
+					DestinationIP:   "60.60.0.103/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF2",
@@ -91,11 +87,10 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			},
 		},
 		{
-			name:   "multiPath-multiUPF",
-			inSUPI: "imsi-208930000007487",
+			name: "multiPath-multiUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101",
+					DestinationIP:   "60.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
@@ -103,7 +98,7 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 					},
 				},
 				{
-					DestinationIP:   "60.60.0.103",
+					DestinationIP:   "60.60.0.103/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
@@ -123,18 +118,17 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			},
 		},
 		{
-			name:   "multiPath-single&multiUPF",
-			inSUPI: "imsi-208930000007487",
+			name: "multiPath-single&multiUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101",
+					DestinationIP:   "60.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
 					},
 				},
 				{
-					DestinationIP:   "60.60.0.103",
+					DestinationIP:   "60.60.0.103/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
