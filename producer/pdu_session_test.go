@@ -32,14 +32,19 @@ var userPlaneConfig = factory.UserPlaneInformation{
 		"UPF1": {
 			Type:   "UPF",
 			NodeID: "192.168.179.1",
-			SNssaiInfos: []models.SnssaiUpfInfoItem{
+			SNssaiInfos: []factory.SnssaiUpfInfoItem{
 				{
 					SNssai: &models.Snssai{
 						Sst: 1,
 						Sd:  "112232",
 					},
-					DnnUpfInfoList: []models.DnnUpfInfoItem{
-						{Dnn: "internet"},
+					DnnUpfInfoList: []factory.DnnUpfInfoItem{
+						{
+							Dnn: "internet",
+							Pools: []factory.UEIPPool{
+								{Cidr: "60.60.0.0/16"},
+							},
+						},
 					},
 				},
 			},
@@ -98,7 +103,6 @@ var testConfig = factory.Config{
 							IPv4Addr: "8.8.8.8",
 							IPv6Addr: "2001:4860:4860::8888",
 						},
-						UESubnet: "60.60.0.0/16",
 					},
 				},
 			},
@@ -257,7 +261,7 @@ func initGetSMDataStubUDM() {
 		},
 	}
 
-	gock.New("http://127.0.0.3:8000/nudm-sdm/v1/imsi-2089300007487").
+	gock.New("http://127.0.0.3:8000/nudm-sdm/v1/imsi-208930000007487").
 		Get("/sm-data").
 		MatchParam("dnn", "internet").
 		Reply(http.StatusOK).
@@ -423,7 +427,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 		}, {
 			request: models.PostSmContextsRequest{
 				JsonData: &models.SmContextCreateData{
-					Supi:         "imsi-2089300007487",
+					Supi:         "imsi-208930000007487",
 					Pei:          "imeisv-1110000000000000",
 					Gpsi:         "msisdn-0900000000",
 					PduSessionId: 10,

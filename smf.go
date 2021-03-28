@@ -11,7 +11,9 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/urfave/cli"
@@ -29,6 +31,8 @@ func main() {
 	app.Usage = "5G Session Management Function (SMF)"
 	app.Action = action
 	app.Flags = SMF.GetCliCmd()
+	rand.Seed(time.Now().UnixNano())
+
 	if err := app.Run(os.Args); err != nil {
 		logger.AppLog.Errorf("SMF Run error: %v\n", err)
 	}

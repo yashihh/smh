@@ -144,16 +144,11 @@ func (s *SnssaiInfoItem) validate() (bool, error) {
 }
 
 type SnssaiDnnInfoItem struct {
-	Dnn      string `yaml:"dnn" valid:"type(string),minstringlength(1),required"`
-	DNS      DNS    `yaml:"dns" valid:"required"`
-	UESubnet string `yaml:"ueSubnet" valid:"ueSubnet,required"`
+	Dnn string `yaml:"dnn" valid:"type(string),minstringlength(1),required"`
+	DNS DNS    `yaml:"dns" valid:"required"`
 }
 
 func (s *SnssaiDnnInfoItem) validate() (bool, error) {
-	govalidator.TagMap["ueSubnet"] = govalidator.Validator(func(str string) bool {
-		return govalidator.IsCIDR(str)
-	})
-
 	if dns := &s.DNS; dns != nil {
 		if result, err := dns.validate(); err != nil {
 			return result, err
@@ -226,7 +221,7 @@ type Path struct {
 
 func (p *Path) validate() (bool, error) {
 	for _, upf := range p.UPF {
-		if result := len(upf) > 0; !result {
+		if result := len(upf); result == 0 {
 			err := errors.New("Invalid UPF: " + upf + ", should not be empty")
 			return false, err
 		}
@@ -237,17 +232,34 @@ func (p *Path) validate() (bool, error) {
 }
 
 type UERoutingInfo struct {
-	SUPI     string `yaml:"SUPI,omitempty" valid:"supi,required"`
-	AN       string `yaml:"AN,omitempty" valid:"ipv4,required"`
-	PathList []Path `yaml:"PathList,omitempty" valid:"required"`
+	Members       []string       `yaml:"members" valid:"required"`
+	AN            string         `yaml:"AN,omitempty" valid:"ipv4,optional"`
+	PathList      []Path         `yaml:"PathList,omitempty" valid:"optional"`
+	Topology      []UPLink       `yaml:"topology" valid:"required"`
+	SpecificPaths []SpecificPath `yaml:"specificPath,omitempty" valid:"optional"`
 }
 
 func (u *UERoutingInfo) validate() (bool, error) {
-	govalidator.TagMap["supi"] = govalidator.Validator(func(str string) bool {
-		return govalidator.StringMatches(str, "imsi-[0-9]{13}$")
-	})
+	for _, member := range u.Members {
+		if result := govalidator.StringMatches(member, "imsi-[0-9]{14,15}$"); !result {
+			err := errors.New("Invalid member (SUPI): " + member)
+			return false, err
+		}
+	}
 
 	for _, path := range u.PathList {
+		if result, err := path.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	for _, link := range u.Topology {
+		if result, err := link.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	for _, path := range u.SpecificPaths {
 		if result, err := path.validate(); err != nil {
 			return result, err
 		}
@@ -335,7 +347,7 @@ func (p *PfdDataForApp) validate() (bool, error) {
 
 type RoutingConfig struct {
 	Info          *Info                        `yaml:"info" valid:"required"`
-	UERoutingInfo []*UERoutingInfo             `yaml:"ueRoutingInfo" valid:"required"`
+	UERoutingInfo map[string]UERoutingInfo     `yaml:"ueRoutingInfo" valid:"required"`
 	RouteProf     map[RouteProfID]RouteProfile `yaml:"routeProfile,omitempty" valid:"optional"`
 	PfdDatas      []*PfdDataForApp             `yaml:"pfdDataForApp,omitempty" valid:"optional"`
 }
@@ -394,12 +406,12 @@ func (u *UserPlaneInformation) validate() (bool, error) {
 
 // UPNode represent the user plane node
 type UPNode struct {
-	Type                 string                     `yaml:"type" valid:"upNodeType,required"`
-	NodeID               string                     `yaml:"node_id" valid:"url,optional"`
-	ANIP                 string                     `yaml:"an_ip" valid:"url,optional"`
-	Dnn                  string                     `yaml:"dnn" valid:"type(string),minstringlength(1),optional"`
-	SNssaiInfos          []models.SnssaiUpfInfoItem `yaml:"sNssaiUpfInfos,omitempty" valid:"optional"`
-	InterfaceUpfInfoList []InterfaceUpfInfoItem     `yaml:"interfaces,omitempty" valid:"optional"`
+	Type                 string                 `yaml:"type" valid:"upNodeType,required"`
+	NodeID               string                 `yaml:"node_id" valid:"url,optional"`
+	ANIP                 string                 `yaml:"an_ip" valid:"url,optional"`
+	Dnn                  string                 `yaml:"dnn" valid:"type(string),minstringlength(1),optional"`
+	SNssaiInfos          []SnssaiUpfInfoItem    `yaml:"sNssaiUpfInfos,omitempty" valid:"optional"`
+	InterfaceUpfInfoList []InterfaceUpfInfoItem `yaml:"interfaces,omitempty" valid:"optional"`
 }
 
 func (u *UPNode) validate() (bool, error) {
@@ -408,24 +420,8 @@ func (u *UPNode) validate() (bool, error) {
 	})
 
 	for _, snssaiInfo := range u.SNssaiInfos {
-		if snssai := snssaiInfo.SNssai; snssai != nil {
-			if result := (snssai.Sst >= 0 && snssai.Sst <= 255); !result {
-				err := errors.New("Invalid sNssai.Sst: " + strconv.Itoa(int(snssai.Sst)) + ", should be in range 0~255.")
-				return false, err
-			}
-
-			if result := govalidator.StringMatches(snssai.Sd, "^[0-9A-Fa-f]{6}$"); !result {
-				err := errors.New("Invalid sNssai.Sd: " + snssai.Sd +
-					", should be 3 bytes hex string and in range 000000~FFFFFF.")
-				return false, err
-			}
-		}
-
-		for _, dnnInfo := range snssaiInfo.DnnUpfInfoList {
-			if result := len(dnnInfo.Dnn) > 0; !result {
-				err := errors.New("Invalid dnnUpfInfoList.dnn: " + dnnInfo.Dnn + ", should not be empty.")
-				return false, err
-			}
+		if result, err := snssaiInfo.validate(); err != nil {
+			return result, err
 		}
 	}
 
@@ -462,6 +458,58 @@ func (i *InterfaceUpfInfoItem) validate() (bool, error) {
 	return result, appendInvalid(err)
 }
 
+type SnssaiUpfInfoItem struct {
+	SNssai         *models.Snssai   `yaml:"sNssai" valid:"required"`
+	DnnUpfInfoList []DnnUpfInfoItem `yaml:"dnnUpfInfoList" valid:"required"`
+}
+
+func (s *SnssaiUpfInfoItem) validate() (bool, error) {
+	if s.SNssai != nil {
+		if result := (s.SNssai.Sst >= 0 && s.SNssai.Sst <= 255); !result {
+			err := errors.New("Invalid sNssai.Sst: " + strconv.Itoa(int(s.SNssai.Sst)) + ", should be in range 0~255.")
+			return false, err
+		}
+
+		if result := govalidator.StringMatches(s.SNssai.Sd, "^[0-9A-Fa-f]{6}$"); !result {
+			err := errors.New("Invalid sNssai.Sd: " + s.SNssai.Sd +
+				", should be 3 bytes hex string and in range 000000~FFFFFF.")
+			return false, err
+		}
+	}
+
+	for _, dnnInfo := range s.DnnUpfInfoList {
+		if result, err := dnnInfo.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(s)
+	return result, appendInvalid(err)
+}
+
+type DnnUpfInfoItem struct {
+	Dnn             string                  `yaml:"dnn" valid:"required"`
+	DnaiList        []string                `yaml:"dnaiList" valid:"optional"`
+	PduSessionTypes []models.PduSessionType `yaml:"pduSessionTypes" valid:"optional"`
+	Pools           []UEIPPool              `yaml:"pools" valid:"optional"`
+}
+
+func (d *DnnUpfInfoItem) validate() (bool, error) {
+	if result := len(d.Dnn); result == 0 {
+		err := errors.New("Invalid DnnUpfInfoItem.dnn: " + d.Dnn + ", should not be empty.")
+		return false, err
+	}
+
+	for _, pool := range d.Pools {
+		if result, err := pool.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(d)
+	return result, appendInvalid(err)
+}
+
 type UPLink struct {
 	A string `yaml:"A" valid:"required"`
 	B string `yaml:"B" valid:"required"`
@@ -485,6 +533,41 @@ func appendInvalid(err error) error {
 	}
 
 	return error(errs)
+}
+
+type UEIPPool struct {
+	Cidr string `yaml:"cidr" valid:"cidr,required"`
+}
+
+func (u *UEIPPool) validate() (bool, error) {
+	govalidator.TagMap["cidr"] = govalidator.Validator(func(str string) bool {
+		return govalidator.IsCIDR(str)
+	})
+
+	result, err := govalidator.ValidateStruct(u)
+	return result, appendInvalid(err)
+}
+
+type SpecificPath struct {
+	DestinationIP   string   `yaml:"dest,omitempty" valid:"cidr,required"`
+	DestinationPort string   `yaml:"DestinationPort,omitempty" valid:"port,optional"`
+	Path            []string `yaml:"path" valid:"required"`
+}
+
+func (p *SpecificPath) validate() (bool, error) {
+	govalidator.TagMap["cidr"] = govalidator.Validator(func(str string) bool {
+		return govalidator.IsCIDR(str)
+	})
+
+	for _, upf := range p.Path {
+		if result := len(upf); result == 0 {
+			err := errors.New("Invalid UPF: " + upf + ", should not be empty")
+			return false, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(p)
+	return result, appendInvalid(err)
 }
 
 func (c *Config) GetVersion() string {
