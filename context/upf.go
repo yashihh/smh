@@ -30,6 +30,25 @@ type UPTunnel struct {
 	}
 }
 
+func (t *UPTunnel) UpdateANInformation(ip net.IP, teid uint32) {
+	t.ANInformation.IPAddress = ip
+	t.ANInformation.TEID = teid
+
+	for _, dataPath := range t.DataPathPool {
+		if dataPath.Activated {
+			ANUPF := dataPath.FirstDPNode
+			DLPDR := ANUPF.DownLinkTunnel.PDR
+
+			DLPDR.FAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
+			dlOuterHeaderCreation := DLPDR.FAR.ForwardingParameters.OuterHeaderCreation
+			dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
+			dlOuterHeaderCreation.Teid = t.ANInformation.TEID
+			dlOuterHeaderCreation.Ipv4Address = t.ANInformation.IPAddress.To4()
+			DLPDR.FAR.State = RULE_UPDATE
+		}
+	}
+}
+
 type UPFStatus int
 
 const (
@@ -338,7 +357,7 @@ func (upf *UPF) GetUPFID() string {
 
 func (upf *UPF) pdrID() (uint16, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err := fmt.Errorf("this upf not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return 0, err
 	}
 
@@ -354,7 +373,7 @@ func (upf *UPF) pdrID() (uint16, error) {
 
 func (upf *UPF) farID() (uint32, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err := fmt.Errorf("this upf not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return 0, err
 	}
 
@@ -370,7 +389,7 @@ func (upf *UPF) farID() (uint32, error) {
 
 func (upf *UPF) barID() (uint8, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err := fmt.Errorf("this upf not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return 0, err
 	}
 
@@ -386,7 +405,7 @@ func (upf *UPF) barID() (uint8, error) {
 
 func (upf *UPF) qerID() (uint32, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err := fmt.Errorf("this upf not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return 0, err
 	}
 
@@ -402,7 +421,7 @@ func (upf *UPF) qerID() (uint32, error) {
 
 func (upf *UPF) AddPDR() (*PDR, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err := fmt.Errorf("this upf do not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return nil, err
 	}
 
@@ -425,7 +444,7 @@ func (upf *UPF) AddPDR() (*PDR, error) {
 
 func (upf *UPF) AddFAR() (*FAR, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err := fmt.Errorf("this upf do not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return nil, err
 	}
 
@@ -442,7 +461,7 @@ func (upf *UPF) AddFAR() (*FAR, error) {
 
 func (upf *UPF) AddBAR() (*BAR, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err := fmt.Errorf("this upf do not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return nil, err
 	}
 
@@ -458,7 +477,7 @@ func (upf *UPF) AddBAR() (*BAR, error) {
 
 func (upf *UPF) AddQER() (*QER, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err := fmt.Errorf("this upf do not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return nil, err
 	}
 
@@ -475,7 +494,7 @@ func (upf *UPF) AddQER() (*QER, error) {
 //*** add unit test ***//
 func (upf *UPF) RemovePDR(pdr *PDR) (err error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err = fmt.Errorf("this upf not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return err
 	}
 
@@ -487,7 +506,7 @@ func (upf *UPF) RemovePDR(pdr *PDR) (err error) {
 //*** add unit test ***//
 func (upf *UPF) RemoveFAR(far *FAR) (err error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err = fmt.Errorf("this upf not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return err
 	}
 
@@ -499,7 +518,7 @@ func (upf *UPF) RemoveFAR(far *FAR) (err error) {
 //*** add unit test ***//
 func (upf *UPF) RemoveBAR(bar *BAR) (err error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err = fmt.Errorf("this upf not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return err
 	}
 
@@ -511,7 +530,7 @@ func (upf *UPF) RemoveBAR(bar *BAR) (err error) {
 //*** add unit test ***//
 func (upf *UPF) RemoveQER(qer *QER) (err error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
-		err = fmt.Errorf("this upf not associate with smf")
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
 		return err
 	}
 

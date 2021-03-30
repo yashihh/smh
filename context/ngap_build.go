@@ -230,24 +230,27 @@ func BuildPDUSessionResourceReleaseCommandTransfer(ctx *SMContext) (buf []byte, 
 }
 
 func BuildHandoverCommandTransfer(ctx *SMContext) ([]byte, error) {
-	ANUPF := ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
-	UpNode := ANUPF.UPF
-	teidOct := make([]byte, 4)
-	binary.BigEndian.PutUint32(teidOct, ANUPF.UpLinkTunnel.TEID)
 	handoverCommandTransfer := ngapType.HandoverCommandTransfer{}
 
-	handoverCommandTransfer.DLForwardingUPTNLInformation = new(ngapType.UPTransportLayerInformation)
-	handoverCommandTransfer.DLForwardingUPTNLInformation.Present = ngapType.UPTransportLayerInformationPresentGTPTunnel
-	handoverCommandTransfer.DLForwardingUPTNLInformation.GTPTunnel = new(ngapType.GTPTunnel)
+	if ctx.IndirectForwarding {
+		ANUPF := ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
+		UpNode := ANUPF.UPF
+		teidOct := make([]byte, 4)
+		binary.BigEndian.PutUint32(teidOct, ctx.IndirectForwardingTunnel.FirstDPNode.UpLinkTunnel.TEID)
 
-	if n3IP, err := UpNode.N3Interfaces[0].IP(ctx.SelectedPDUSessionType); err != nil {
-		return nil, err
-	} else {
-		gtpTunnel := handoverCommandTransfer.DLForwardingUPTNLInformation.GTPTunnel
-		gtpTunnel.GTPTEID.Value = teidOct
-		gtpTunnel.TransportLayerAddress.Value = aper.BitString{
-			Bytes:     n3IP,
-			BitLength: uint64(len(n3IP) * 8),
+		handoverCommandTransfer.DLForwardingUPTNLInformation = new(ngapType.UPTransportLayerInformation)
+		handoverCommandTransfer.DLForwardingUPTNLInformation.Present = ngapType.UPTransportLayerInformationPresentGTPTunnel
+		handoverCommandTransfer.DLForwardingUPTNLInformation.GTPTunnel = new(ngapType.GTPTunnel)
+
+		if n3IP, err := UpNode.N3Interfaces[0].IP(ctx.SelectedPDUSessionType); err != nil {
+			return nil, err
+		} else {
+			gtpTunnel := handoverCommandTransfer.DLForwardingUPTNLInformation.GTPTunnel
+			gtpTunnel.GTPTEID.Value = teidOct
+			gtpTunnel.TransportLayerAddress.Value = aper.BitString{
+				Bytes:     n3IP,
+				BitLength: uint64(len(n3IP) * 8),
+			}
 		}
 	}
 

@@ -83,6 +83,11 @@ type SMContext struct {
 
 	DnnConfiguration models.DnnConfiguration
 
+	// Handover related
+	DirectForwarding         bool
+	IndirectForwarding       bool
+	IndirectForwardingTunnel *DataPath
+
 	// Client
 	SMPolicyClient      *Npcf_SMPolicyControl.APIClient
 	CommunicationClient *Namf_Communication.APIClient
