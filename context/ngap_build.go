@@ -232,7 +232,7 @@ func BuildPDUSessionResourceReleaseCommandTransfer(ctx *SMContext) (buf []byte, 
 func BuildHandoverCommandTransfer(ctx *SMContext) ([]byte, error) {
 	handoverCommandTransfer := ngapType.HandoverCommandTransfer{}
 
-	if ctx.IndirectForwarding {
+	if ctx.DLForwardingType == IndirectForwarding {
 		ANUPF := ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
 		UpNode := ANUPF.UPF
 		teidOct := make([]byte, 4)
@@ -252,6 +252,8 @@ func BuildHandoverCommandTransfer(ctx *SMContext) ([]byte, error) {
 				BitLength: uint64(len(n3IP) * 8),
 			}
 		}
+	} else if ctx.DLForwardingType == DirectForwarding {
+		handoverCommandTransfer.DLForwardingUPTNLInformation = ctx.DLDirectForwardingTunnel
 	}
 
 	if buf, err := aper.MarshalWithParams(handoverCommandTransfer, "valueExt"); err != nil {

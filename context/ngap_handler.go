@@ -113,10 +113,10 @@ func HandleHandoverRequiredTransfer(b []byte, ctx *SMContext) (err error) {
 	directForwardingPath := handoverRequiredTransfer.DirectForwardingPathAvailability
 	if directForwardingPath != nil {
 		logger.PduSessLog.Infoln("Direct Forwarding Path Available")
-		ctx.DirectForwarding = true
+		ctx.DLForwardingType = DirectForwarding
 	} else {
 		logger.PduSessLog.Infoln("Direct Forwarding Path Unavailable")
-		ctx.DirectForwarding = false
+		ctx.DLForwardingType = IndirectForwarding
 	}
 
 	if err != nil {
@@ -140,10 +140,13 @@ func HandleHandoverRequestAcknowledgeTransfer(b []byte, ctx *SMContext) (err err
 		DLNGUUPGTPTunnel.TransportLayerAddress.Value.Bytes,
 		binary.BigEndian.Uint32(DLNGUUPGTPTunnel.GTPTEID.Value))
 
-	if DLForwardingInfo :=
-		handoverRequestAcknowledgeTransfer.DLForwardingUPTNLInformation; DLForwardingInfo != nil {
-		ctx.IndirectForwarding = true
+	DLForwardingInfo := handoverRequestAcknowledgeTransfer.DLForwardingUPTNLInformation
 
+	if DLForwardingInfo == nil {
+		return errors.New("DL Forwarding Info not provision")
+	}
+
+	if ctx.DLForwardingType == IndirectForwarding {
 		DLForwardingGTPTunnel := DLForwardingInfo.GTPTunnel
 
 		ctx.IndirectForwardingTunnel = NewDataPath()
@@ -191,9 +194,8 @@ func HandleHandoverRequestAcknowledgeTransfer(b []byte, ctx *SMContext) (err err
 				},
 			}
 		}
-
-	} else {
-		ctx.IndirectForwarding = false
+	} else if ctx.DLForwardingType == DirectForwarding {
+		ctx.DLDirectForwardingTunnel = DLForwardingInfo
 	}
 
 	return nil

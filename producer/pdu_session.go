@@ -666,11 +666,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			logger.PduSessLog.Errorf("Handle HandoverRequestAcknowledgeTransfer failed: %+v", err)
 		}
 
-		if !smContext.DirectForwarding && !smContext.IndirectForwarding {
-			logger.PduSessLog.Warning("Direct forwarding inavailable and no providing indirect forwarding path")
-		}
-
-		if smContext.IndirectForwarding {
+		// request UPF establish indirect forwarding path for DL
+		if smContext.DLForwardingType == smf_context.IndirectForwarding {
 			smContext.PendingUPF = make(smf_context.PendingUPF)
 			ANUPF := smContext.IndirectForwardingTunnel.FirstDPNode
 			IndirectForwardingPDR := smContext.IndirectForwardingTunnel.FirstDPNode.UpLinkTunnel.PDR
@@ -727,7 +724,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		}
 
 		// remove indirect forwarding path
-		if smContext.IndirectForwarding {
+		if smContext.DLForwardingType == smf_context.IndirectForwarding {
 			indirectForwardingPDR := smContext.IndirectForwardingTunnel.FirstDPNode.GetUpLinkPDR()
 			indirectForwardingPDR.State = smf_context.RULE_REMOVE
 			indirectForwardingPDR.FAR.State = smf_context.RULE_REMOVE
