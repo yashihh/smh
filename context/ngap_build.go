@@ -256,6 +256,17 @@ func BuildHandoverCommandTransfer(ctx *SMContext) ([]byte, error) {
 		handoverCommandTransfer.DLForwardingUPTNLInformation = ctx.DLDirectForwardingTunnel
 	}
 
+	handoverCommandTransfer.QosFlowToBeForwardedList =
+		&ngapType.QosFlowToBeForwardedList{
+			List: []ngapType.QosFlowToBeForwardedItem{
+				{
+					QosFlowIdentifier: ngapType.QosFlowIdentifier{
+						Value: DefaultNonGBR5QI,
+					},
+				},
+			},
+		}
+
 	if buf, err := aper.MarshalWithParams(handoverCommandTransfer, "valueExt"); err != nil {
 		return nil, err
 	} else {
