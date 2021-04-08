@@ -666,6 +666,28 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			logger.PduSessLog.Errorf("Handle HandoverRequestAcknowledgeTransfer failed: %+v", err)
 		}
 
+		// request UPF establish indirect forwarding path for DL
+		if smContext.DLForwardingType == smf_context.IndirectForwarding {
+			smContext.PendingUPF = make(smf_context.PendingUPF)
+			ANUPF := smContext.IndirectForwardingTunnel.FirstDPNode
+			IndirectForwardingPDR := smContext.IndirectForwardingTunnel.FirstDPNode.UpLinkTunnel.PDR
+
+			pdrList = append(pdrList, IndirectForwardingPDR)
+			farList = append(farList, IndirectForwardingPDR.FAR)
+
+			if _, exist := smContext.PendingUPF[ANUPF.GetNodeIP()]; !exist {
+				smContext.PendingUPF[ANUPF.GetNodeIP()] = true
+			}
+
+			// release indirect forwading path
+			if err := ANUPF.UPF.RemovePDR(IndirectForwardingPDR); err != nil {
+				logger.PduSessLog.Errorln("release indirect path: ", err)
+			}
+
+			sendPFCPModification = true
+			smContext.SMContextState = smf_context.PFCPModification
+		}
+
 		if n2Buf, err := smf_context.BuildHandoverCommandTransfer(smContext); err != nil {
 			logger.PduSessLog.Errorf("Build PDUSession Resource Setup Request Transfer Error(%s)", err.Error())
 		} else {
@@ -685,7 +707,34 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
 				smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
 		}
-		smContext.SMContextState = smf_context.ModificationPending
+
+		smContext.PendingUPF = make(smf_context.PendingUPF)
+		for _, dataPath := range tunnel.DataPathPool {
+			if dataPath.Activated {
+				ANUPF := dataPath.FirstDPNode
+				DLPDR := ANUPF.DownLinkTunnel.PDR
+
+				pdrList = append(pdrList, DLPDR)
+				farList = append(farList, DLPDR.FAR)
+
+				if _, exist := smContext.PendingUPF[ANUPF.GetNodeIP()]; !exist {
+					smContext.PendingUPF[ANUPF.GetNodeIP()] = true
+				}
+			}
+		}
+
+		// remove indirect forwarding path
+		if smContext.DLForwardingType == smf_context.IndirectForwarding {
+			indirectForwardingPDR := smContext.IndirectForwardingTunnel.FirstDPNode.GetUpLinkPDR()
+			indirectForwardingPDR.State = smf_context.RULE_REMOVE
+			indirectForwardingPDR.FAR.State = smf_context.RULE_REMOVE
+			pdrList = append(pdrList, indirectForwardingPDR)
+			farList = append(farList, indirectForwardingPDR.FAR)
+		}
+
+		sendPFCPModification = true
+		smContext.SMContextState = smf_context.PFCPModification
+
 		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
 		smContext.HoState = models.HoState_COMPLETED
 		response.JsonData.HoState = models.HoState_COMPLETED

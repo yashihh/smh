@@ -1,10 +1,8 @@
 package context
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 
 	"bitbucket.org/free5gc-team/aper"
 	"bitbucket.org/free5gc-team/ngap/ngapType"
@@ -29,25 +27,11 @@ func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (er
 		return errors.New("resourceSetupResponseTransfer.QosFlowPerTNLInformation.UPTransportLayerInformation.Present")
 	}
 
-	gtpTunnel := QosFlowPerTNLInformation.UPTransportLayerInformation.GTPTunnel
+	GTPTunnel := QosFlowPerTNLInformation.UPTransportLayerInformation.GTPTunnel
 
-	teid := binary.BigEndian.Uint32(gtpTunnel.GTPTEID.Value)
-
-	ctx.Tunnel.ANInformation.IPAddress = gtpTunnel.TransportLayerAddress.Value.Bytes
-	ctx.Tunnel.ANInformation.TEID = teid
-
-	for _, dataPath := range ctx.Tunnel.DataPathPool {
-		if dataPath.Activated {
-			ANUPF := dataPath.FirstDPNode
-			DLPDR := ANUPF.DownLinkTunnel.PDR
-
-			DLPDR.FAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
-			dlOuterHeaderCreation := DLPDR.FAR.ForwardingParameters.OuterHeaderCreation
-			dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
-			dlOuterHeaderCreation.Teid = teid
-			dlOuterHeaderCreation.Ipv4Address = ctx.Tunnel.ANInformation.IPAddress.To4()
-		}
-	}
+	ctx.Tunnel.UpdateANInformation(
+		GTPTunnel.TransportLayerAddress.Value.Bytes,
+		binary.BigEndian.Uint32(GTPTunnel.GTPTEID.Value))
 
 	ctx.UpCnxState = models.UpCnxState_ACTIVATED
 	return nil
@@ -99,28 +83,11 @@ func HandlePathSwitchRequestTransfer(b []byte, ctx *SMContext) error {
 		return errors.New("pathSwitchRequestTransfer.DLNGUUPTNLInformation.Present")
 	}
 
-	gtpTunnel := pathSwitchRequestTransfer.DLNGUUPTNLInformation.GTPTunnel
+	GTPTunnel := pathSwitchRequestTransfer.DLNGUUPTNLInformation.GTPTunnel
 
-	TEIDReader := bytes.NewBuffer(gtpTunnel.GTPTEID.Value)
-
-	teid, err := binary.ReadUvarint(TEIDReader)
-	if err != nil {
-		return fmt.Errorf("Parse TEID error %s", err.Error())
-	}
-
-	for _, dataPath := range ctx.Tunnel.DataPathPool {
-		if dataPath.Activated {
-			ANUPF := dataPath.FirstDPNode
-			DLPDR := ANUPF.DownLinkTunnel.PDR
-
-			DLPDR.FAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
-			dlOuterHeaderCreation := DLPDR.FAR.ForwardingParameters.OuterHeaderCreation
-			dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
-			dlOuterHeaderCreation.Teid = uint32(teid)
-			dlOuterHeaderCreation.Ipv4Address = gtpTunnel.TransportLayerAddress.Value.Bytes
-			DLPDR.FAR.State = RULE_UPDATE
-		}
-	}
+	ctx.Tunnel.UpdateANInformation(
+		GTPTunnel.TransportLayerAddress.Value.Bytes,
+		binary.BigEndian.Uint32(GTPTunnel.GTPTEID.Value))
 
 	return nil
 }
@@ -143,11 +110,18 @@ func HandleHandoverRequiredTransfer(b []byte, ctx *SMContext) (err error) {
 
 	err = aper.UnmarshalWithParams(b, &handoverRequiredTransfer, "valueExt")
 
+	directForwardingPath := handoverRequiredTransfer.DirectForwardingPathAvailability
+	if directForwardingPath != nil {
+		logger.PduSessLog.Infoln("Direct Forwarding Path Available")
+		ctx.DLForwardingType = DirectForwarding
+	} else {
+		logger.PduSessLog.Infoln("Direct Forwarding Path Unavailable")
+		ctx.DLForwardingType = IndirectForwarding
+	}
+
 	if err != nil {
 		return err
 	}
-
-	// TODO: Handle Handover Required Transfer
 	return nil
 }
 
@@ -159,27 +133,69 @@ func HandleHandoverRequestAcknowledgeTransfer(b []byte, ctx *SMContext) (err err
 	if err != nil {
 		return err
 	}
-	DLNGUUPTNLInformation := handoverRequestAcknowledgeTransfer.DLNGUUPTNLInformation
-	GTPTunnel := DLNGUUPTNLInformation.GTPTunnel
-	TEIDReader := bytes.NewBuffer(GTPTunnel.GTPTEID.Value)
 
-	teid, err := binary.ReadUvarint(TEIDReader)
-	if err != nil {
-		return fmt.Errorf("Parse TEID error %s", err.Error())
+	DLNGUUPGTPTunnel := handoverRequestAcknowledgeTransfer.DLNGUUPTNLInformation.GTPTunnel
+
+	ctx.Tunnel.UpdateANInformation(
+		DLNGUUPGTPTunnel.TransportLayerAddress.Value.Bytes,
+		binary.BigEndian.Uint32(DLNGUUPGTPTunnel.GTPTEID.Value))
+
+	DLForwardingInfo := handoverRequestAcknowledgeTransfer.DLForwardingUPTNLInformation
+
+	if DLForwardingInfo == nil {
+		return errors.New("DL Forwarding Info not provision")
 	}
 
-	for _, dataPath := range ctx.Tunnel.DataPathPool {
-		if dataPath.Activated {
-			ANUPF := dataPath.FirstDPNode
-			DLPDR := ANUPF.DownLinkTunnel.PDR
+	if ctx.DLForwardingType == IndirectForwarding {
+		DLForwardingGTPTunnel := DLForwardingInfo.GTPTunnel
 
-			DLPDR.FAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
-			dlOuterHeaderCreation := DLPDR.FAR.ForwardingParameters.OuterHeaderCreation
-			dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
-			dlOuterHeaderCreation.Teid = uint32(teid)
-			dlOuterHeaderCreation.Ipv4Address = GTPTunnel.TransportLayerAddress.Value.Bytes
-			DLPDR.FAR.State = RULE_UPDATE
+		ctx.IndirectForwardingTunnel = NewDataPath()
+		ctx.IndirectForwardingTunnel.FirstDPNode = NewDataPathNode()
+		ctx.IndirectForwardingTunnel.FirstDPNode.UPF = ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode.UPF
+		ctx.IndirectForwardingTunnel.FirstDPNode.UpLinkTunnel = &GTPTunnel{}
+
+		ANUPF := ctx.IndirectForwardingTunnel.FirstDPNode.UPF
+
+		var indirectFowardingPDR *PDR
+
+		if pdr, err := ANUPF.AddPDR(); err != nil {
+			return err
+		} else {
+			indirectFowardingPDR = pdr
 		}
+
+		originPDR := ctx.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode.UpLinkTunnel.PDR
+
+		if teid, err := ANUPF.GenerateTEID(); err != nil {
+			return err
+		} else {
+			ctx.IndirectForwardingTunnel.FirstDPNode.UpLinkTunnel.TEID = teid
+			ctx.IndirectForwardingTunnel.FirstDPNode.UpLinkTunnel.PDR = indirectFowardingPDR
+			indirectFowardingPDR.PDI.LocalFTeid = &pfcpType.FTEID{
+				V4:          originPDR.PDI.LocalFTeid.V4,
+				Teid:        ctx.IndirectForwardingTunnel.FirstDPNode.UpLinkTunnel.TEID,
+				Ipv4Address: originPDR.PDI.LocalFTeid.Ipv4Address,
+			}
+			indirectFowardingPDR.OuterHeaderRemoval = &pfcpType.OuterHeaderRemoval{
+				OuterHeaderRemovalDescription: pfcpType.OuterHeaderRemovalGtpUUdpIpv4,
+			}
+
+			indirectFowardingPDR.FAR.ApplyAction = pfcpType.ApplyAction{
+				Forw: true,
+			}
+			indirectFowardingPDR.FAR.ForwardingParameters = &ForwardingParameters{
+				DestinationInterface: pfcpType.DestinationInterface{
+					InterfaceValue: pfcpType.DestinationInterfaceAccess,
+				},
+				OuterHeaderCreation: &pfcpType.OuterHeaderCreation{
+					OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationGtpUUdpIpv4,
+					Teid:                           binary.BigEndian.Uint32(DLForwardingGTPTunnel.GTPTEID.Value),
+					Ipv4Address:                    DLForwardingGTPTunnel.TransportLayerAddress.Value.Bytes,
+				},
+			}
+		}
+	} else if ctx.DLForwardingType == DirectForwarding {
+		ctx.DLDirectForwardingTunnel = DLForwardingInfo
 	}
 
 	return nil

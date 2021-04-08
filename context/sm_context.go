@@ -12,6 +12,7 @@ import (
 
 	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
+	"bitbucket.org/free5gc-team/ngap/ngapType"
 	"bitbucket.org/free5gc-team/openapi"
 	"bitbucket.org/free5gc-team/openapi/Namf_Communication"
 	"bitbucket.org/free5gc-team/openapi/Nnrf_NFDiscovery"
@@ -25,6 +26,14 @@ var (
 	smContextPool    sync.Map
 	canonicalRef     sync.Map
 	seidSMContextMap sync.Map
+)
+
+type DLForwardingType int
+
+const (
+	IndirectForwarding DLForwardingType = iota
+	DirectForwarding
+	NoForwarding
 )
 
 var smContextCount uint64
@@ -82,6 +91,11 @@ type SMContext struct {
 	SelectedPDUSessionType uint8
 
 	DnnConfiguration models.DnnConfiguration
+
+	// Handover related
+	DLForwardingType         DLForwardingType
+	DLDirectForwardingTunnel *ngapType.UPTransportLayerInformation
+	IndirectForwardingTunnel *DataPath
 
 	// Client
 	SMPolicyClient      *Npcf_SMPolicyControl.APIClient
