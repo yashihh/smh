@@ -24,7 +24,6 @@ import (
 	NudmUEContextManagLogger "bitbucket.org/free5gc-team/openapi/Nudm_UEContextManagement/logger"
 	NudrDataRepositoryLogger "bitbucket.org/free5gc-team/openapi/Nudr_DataRepository/logger"
 	openApiLogger "bitbucket.org/free5gc-team/openapi/logger"
-	pathUtilLogger "bitbucket.org/free5gc-team/path_util/logger"
 	pfcpLogger "bitbucket.org/free5gc-team/pfcp/logger"
 )
 
@@ -89,7 +88,6 @@ func LogFileHook(logNfPath string, log5gcPath string) error {
 			NudmUEContextManagLogger.GetLogger().Hooks.Add(free5gcLogHook)
 			NudrDataRepositoryLogger.GetLogger().Hooks.Add(free5gcLogHook)
 			pfcpLogger.GetLogger().Hooks.Add(free5gcLogHook)
-			pathUtilLogger.GetLogger().Hooks.Add(free5gcLogHook)
 		}
 	} else {
 		return fileErr
@@ -118,7 +116,6 @@ func LogFileHook(logNfPath string, log5gcPath string) error {
 		NudmUEContextManagLogger.GetLogger().Hooks.Add(selfLogHook)
 		NudrDataRepositoryLogger.GetLogger().Hooks.Add(selfLogHook)
 		pfcpLogger.GetLogger().Hooks.Add(selfLogHook)
-		pathUtilLogger.GetLogger().Hooks.Add(selfLogHook)
 	} else {
 		return fileErr
 	}

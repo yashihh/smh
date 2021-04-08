@@ -2,13 +2,9 @@
 
 package util
 
-import (
-	"bitbucket.org/free5gc-team/path_util"
-)
-
 var (
-	SmfLogPath           = path_util.Free5gcPath("free5gc/smfsslkey.log")
-	SmfPemPath           = path_util.Free5gcPath("free5gc/support/TLS/smf.pem")
-	SmfKeyPath           = path_util.Free5gcPath("free5gc/support/TLS/smf.key")
-	DefaultSmfConfigPath = path_util.Free5gcPath("free5gc/config/smfcfg.yaml")
+	SmfKeyLogPath        = "./log/smfsslkey.log"
+	SmfPemPath           = "./config/TLS/smf.pem"
+	SmfKeyPath           = "./config/TLS/smf.key"
+	DefaultSmfConfigPath = "./config/smfcfg.yaml"
 )

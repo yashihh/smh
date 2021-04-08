@@ -1,7 +1,9 @@
 package udp
 
 import (
+	"fmt"
 	"net"
+	"runtime/debug"
 	"time"
 
 	"bitbucket.org/free5gc-team/pfcp"
@@ -17,6 +19,15 @@ var Server *pfcpUdp.PfcpServer
 var ServerStartTime time.Time
 
 func Run(Dispatch func(*pfcpUdp.Message)) {
+	defer func() {
+		if p := recover(); p != nil {
+			// Print stack for panic to log.
+			msg := fmt.Sprintf("panic: %v\n%s", p, string(debug.Stack()))
+			// Program will be exited.
+			logger.PfcpLog.Fatalln(msg)
+		}
+	}()
+
 	CPNodeID := context.SMF_Self().CPNodeID
 	Server = pfcpUdp.NewPfcpServer(CPNodeID.ResolveNodeIdToIp().String())
 
@@ -28,6 +39,15 @@ func Run(Dispatch func(*pfcpUdp.Message)) {
 	logger.PfcpLog.Infof("Listen on %s", Server.Conn.LocalAddr().String())
 
 	go func(p *pfcpUdp.PfcpServer) {
+		defer func() {
+			if p := recover(); p != nil {
+				// Print stack for panic to log.
+				msg := fmt.Sprintf("panic: %v\n%s", p, string(debug.Stack()))
+				// Program will be exited.
+				logger.PfcpLog.Fatalln(msg)
+			}
+		}()
+
 		for {
 			var pfcpMessage pfcp.Message
 			remoteAddr, err := p.ReadFrom(&pfcpMessage)

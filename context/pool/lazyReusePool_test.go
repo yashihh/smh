@@ -1,6 +1,9 @@
 package pool
 
 import (
+	"fmt"
+	"os"
+	"runtime/debug"
 	"sort"
 	"testing"
 	"time"
@@ -186,6 +189,16 @@ func TestLazyReusePool_ManyGoroutine(t *testing.T) {
 	for i := 0; i < numOfThreads; i++ {
 		// Allocate 2 times and Free 1 time
 		go func() {
+			defer func() {
+				if p := recover(); p != nil {
+					// Print stack for panic to log.
+					msg := fmt.Sprintf("panic: %v\n%s", p, string(debug.Stack()))
+					// Program will be exited.
+					fmt.Fprintf(os.Stderr, "%s", msg)
+					os.Exit(1)
+				}
+			}()
+
 			a1, ok := p.Allocate()
 			assert.True(t, ok)
 			ch <- a1
