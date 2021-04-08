@@ -118,6 +118,14 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 			}
 		}
 
+		// IPv4 PCSCF IP, needed for ims DNNs
+		if smContext.DNNInfo.PCSCFIPv4Address != nil {
+			err := protocolConfigurationOptions.AddPCSCFIPv4Address(*smContext.DNNInfo.PCSCFIPv4Address)
+			if err != nil {
+				logger.GsmLog.Warnln("Error while adding PCSCF IPv4 Addr: ", err)
+			}
+		}
+
 		// MTU
 		if smContext.ProtocolConfigurationOptions.IPv4LinkMTURequest {
 			err := protocolConfigurationOptions.AddIPv4LinkMTU(1400)

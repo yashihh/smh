@@ -144,8 +144,9 @@ func (s *SnssaiInfoItem) validate() (bool, error) {
 }
 
 type SnssaiDnnInfoItem struct {
-	Dnn string `yaml:"dnn" valid:"type(string),minstringlength(1),required"`
-	DNS DNS    `yaml:"dns" valid:"required"`
+	Dnn              string `yaml:"dnn" valid:"type(string),minstringlength(1),required"`
+	DNS              DNS    `yaml:"dns" valid:"required"`
+	PCSCFIPv4Address string `yaml:"pcscfIpv4,omitempty" valid:"optional"`
 }
 
 func (s *SnssaiDnnInfoItem) validate() (bool, error) {
