@@ -150,7 +150,7 @@ func TestAddPDR(t *testing.T) {
 		{
 			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
 			resultStr:     "AddPDR should fail",
-			expectedError: fmt.Errorf("this upf do not associate with smf"),
+			expectedError: fmt.Errorf("UPF[127.0.0.1] not Associate with SMF"),
 		},
 	}
 
@@ -193,7 +193,7 @@ func TestAddFAR(t *testing.T) {
 		{
 			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
 			resultStr:     "AddFAR should fail",
-			expectedError: fmt.Errorf("this upf do not associate with smf"),
+			expectedError: fmt.Errorf("UPF[127.0.0.1] not Associate with SMF"),
 		},
 	}
 
@@ -236,7 +236,7 @@ func TestAddQER(t *testing.T) {
 		{
 			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
 			resultStr:     "AddQER should fail",
-			expectedError: fmt.Errorf("this upf do not associate with smf"),
+			expectedError: fmt.Errorf("UPF[127.0.0.1] not Associate with SMF"),
 		},
 	}
 
@@ -279,7 +279,7 @@ func TestAddBAR(t *testing.T) {
 		{
 			upf:           context.NewUPF(mockIPv4NodeID, mockIfaces),
 			resultStr:     "AddBAR should fail",
-			expectedError: fmt.Errorf("this upf do not associate with smf"),
+			expectedError: fmt.Errorf("UPF[127.0.0.1] not Associate with SMF"),
 		},
 	}
 
