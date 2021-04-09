@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	SMF_EXPECTED_CONFIG_VERSION        = "1.0.0"
-	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.0"
+	SMF_EXPECTED_CONFIG_VERSION        = "1.0.1"
+	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.1"
 	SMF_DEFAULT_IPV4                   = "127.0.0.2"
 	SMF_DEFAULT_PORT                   = "8000"
 	SMF_DEFAULT_PORT_INT               = 8000
@@ -144,13 +144,20 @@ func (s *SnssaiInfoItem) validate() (bool, error) {
 }
 
 type SnssaiDnnInfoItem struct {
-	Dnn string `yaml:"dnn" valid:"type(string),minstringlength(1),required"`
-	DNS DNS    `yaml:"dns" valid:"required"`
+	Dnn   string `yaml:"dnn" valid:"type(string),minstringlength(1),required"`
+	DNS   *DNS   `yaml:"dns" valid:"required"`
+	PCSCF *PCSCF `yaml:"pcscf,omitempty" valid:"optional"`
 }
 
 func (s *SnssaiDnnInfoItem) validate() (bool, error) {
-	if dns := &s.DNS; dns != nil {
+	if dns := s.DNS; dns != nil {
 		if result, err := dns.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	if pcscf := s.PCSCF; pcscf != nil {
+		if result, err := pcscf.validate(); err != nil {
 			return result, err
 		}
 	}
@@ -205,11 +212,20 @@ func (p *PFCP) validate() (bool, error) {
 
 type DNS struct {
 	IPv4Addr string `yaml:"ipv4,omitempty" valid:"ipv4,required"`
-	IPv6Addr string `yaml:"ipv6,omitempty" valid:"ipv6,required"`
+	IPv6Addr string `yaml:"ipv6,omitempty" valid:"ipv6,optional"`
 }
 
 func (d *DNS) validate() (bool, error) {
 	result, err := govalidator.ValidateStruct(d)
+	return result, appendInvalid(err)
+}
+
+type PCSCF struct {
+	IPv4Addr string `yaml:"ipv4,omitempty" valid:"ipv4,required"`
+}
+
+func (p *PCSCF) validate() (bool, error) {
+	result, err := govalidator.ValidateStruct(p)
 	return result, appendInvalid(err)
 }
 

@@ -99,7 +99,7 @@ var testConfig = factory.Config{
 				DnnInfos: []factory.SnssaiDnnInfoItem{
 					{
 						Dnn: "internet",
-						DNS: factory.DNS{
+						DNS: &factory.DNS{
 							IPv4Addr: "8.8.8.8",
 							IPv6Addr: "2001:4860:4860::8888",
 						},

@@ -95,6 +95,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 
 	if smContext.ProtocolConfigurationOptions.DNSIPv4Request ||
 		smContext.ProtocolConfigurationOptions.DNSIPv6Request ||
+		smContext.ProtocolConfigurationOptions.PCSCFIPv4Request ||
 		smContext.ProtocolConfigurationOptions.IPv4LinkMTURequest {
 		pDUSessionEstablishmentAccept.ExtendedProtocolConfigurationOptions =
 			nasType.NewExtendedProtocolConfigurationOptions(
@@ -115,6 +116,14 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 			err := protocolConfigurationOptions.AddDNSServerIPv6Address(smContext.DNNInfo.DNS.IPv6Addr)
 			if err != nil {
 				logger.GsmLog.Warnln("Error while adding DNS IPv6 Addr: ", err)
+			}
+		}
+
+		// IPv4 PCSCF (need for ims DNN)
+		if smContext.ProtocolConfigurationOptions.PCSCFIPv4Request {
+			err := protocolConfigurationOptions.AddPCSCFIPv4Address(smContext.DNNInfo.PCSCF.IPv4Addr)
+			if err != nil {
+				logger.GsmLog.Warnln("Error while adding PCSCF IPv4 Addr: ", err)
 			}
 		}
 
