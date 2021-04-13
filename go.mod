@@ -11,7 +11,7 @@ require (
 	bitbucket.org/free5gc-team/logger_util v0.0.0-20210413024744-7d5ed8444ab2
 	bitbucket.org/free5gc-team/nas v0.0.0-20210310060525-46f85f0df7d0
 	bitbucket.org/free5gc-team/ngap v0.0.0-20210413074757-f44cdba9e6c0
-	bitbucket.org/free5gc-team/openapi v0.0.0-20210310054439-5aa53778eb95
+	bitbucket.org/free5gc-team/openapi v0.0.0-20210413074208-d934651cafdb
 	bitbucket.org/free5gc-team/path_util v0.0.0-20210310053142-9b06de73fd52
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20210310061708-d6ef370bb710
 	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20210310055342-afd534be66dc

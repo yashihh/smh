@@ -32,6 +32,8 @@ bitbucket.org/free5gc-team/ngap v0.0.0-20210413074757-f44cdba9e6c0/go.mod h1:FDQ
 bitbucket.org/free5gc-team/openapi v0.0.0-20200915035203-9fc3f0e748b4/go.mod h1:OPBqpY9KpaTgGnmZMNUe+yVx56L0cCmvBHnZ6llCKhs=
 bitbucket.org/free5gc-team/openapi v0.0.0-20210310054439-5aa53778eb95 h1:H+NW04I0f9RgKhd8ruuCwGWDF4V5ft/BhLJJhCa/iIU=
 bitbucket.org/free5gc-team/openapi v0.0.0-20210310054439-5aa53778eb95/go.mod h1:gR4X9f+PehijY2n/l2HgxmSmW0ZLatADz8B7hh8PYZ8=
+bitbucket.org/free5gc-team/openapi v0.0.0-20210413074208-d934651cafdb h1:XTRTzGxwksdsJRIe8eTyxKC+KVlI+4PJz406r4CwtxA=
+bitbucket.org/free5gc-team/openapi v0.0.0-20210413074208-d934651cafdb/go.mod h1:CSWM2q3uxYaDmqdb3oPV8Y8qoEr5qbeDiOkmfuAfl5E=
 bitbucket.org/free5gc-team/path_util v0.0.0-20200915032418-20c65dc7664b/go.mod h1:YOubpf9itrS2U04mpnHFlB7X7SOwP50KqDaM8ptBA/Q=
 bitbucket.org/free5gc-team/path_util v0.0.0-20210310053142-9b06de73fd52 h1:C2sh9t7TvW2ANJdtwRMg5VgMxttDUmJTb+DBnJ5M8zE=
 bitbucket.org/free5gc-team/path_util v0.0.0-20210310053142-9b06de73fd52/go.mod h1:8KT1mRTxzh0STAR4juLuvsCo3y1kTUHQ9X+OIeagU4k=
