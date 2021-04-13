@@ -13,7 +13,7 @@ require (
 	bitbucket.org/free5gc-team/ngap v0.0.0-20210413074757-f44cdba9e6c0
 	bitbucket.org/free5gc-team/openapi v0.0.0-20210413074208-d934651cafdb
 	bitbucket.org/free5gc-team/path_util v0.0.0-20210310053142-9b06de73fd52
-	bitbucket.org/free5gc-team/pfcp v0.0.0-20210310061708-d6ef370bb710
+	bitbucket.org/free5gc-team/pfcp v0.0.0-20210413074255-82f36fb133b3
 	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20210310055342-afd534be66dc
 	bitbucket.org/free5gc-team/version v0.0.0-20201211040438-c23ed678d8da
 	github.com/antihax/optional v1.0.0
