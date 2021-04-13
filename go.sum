@@ -17,6 +17,8 @@ bitbucket.org/free5gc-team/logger_conf v0.0.0-20200915032859-681c48762af1/go.mod
 bitbucket.org/free5gc-team/logger_util v0.0.0-20200915032249-cd1bf694e835/go.mod h1:UQytjJkq9guRYfPlO3jXNjAwfj92kkNnw5O6tnx6fu0=
 bitbucket.org/free5gc-team/logger_util v0.0.0-20210309092142-45babfcdab5a h1:F16ItAgnM0N9kMXFFvmd0lzVbH/P1Pbiza+DHBUPLTk=
 bitbucket.org/free5gc-team/logger_util v0.0.0-20210309092142-45babfcdab5a/go.mod h1:di3i5yJROrZiHsdl/SUNZU0DjiJa7k7Kr1YgBp10KI4=
+bitbucket.org/free5gc-team/logger_util v0.0.0-20210413024744-7d5ed8444ab2 h1:kILeAxegHc4xbg4xLsJQcP7TS2lOURGdcc0dqmuMOLM=
+bitbucket.org/free5gc-team/logger_util v0.0.0-20210413024744-7d5ed8444ab2/go.mod h1:di3i5yJROrZiHsdl/SUNZU0DjiJa7k7Kr1YgBp10KI4=
 bitbucket.org/free5gc-team/nas v0.0.0-20200915042954-4c7174d9820e/go.mod h1:F4Oh8/1QDf7JDYqYhTRVZiX65yCcEQ4Vc7iD5X12o1s=
 bitbucket.org/free5gc-team/nas v0.0.0-20210310060525-46f85f0df7d0 h1:AaJ2wuhSTiDaHPVM/rxasRLPTw5PAAYV3cQmM3NKjH8=
 bitbucket.org/free5gc-team/nas v0.0.0-20210310060525-46f85f0df7d0/go.mod h1:T5UDAMh5VyXJpJCXdvW091zGSDKhJPRvm3yIpo1a/tw=
