@@ -6,7 +6,6 @@ import (
 
 	"bitbucket.org/free5gc-team/http2_util"
 	"bitbucket.org/free5gc-team/logger_util"
-	"bitbucket.org/free5gc-team/path_util"
 	"bitbucket.org/free5gc-team/smf/logger"
 	"bitbucket.org/free5gc-team/smf/pfcp"
 	"bitbucket.org/free5gc-team/smf/pfcp/udp"
@@ -19,9 +18,9 @@ func DummyServer() {
 
 	go udp.Run(pfcp.Dispatch)
 
-	smfKeyLogPath := path_util.Free5gcPath("free5gc/smfsslkey.log")
-	smfPemPath := path_util.Free5gcPath("free5gc/support/TLS/smf.pem")
-	smfkeyPath := path_util.Free5gcPath("free5gc/support/TLS/smf.key")
+	smfKeyLogPath := "./log/smfsslkey.log"
+	smfPemPath := "./config/TLS/smf.pem"
+	smfkeyPath := "./config/TLS/smf.key"
 
 	var server *http.Server
 	if srv, err := http2_util.NewServer(":29502", smfKeyLogPath, router); err != nil {

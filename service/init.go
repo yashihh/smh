@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -17,8 +18,6 @@ import (
 	ngapLogger "bitbucket.org/free5gc-team/ngap/logger"
 	openApiLogger "bitbucket.org/free5gc-team/openapi/logger"
 	"bitbucket.org/free5gc-team/openapi/models"
-	"bitbucket.org/free5gc-team/path_util"
-	pathUtilLogger "bitbucket.org/free5gc-team/path_util/logger"
 	pfcpLogger "bitbucket.org/free5gc-team/pfcp/logger"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/callback"
@@ -85,8 +84,7 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 			return err
 		}
 	} else {
-		DefaultSmfConfigPath := path_util.Free5gcPath("free5gc/config/smfcfg.yaml")
-		if err := factory.InitConfigFactory(DefaultSmfConfigPath); err != nil {
+		if err := factory.InitConfigFactory(util.SmfDefaultConfigPath); err != nil {
 			return err
 		}
 	}
@@ -96,7 +94,7 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 			return err
 		}
 	} else {
-		DefaultUERoutingPath := path_util.Free5gcPath("free5gc/config/uerouting.yaml")
+		DefaultUERoutingPath := "./config/uerouting.yaml"
 		if err := factory.InitRoutingConfigFactory(DefaultUERoutingPath); err != nil {
 			return err
 		}
@@ -190,22 +188,6 @@ func (smf *SMF) setLogLevel() {
 		aperLogger.SetReportCaller(factory.SmfConfig.Logger.Aper.ReportCaller)
 	}
 
-	if factory.SmfConfig.Logger.PathUtil != nil {
-		if factory.SmfConfig.Logger.PathUtil.DebugLevel != "" {
-			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.PathUtil.DebugLevel); err != nil {
-				pathUtilLogger.PathLog.Warnf("PathUtil Log level [%s] is invalid, set to [info] level",
-					factory.SmfConfig.Logger.PathUtil.DebugLevel)
-				pathUtilLogger.SetLogLevel(logrus.InfoLevel)
-			} else {
-				pathUtilLogger.SetLogLevel(level)
-			}
-		} else {
-			pathUtilLogger.PathLog.Warnln("PathUtil Log level not set. Default set to [info] level")
-			pathUtilLogger.SetLogLevel(logrus.InfoLevel)
-		}
-		pathUtilLogger.SetReportCaller(factory.SmfConfig.Logger.PathUtil.ReportCaller)
-	}
-
 	if factory.SmfConfig.Logger.OpenApi != nil {
 		if factory.SmfConfig.Logger.OpenApi.DebugLevel != "" {
 			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.OpenApi.DebugLevel); err != nil {
@@ -273,6 +255,13 @@ func (smf *SMF) Start() {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				// Print stack for panic to log. Fatalf() will let program exit.
+				logger.InitLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
+			}
+		}()
+
 		<-signalChannel
 		smf.Terminate()
 		os.Exit(0)
@@ -303,7 +292,7 @@ func (smf *SMF) Start() {
 	time.Sleep(1000 * time.Millisecond)
 
 	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().BindingIPv4, context.SMF_Self().SBIPort)
-	server, err := http2_util.NewServer(HTTPAddr, util.SmfLogPath, router)
+	server, err := http2_util.NewServer(HTTPAddr, util.SmfDefaultKeyLogPath, router)
 
 	if server == nil {
 		initLog.Error("Initialize HTTP server failed:", err)
@@ -318,7 +307,7 @@ func (smf *SMF) Start() {
 	if serverScheme == "http" {
 		err = server.ListenAndServe()
 	} else if serverScheme == "https" {
-		err = server.ListenAndServeTLS(util.SmfPemPath, util.SmfKeyPath)
+		err = server.ListenAndServeTLS(util.SmfDefaultPemPath, util.SmfDefaultKeyPath)
 	}
 
 	if err != nil {

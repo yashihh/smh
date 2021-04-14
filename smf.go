@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -26,6 +27,13 @@ import (
 var SMF = &service.SMF{}
 
 func main() {
+	defer func() {
+		if p := recover(); p != nil {
+			// Print stack for panic to log. Fatalf() will let program exit.
+			logger.AppLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
+		}
+	}()
+
 	app := cli.NewApp()
 	app.Name = "smf"
 	app.Usage = "5G Session Management Function (SMF)"
