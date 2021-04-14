@@ -258,10 +258,8 @@ func (smf *SMF) Start() {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				// Print stack for panic to log.
-				msg := fmt.Sprintf("panic: %v\n%s", p, string(debug.Stack()))
-				// Program will be exited.
-				logger.InitLog.Fatalln(msg)
+				// Print stack for panic to log. Fatalf() will let program exit.
+				logger.InitLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
 			}
 		}()
 

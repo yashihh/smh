@@ -191,10 +191,8 @@ func TestLazyReusePool_ManyGoroutine(t *testing.T) {
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					// Print stack for panic to log.
-					msg := fmt.Sprintf("panic: %v\n%s", p, string(debug.Stack()))
 					// Program will be exited.
-					fmt.Fprintf(os.Stderr, "%s", msg)
+					fmt.Fprintf(os.Stderr, "panic: %v\n%s", p, string(debug.Stack()))
 					os.Exit(1)
 				}
 			}()

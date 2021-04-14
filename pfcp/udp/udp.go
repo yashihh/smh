@@ -1,7 +1,6 @@
 package udp
 
 import (
-	"fmt"
 	"net"
 	"runtime/debug"
 	"time"
@@ -21,10 +20,8 @@ var ServerStartTime time.Time
 func Run(Dispatch func(*pfcpUdp.Message)) {
 	defer func() {
 		if p := recover(); p != nil {
-			// Print stack for panic to log.
-			msg := fmt.Sprintf("panic: %v\n%s", p, string(debug.Stack()))
-			// Program will be exited.
-			logger.PfcpLog.Fatalln(msg)
+			// Print stack for panic to log. Fatalf() will let program exit.
+			logger.PfcpLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
 		}
 	}()
 
@@ -41,10 +38,8 @@ func Run(Dispatch func(*pfcpUdp.Message)) {
 	go func(p *pfcpUdp.PfcpServer) {
 		defer func() {
 			if p := recover(); p != nil {
-				// Print stack for panic to log.
-				msg := fmt.Sprintf("panic: %v\n%s", p, string(debug.Stack()))
-				// Program will be exited.
-				logger.PfcpLog.Fatalln(msg)
+				// Print stack for panic to log. Fatalf() will let program exit.
+				logger.PfcpLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
 			}
 		}()
 

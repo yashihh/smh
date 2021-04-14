@@ -29,10 +29,8 @@ var SMF = &service.SMF{}
 func main() {
 	defer func() {
 		if p := recover(); p != nil {
-			// Print stack for panic to log.
-			msg := fmt.Sprintf("panic: %v\n%s", p, string(debug.Stack()))
-			// Program will be exited.
-			logger.AppLog.Fatalln(msg)
+			// Print stack for panic to log. Fatalf() will let program exit.
+			logger.AppLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
 		}
 	}()
 
