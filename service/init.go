@@ -84,8 +84,7 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 			return err
 		}
 	} else {
-		DefaultSmfConfigPath := "./config/smfcfg.yaml"
-		if err := factory.InitConfigFactory(DefaultSmfConfigPath); err != nil {
+		if err := factory.InitConfigFactory(util.SmfDefaultConfigPath); err != nil {
 			return err
 		}
 	}
@@ -293,7 +292,7 @@ func (smf *SMF) Start() {
 	time.Sleep(1000 * time.Millisecond)
 
 	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().BindingIPv4, context.SMF_Self().SBIPort)
-	server, err := http2_util.NewServer(HTTPAddr, util.SmfKeyLogPath, router)
+	server, err := http2_util.NewServer(HTTPAddr, util.SmfDefaultKeyLogPath, router)
 
 	if server == nil {
 		initLog.Error("Initialize HTTP server failed:", err)
@@ -308,7 +307,7 @@ func (smf *SMF) Start() {
 	if serverScheme == "http" {
 		err = server.ListenAndServe()
 	} else if serverScheme == "https" {
-		err = server.ListenAndServeTLS(util.SmfPemPath, util.SmfKeyPath)
+		err = server.ListenAndServeTLS(util.SmfDefaultPemPath, util.SmfDefaultKeyPath)
 	}
 
 	if err != nil {

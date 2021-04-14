@@ -2,9 +2,9 @@
 
 package util
 
-var (
-	SmfKeyLogPath        = "./log/smfsslkey.log"
-	SmfPemPath           = "./config/TLS/_debug.pem"
-	SmfKeyPath           = "./config/TLS/_debug.key"
-	DefaultSmfConfigPath = "./config/smfcfg.yaml"
+const (
+	SmfDefaultKeyLogPath = "./log/smfsslkey.log"
+	SmfDefaultPemPath    = "./config/TLS/_debug.pem"
+	SmfDefaultKeyPath    = "./config/TLS/_debug.key"
+	SmfDefaultConfigPath = "./config/smfcfg.yaml"
 )
