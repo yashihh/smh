@@ -54,7 +54,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SmStatusNotifyUri = createData.SmContextStatusUri
 
 	smContext.SMLock.Lock()
-	defer smContext.SMLock.Unlock()
+	// TODO: This lock should be unlock after PFPF Establishment, but
 
 	// DNN Information from config
 	smContext.DNNInfo = smf_context.RetrieveDnnInformation(*createData.SNssai, createData.Dnn)

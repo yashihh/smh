@@ -146,6 +146,9 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 	SEID := msg.PfcpMessage.Header.SEID
 	smContext := smf_context.GetSMContextBySEID(SEID)
 
+	// release lock after establishment
+	defer smContext.SMLock.Unlock()
+
 	if rsp.UPFSEID != nil {
 		NodeIDtoIP := rsp.NodeID.ResolveNodeIdToIp().String()
 		pfcpSessionCtx := smContext.PFCPContext[NodeIDtoIP]
@@ -249,6 +252,8 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 					smContext.BPManager.BPStatus = smf_context.AddingPSA
 				}
 			}
+		} else {
+			logger.PfcpLog.Warnf("SMContext in State[%s]", smContext.SMContextState)
 		}
 
 		logger.PfcpLog.Infof("PFCP Session Modification Success[%d]\n", SEID)
