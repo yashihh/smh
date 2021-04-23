@@ -65,8 +65,6 @@ var cliCmd = []cli.Flag{
 	},
 }
 
-var initLog *logrus.Entry
-
 func (*SMF) GetCliCmd() (flags []cli.Flag) {
 	return cliCmd
 }
@@ -76,8 +74,6 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 		config:    c.String("config"),
 		uerouting: c.String("uerouting"),
 	}
-
-	initLog = logger.InitLog
 
 	if commands.config != "" {
 		if err := factory.InitConfigFactory(commands.config); err != nil {
@@ -119,22 +115,22 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 
 func (smf *SMF) setLogLevel() {
 	if factory.SmfConfig.Logger == nil {
-		initLog.Warnln("SMF config without log level setting!!!")
+		logger.InitLog.Warnln("SMF config without log level setting!!!")
 		return
 	}
 
 	if factory.SmfConfig.Logger.SMF != nil {
 		if factory.SmfConfig.Logger.SMF.DebugLevel != "" {
 			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.SMF.DebugLevel); err != nil {
-				initLog.Warnf("SMF Log level [%s] is invalid, set to [info] level",
+				logger.InitLog.Warnf("SMF Log level [%s] is invalid, set to [info] level",
 					factory.SmfConfig.Logger.SMF.DebugLevel)
 				logger.SetLogLevel(logrus.InfoLevel)
 			} else {
-				initLog.Infof("SMF Log level is set to [%s] level", level)
+				logger.InitLog.Infof("SMF Log level is set to [%s] level", level)
 				logger.SetLogLevel(level)
 			}
 		} else {
-			initLog.Infoln("SMF Log level is default set to [info] level")
+			logger.InitLog.Infoln("SMF Log level is default set to [info] level")
 			logger.SetLogLevel(logrus.InfoLevel)
 		}
 		logger.SetReportCaller(factory.SmfConfig.Logger.SMF.ReportCaller)
@@ -240,7 +236,7 @@ func (smf *SMF) Start() {
 	context.AllocateUPFID()
 	context.InitSMFUERouting(&factory.UERoutingConfig)
 
-	initLog.Infoln("Server started")
+	logger.InitLog.Infoln("Server started")
 	router := logger_util.NewGinWithLogrus(logger.GinLog)
 
 	err := consumer.SendNFRegistration()
@@ -295,12 +291,12 @@ func (smf *SMF) Start() {
 	server, err := http2_util.NewServer(HTTPAddr, util.SmfDefaultKeyLogPath, router)
 
 	if server == nil {
-		initLog.Error("Initialize HTTP server failed:", err)
+		logger.InitLog.Error("Initialize HTTP server failed:", err)
 		return
 	}
 
 	if err != nil {
-		initLog.Warnln("Initialize HTTP server:", err)
+		logger.InitLog.Warnln("Initialize HTTP server:", err)
 	}
 
 	serverScheme := factory.SmfConfig.Configuration.Sbi.Scheme
@@ -311,7 +307,7 @@ func (smf *SMF) Start() {
 	}
 
 	if err != nil {
-		initLog.Fatalln("HTTP server setup failed:", err)
+		logger.InitLog.Fatalln("HTTP server setup failed:", err)
 	}
 }
 
