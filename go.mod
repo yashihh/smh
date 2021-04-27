@@ -12,7 +12,7 @@ require (
 	bitbucket.org/free5gc-team/nas v0.0.0-20210414080401-8106268fadd6
 	bitbucket.org/free5gc-team/ngap v0.0.0-20210414080844-063a8973125d
 	bitbucket.org/free5gc-team/openapi v0.0.0-20210414074928-e9e853669ae4
-	bitbucket.org/free5gc-team/pfcp v0.0.0-20210414081218-82ef42429359
+	bitbucket.org/free5gc-team/pfcp v0.0.0-20210427110535-63aa5b8cce30
 	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20210414075447-94afef878592
 	bitbucket.org/free5gc-team/version v0.0.0-20201211040438-c23ed678d8da
 	github.com/antihax/optional v1.0.0
