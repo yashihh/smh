@@ -196,8 +196,7 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 			CommunicationClient.
 			N1N2MessageCollectionDocumentApi.
 			N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
-		smContext.SMContextState = smf_context.Active
-		logger.CtxLog.Traceln("SMContextState Change State: ", smContext.SMContextState.String())
+		smContext.SetState(smf_context.Active)
 		if err != nil {
 			logger.PfcpLog.Warnf("Send N1N2Transfer failed")
 		}
@@ -234,7 +233,7 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 
 	if pfcpRsp.Cause.CauseValue == pfcpType.CauseRequestAccepted {
 		logger.PduSessLog.Infoln("[SMF] PFCP Modification Resonse Accept")
-		if smContext.SMContextState == smf_context.PFCPModification {
+		if smContext.CheckState(smf_context.PFCPModification) {
 			upfNodeID := smContext.GetNodeIDByLocalSEID(SEID)
 			upfIP := upfNodeID.ResolveNodeIdToIp().String()
 			delete(smContext.PendingUPF, upfIP)
@@ -253,13 +252,15 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 				}
 			}
 		} else {
-			logger.PfcpLog.Warnf("SMContext in State[%s]", smContext.SMContextState)
+			logger.PfcpLog.Warnf("SMContext in State[%s]", smContext.State())
 		}
 
 		logger.PfcpLog.Infof("PFCP Session Modification Success[%d]\n", SEID)
 	} else {
 		logger.PfcpLog.Infof("PFCP Session Modification Failed[%d]\n", SEID)
-		if smContext.SMContextState == smf_context.PFCPModification {
+		if smContext.CheckState(smf_context.PFCPModification) {
+			smContext.SBIPFCPCommunicationChan <- smf_context.SessionUpdateFailed
+		} else {
 			smContext.SBIPFCPCommunicationChan <- smf_context.SessionUpdateFailed
 		}
 	}
@@ -284,7 +285,7 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 	}
 
 	if pfcpRsp.Cause.CauseValue == pfcpType.CauseRequestAccepted {
-		if smContext.SMContextState == smf_context.PFCPModification {
+		if smContext.CheckState(smf_context.PFCPModification) {
 			upfNodeID := smContext.GetNodeIDByLocalSEID(SEID)
 			upfIP := upfNodeID.ResolveNodeIdToIp().String()
 			delete(smContext.PendingUPF, upfIP)
@@ -296,7 +297,7 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 		}
 		logger.PfcpLog.Infof("PFCP Session Deletion Success[%d]\n", SEID)
 	} else {
-		if smContext.SMContextState == smf_context.PFCPModification {
+		if smContext.CheckState(smf_context.PFCPModification) {
 			smContext.SBIPFCPCommunicationChan <- smf_context.SessionReleaseFailed
 		}
 		logger.PfcpLog.Infof("PFCP Session Deletion Failed[%d]\n", SEID)
