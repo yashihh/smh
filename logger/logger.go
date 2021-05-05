@@ -27,6 +27,11 @@ import (
 	pfcpLogger "bitbucket.org/free5gc-team/pfcp/logger"
 )
 
+const (
+	FieldSupi         = "supi"
+	FieldPDUSessionID = "pdu_session_id"
+)
+
 var (
 	log         *logrus.Logger
 	AppLog      *logrus.Entry

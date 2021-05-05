@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 
 	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
@@ -38,7 +39,7 @@ const (
 
 var smContextCount uint64
 
-type SMContextState int
+type SMContextState uint32
 
 const (
 	InActive SMContextState = iota
@@ -105,8 +106,6 @@ type SMContext struct {
 	SelectedPCFProfile models.NfProfile
 	SmStatusNotifyUri  string
 
-	SMContextState SMContextState
-
 	Tunnel      *UPTunnel
 	SelectedUPF *UPNode
 	BPManager   *BPManager
@@ -129,6 +128,12 @@ type SMContext struct {
 
 	// PCO Related
 	ProtocolConfigurationOptions *ProtocolConfigurationOptions
+
+	// State
+	state SMContextState
+
+	// Loggers
+	Log *logrus.Entry
 
 	// lock
 	SMLock sync.Mutex
@@ -157,7 +162,12 @@ func NewSMContext(identifier string, pduSessID int32) (smContext *SMContext) {
 	smContextPool.Store(smContext.Ref, smContext)
 	canonicalRef.Store(canonicalName(identifier, pduSessID), smContext.Ref)
 
-	smContext.SMContextState = InActive
+	smContext.Log = logger.PduSessLog.WithFields(logrus.Fields{
+		logger.FieldSupi:         identifier,
+		logger.FieldPDUSessionID: fmt.Sprintf("%d", pduSessID),
+	})
+
+	smContext.SetState(InActive)
 	smContext.Identifier = identifier
 	smContext.PDUSessionID = pduSessID
 	smContext.PFCPContext = make(map[string]*PFCPSessionContext)
@@ -233,6 +243,26 @@ func (smContext *SMContext) BuildCreatedData() (createdData *models.SmContextCre
 	createdData = new(models.SmContextCreatedData)
 	createdData.SNssai = smContext.Snssai
 	return
+}
+
+func (smContext *SMContext) SetState(state SMContextState) {
+	oldState := SMContextState(atomic.LoadUint32((*uint32)(&smContext.state)))
+
+	atomic.StoreUint32((*uint32)(&smContext.state), uint32(state))
+	smContext.Log.Tracef("State[%s] -> State[%s]", oldState, state)
+}
+
+func (smContext *SMContext) CheckState(state SMContextState) bool {
+	curState := SMContextState(atomic.LoadUint32((*uint32)(&smContext.state)))
+	check := curState == state
+	if !check {
+		smContext.Log.Warnf("Unexpected state, expect: [%s], actual:[%s]", state, curState)
+	}
+	return check
+}
+
+func (smContext *SMContext) State() (state SMContextState) {
+	return SMContextState(atomic.LoadUint32((*uint32)(&smContext.state)))
 }
 
 func (smContext *SMContext) PDUAddressToNAS() (addr [12]byte, addrLen uint8) {

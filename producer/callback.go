@@ -31,12 +31,9 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
 
-	if smContext.SMContextState != smf_context.Active {
-		// Wait till the state becomes Active again
-		// TODO: implement waiting in concurrent architecture
-		logger.PduSessLog.Warnf("SMContext[%s-%02d] should be Active, but actual %s",
-			smContext.Supi, smContext.PDUSessionID, smContext.SMContextState.String())
-	}
+	smContext.CheckState(smf_context.Active)
+	// Wait till the state becomes Active again
+	// TODO: implement waiting in concurrent architecture
 
 	//TODO: Response data type -
 	//[200 OK] UeCampingRep
@@ -142,7 +139,7 @@ func getTcDataFromDecision(pccRule *smf_context.PCCRule,
 func ApplySmPolicyFromDecision(smContext *smf_context.SMContext, decision *models.SmPolicyDecision) error {
 	logger.PduSessLog.Traceln("In ApplySmPolicyFromDecision")
 	var err error
-	smContext.SMContextState = smf_context.ModificationPending
+	smContext.SetState(smf_context.ModificationPending)
 	selectedSessionRule := smContext.SelectedSessionRule()
 	if selectedSessionRule == nil { // No active session rule
 		// Update session rules from decision
