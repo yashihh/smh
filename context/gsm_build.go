@@ -163,7 +163,7 @@ func BuildGSMPDUSessionEstablishmentReject(smContext *SMContext, cause uint8) ([
 	return m.PlainNasEncode()
 }
 
-func BuildGSMPDUSessionReleaseCommand(smContext *SMContext) ([]byte, error) {
+func BuildGSMPDUSessionReleaseCommand(smContext *SMContext, cause uint8) ([]byte, error) {
 	m := nas.NewMessage()
 	m.GsmMessage = nas.NewGsmMessage()
 	m.GsmHeader.SetMessageType(nas.MsgTypePDUSessionReleaseCommand)

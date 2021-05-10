@@ -343,7 +343,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				smContext.Log.Infof("Release IP[%s]", smContext.PDUAddress.String())
 				smf_context.GetUserPlaneInformation().ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress)
 			}
-			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext); err != nil {
+
+			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(
+				smContext, nasMessage.Cause5GSMRegularDeactivation); err != nil {
 				smContext.Log.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
 				response.BinaryDataN1SmMessage = buf
