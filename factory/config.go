@@ -168,7 +168,7 @@ func (s *SnssaiDnnInfoItem) validate() (bool, error) {
 
 type Sbi struct {
 	Scheme       string `yaml:"scheme" valid:"scheme,required"`
-	TLS          *TLS   `yaml:"tls" valid:"optional"`
+	Tls          *Tls   `yaml:"tls" valid:"optional"`
 	RegisterIPv4 string `yaml:"registerIPv4,omitempty" valid:"ipv4,optional"` // IP that is registered at NRF.
 	// IPv6Addr string `yaml:"ipv6Addr,omitempty"`
 	BindingIPv4 string `yaml:"bindingIPv4,omitempty" valid:"ipv4,required"` // IP used to run the server in the node.
@@ -180,7 +180,7 @@ func (s *Sbi) validate() (bool, error) {
 		return str == "https" || str == "http"
 	})
 
-	if tls := s.TLS; tls != nil {
+	if tls := s.Tls; tls != nil {
 		if result, err := tls.validate(); err != nil {
 			return result, err
 		}
@@ -190,12 +190,12 @@ func (s *Sbi) validate() (bool, error) {
 	return result, appendInvalid(err)
 }
 
-type TLS struct {
-	PEM string `yaml:"pem,omitempty" valid:"type(string),minstringlength(1),required"`
+type Tls struct {
+	Pem string `yaml:"pem,omitempty" valid:"type(string),minstringlength(1),required"`
 	Key string `yaml:"key,omitempty" valid:"type(string),minstringlength(1),required"`
 }
 
-func (t *TLS) validate() (bool, error) {
+func (t *Tls) validate() (bool, error) {
 	result, err := govalidator.ValidateStruct(t)
 	return result, appendInvalid(err)
 }
