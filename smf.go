@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 
 	"bitbucket.org/free5gc-team/smf/logger"
 	"bitbucket.org/free5gc-team/smf/service"
+	"bitbucket.org/free5gc-team/smf/util"
 	"bitbucket.org/free5gc-team/version"
 )
 
@@ -75,8 +77,22 @@ func action(c *cli.Context) error {
 }
 
 func initLogFile(logNfPath, log5gcPath string) error {
+	SMF.KeyLogPath = util.SmfDefaultKeyLogPath
+
 	if err := logger.LogFileHook(logNfPath, log5gcPath); err != nil {
 		return err
 	}
+
+	if logNfPath != "" {
+		nfDir, _ := filepath.Split(logNfPath)
+		tmpDir := filepath.Join(nfDir, "key")
+		if err := os.MkdirAll(tmpDir, 0775); err != nil {
+			logger.InitLog.Errorf("Make directory %s failed: %+v", tmpDir, err)
+			return err
+		}
+		_, name := filepath.Split(util.SmfDefaultKeyLogPath)
+		SMF.KeyLogPath = filepath.Join(tmpDir, name)
+	}
+
 	return nil
 }
