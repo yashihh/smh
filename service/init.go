@@ -34,7 +34,9 @@ import (
 	"bitbucket.org/free5gc-team/smf/util"
 )
 
-type SMF struct{}
+type SMF struct {
+	KeyLogPath string
+}
 
 type (
 	// Commands information.
@@ -231,6 +233,14 @@ func (smf *SMF) FilterCli(c *cli.Context) (args []string) {
 }
 
 func (smf *SMF) Start() {
+	pemPath := util.SmfDefaultPemPath
+	keyPath := util.SmfDefaultKeyPath
+	sbi := factory.SmfConfig.Configuration.Sbi
+	if sbi.Tls != nil {
+		pemPath = sbi.Tls.Pem
+		keyPath = sbi.Tls.Key
+	}
+
 	context.InitSmfContext(&factory.SmfConfig)
 	// allocate id for each upf
 	context.AllocateUPFID()
@@ -288,7 +298,7 @@ func (smf *SMF) Start() {
 	time.Sleep(1000 * time.Millisecond)
 
 	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().BindingIPv4, context.SMF_Self().SBIPort)
-	server, err := http2_util.NewServer(HTTPAddr, util.SmfDefaultKeyLogPath, router)
+	server, err := http2_util.NewServer(HTTPAddr, smf.KeyLogPath, router)
 
 	if server == nil {
 		logger.InitLog.Error("Initialize HTTP server failed:", err)
@@ -303,7 +313,7 @@ func (smf *SMF) Start() {
 	if serverScheme == "http" {
 		err = server.ListenAndServe()
 	} else if serverScheme == "https" {
-		err = server.ListenAndServeTLS(util.SmfDefaultPemPath, util.SmfDefaultKeyPath)
+		err = server.ListenAndServeTLS(pemPath, keyPath)
 	}
 
 	if err != nil {

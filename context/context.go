@@ -104,9 +104,9 @@ func InitSmfContext(config *factory.Config) {
 			smfContext.SBIPort = sbi.Port
 		}
 
-		if tls := sbi.TLS; tls != nil {
+		if tls := sbi.Tls; tls != nil {
 			smfContext.Key = tls.Key
-			smfContext.PEM = tls.PEM
+			smfContext.PEM = tls.Pem
 		}
 
 		smfContext.BindingIPv4 = os.Getenv(sbi.BindingIPv4)
