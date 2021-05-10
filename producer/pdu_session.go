@@ -169,7 +169,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	}
 
 	establishmentRequest := m.PDUSessionEstablishmentRequest
-	smContext.HandlePDUSessionEstablishmentRequest(establishmentRequest)
+	HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest)
 
 	if err := smContext.PCFSelection(); err != nil {
 		smContext.Log.Errorln("pcf selection error:", err)
@@ -338,7 +338,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			// Wait till the state becomes Active again
 			// TODO: implement sleep wait in concurrent architecture
 
-			smContext.HandlePDUSessionReleaseRequest(m.PDUSessionReleaseRequest)
+			HandlePDUSessionReleaseRequest(smContext, m.PDUSessionReleaseRequest)
 			if smContext.SelectedUPF != nil {
 				smContext.Log.Infof("Release IP[%s]", smContext.PDUAddress.String())
 				smf_context.GetUserPlaneInformation().ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress)

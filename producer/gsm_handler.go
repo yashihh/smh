@@ -1,39 +1,41 @@
-package context
+package producer
 
 import (
 	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
+	smf_context "bitbucket.org/free5gc-team/smf/context"
 	"bitbucket.org/free5gc-team/smf/logger"
 )
 
-func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage.PDUSessionEstablishmentRequest) {
+func HandlePDUSessionEstablishmentRequest(
+	smCtx *smf_context.SMContext, req *nasMessage.PDUSessionEstablishmentRequest) {
 	// Retrieve PDUSessionID
-	smContext.PDUSessionID = int32(req.PDUSessionID.GetPDUSessionID())
+	smCtx.PDUSessionID = int32(req.PDUSessionID.GetPDUSessionID())
 	logger.GsmLog.Infoln("In HandlePDUSessionEstablishmentRequest")
 
 	// Retrieve PTI (Procedure transaction identity)
-	smContext.Pti = req.GetPTI()
+	smCtx.Pti = req.GetPTI()
 
 	// Handle PDUSessionType
 	if req.PDUSessionType != nil {
 		requestedPDUSessionType := req.PDUSessionType.GetPDUSessionTypeValue()
-		if err := smContext.isAllowedPDUSessionType(requestedPDUSessionType); err != nil {
+		if err := smCtx.IsAllowedPDUSessionType(requestedPDUSessionType); err != nil {
 			logger.CtxLog.Errorf("%s", err)
 			return
 		}
 	} else {
 		// Set to default supported PDU Session Type
-		switch SMF_Self().SupportedPDUSessionType {
+		switch smf_context.SMF_Self().SupportedPDUSessionType {
 		case "IPv4":
-			smContext.SelectedPDUSessionType = nasMessage.PDUSessionTypeIPv4
+			smCtx.SelectedPDUSessionType = nasMessage.PDUSessionTypeIPv4
 		case "IPv6":
-			smContext.SelectedPDUSessionType = nasMessage.PDUSessionTypeIPv6
+			smCtx.SelectedPDUSessionType = nasMessage.PDUSessionTypeIPv6
 		case "IPv4v6":
-			smContext.SelectedPDUSessionType = nasMessage.PDUSessionTypeIPv4IPv6
+			smCtx.SelectedPDUSessionType = nasMessage.PDUSessionTypeIPv4IPv6
 		case "Ethernet":
-			smContext.SelectedPDUSessionType = nasMessage.PDUSessionTypeEthernet
+			smCtx.SelectedPDUSessionType = nasMessage.PDUSessionTypeEthernet
 		default:
-			smContext.SelectedPDUSessionType = nasMessage.PDUSessionTypeIPv4
+			smCtx.SelectedPDUSessionType = nasMessage.PDUSessionTypeIPv4
 		}
 	}
 
@@ -56,7 +58,7 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 			case nasMessage.IMCNSubsystemSignalingFlagUL:
 				logger.GsmLog.Infoln("Didn't Implement container type IMCNSubsystemSignalingFlagUL")
 			case nasMessage.DNSServerIPv6AddressRequestUL:
-				smContext.ProtocolConfigurationOptions.DNSIPv6Request = true
+				smCtx.ProtocolConfigurationOptions.DNSIPv6Request = true
 			case nasMessage.NotSupportedUL:
 				logger.GsmLog.Infoln("Didn't Implement container type NotSupportedUL")
 			case nasMessage.MSSupportOfNetworkRequestedBearerControlIndicatorUL:
@@ -72,15 +74,15 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 			case nasMessage.IPv4AddressAllocationViaDHCPv4UL:
 				logger.GsmLog.Infoln("Didn't Implement container type IPv4AddressAllocationViaDHCPv4UL")
 			case nasMessage.PCSCFIPv4AddressRequestUL:
-				smContext.ProtocolConfigurationOptions.PCSCFIPv4Request = true
+				smCtx.ProtocolConfigurationOptions.PCSCFIPv4Request = true
 			case nasMessage.DNSServerIPv4AddressRequestUL:
-				smContext.ProtocolConfigurationOptions.DNSIPv4Request = true
+				smCtx.ProtocolConfigurationOptions.DNSIPv4Request = true
 			case nasMessage.MSISDNRequestUL:
 				logger.GsmLog.Infoln("Didn't Implement container type MSISDNRequestUL")
 			case nasMessage.IFOMSupportRequestUL:
 				logger.GsmLog.Infoln("Didn't Implement container type IFOMSupportRequestUL")
 			case nasMessage.IPv4LinkMTURequestUL:
-				smContext.ProtocolConfigurationOptions.IPv4LinkMTURequest = true
+				smCtx.ProtocolConfigurationOptions.IPv4LinkMTURequest = true
 			case nasMessage.MSSupportOfLocalAddressInTFTIndicatorUL:
 				logger.GsmLog.Infoln("Didn't Implement container type MSSupportOfLocalAddressInTFTIndicatorUL")
 			case nasMessage.PCSCFReSelectionSupportUL:
@@ -130,9 +132,10 @@ func (smContext *SMContext) HandlePDUSessionEstablishmentRequest(req *nasMessage
 	}
 }
 
-func (smContext *SMContext) HandlePDUSessionReleaseRequest(req *nasMessage.PDUSessionReleaseRequest) {
+func HandlePDUSessionReleaseRequest(
+	smCtx *smf_context.SMContext, req *nasMessage.PDUSessionReleaseRequest) {
 	logger.GsmLog.Infof("Handle Pdu Session Release Request")
 
 	// Retrieve PTI (Procedure transaction identity)
-	smContext.Pti = req.GetPTI()
+	smCtx.Pti = req.GetPTI()
 }
