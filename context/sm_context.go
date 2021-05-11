@@ -93,6 +93,8 @@ type SMContext struct {
 
 	DnnConfiguration models.DnnConfiguration
 
+	SMPolicyID string
+
 	// Handover related
 	DLForwardingType         DLForwardingType
 	DLDirectForwardingTunnel *ngapType.UPTransportLayerInformation
@@ -382,7 +384,7 @@ func (smContext *SMContext) RemovePDRfromPFCPSession(nodeID pfcpType.NodeID, pdr
 	delete(pfcpSessCtx.PDRs, pdr.PDRID)
 }
 
-func (smContext *SMContext) isAllowedPDUSessionType(requestedPDUSessionType uint8) error {
+func (smContext *SMContext) IsAllowedPDUSessionType(requestedPDUSessionType uint8) error {
 	dnnPDUSessionType := smContext.DnnConfiguration.PduSessionTypes
 	if dnnPDUSessionType == nil {
 		return fmt.Errorf("this SMContext[%s] has no subscription pdu session type info", smContext.Ref)

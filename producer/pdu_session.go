@@ -176,10 +176,11 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	}
 
 	var smPolicyDecision *models.SmPolicyDecision
-	if smPolicyDecisionRsp, err := consumer.SendSMPolicyAssociationCreate(smContext); err != nil {
+	if smPolicyID, smPolicyDecisionRsp, err := consumer.SendSMPolicyAssociationCreate(smContext); err != nil {
 		smContext.Log.Errorf("SM Policy Association failed")
 	} else {
 		smPolicyDecision = smPolicyDecisionRsp
+		smContext.SMPolicyID = smPolicyID
 	}
 
 	// dataPath selection
@@ -342,6 +343,15 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			if smContext.SelectedUPF != nil {
 				smContext.Log.Infof("Release IP[%s]", smContext.PDUAddress.String())
 				smf_context.GetUserPlaneInformation().ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress)
+			}
+
+			// remove SM Policy Association
+			if smContext.SMPolicyID != "" {
+				if err := consumer.SendSMPolicyAssociationTermination(smContext); err != nil {
+					smContext.Log.Errorf("SM Policy Termination failed: %s", err)
+				} else {
+					smContext.SMPolicyID = ""
+				}
 			}
 
 			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(
@@ -842,6 +852,15 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
+
+	// remove SM Policy Association
+	if smContext.SMPolicyID != "" {
+		if err := consumer.SendSMPolicyAssociationTermination(smContext); err != nil {
+			smContext.Log.Errorf("SM Policy Termination failed: %s", err)
+		} else {
+			smContext.SMPolicyID = ""
+		}
+	}
 
 	smContext.SetState(smf_context.PFCPModification)
 
