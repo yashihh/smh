@@ -169,17 +169,18 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	}
 
 	establishmentRequest := m.PDUSessionEstablishmentRequest
-	smContext.HandlePDUSessionEstablishmentRequest(establishmentRequest)
+	HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest)
 
 	if err := smContext.PCFSelection(); err != nil {
 		smContext.Log.Errorln("pcf selection error:", err)
 	}
 
 	var smPolicyDecision *models.SmPolicyDecision
-	if smPolicyDecisionRsp, err := consumer.SendSMPolicyAssociationCreate(smContext); err != nil {
-		smContext.Log.Errorf("SM Policy Association failed")
+	if smPolicyID, smPolicyDecisionRsp, err := consumer.SendSMPolicyAssociationCreate(smContext); err != nil {
+		smContext.Log.Errorf("SM Policy Association failed: %v", err)
 	} else {
 		smPolicyDecision = smPolicyDecisionRsp
+		smContext.SMPolicyID = smPolicyID
 	}
 
 	// dataPath selection
@@ -338,12 +339,23 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			// Wait till the state becomes Active again
 			// TODO: implement sleep wait in concurrent architecture
 
-			smContext.HandlePDUSessionReleaseRequest(m.PDUSessionReleaseRequest)
+			HandlePDUSessionReleaseRequest(smContext, m.PDUSessionReleaseRequest)
 			if smContext.SelectedUPF != nil {
 				smContext.Log.Infof("Release IP[%s]", smContext.PDUAddress.String())
 				smf_context.GetUserPlaneInformation().ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress)
 			}
-			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext); err != nil {
+
+			// remove SM Policy Association
+			if smContext.SMPolicyID != "" {
+				if err := consumer.SendSMPolicyAssociationTermination(smContext); err != nil {
+					smContext.Log.Errorf("SM Policy Termination failed: %s", err)
+				} else {
+					smContext.SMPolicyID = ""
+				}
+			}
+
+			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(
+				smContext, nasMessage.Cause5GSMRegularDeactivation); err != nil {
 				smContext.Log.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
 				response.BinaryDataN1SmMessage = buf
@@ -840,6 +852,15 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
+
+	// remove SM Policy Association
+	if smContext.SMPolicyID != "" {
+		if err := consumer.SendSMPolicyAssociationTermination(smContext); err != nil {
+			smContext.Log.Errorf("SM Policy Termination failed: %s", err)
+		} else {
+			smContext.SMPolicyID = ""
+		}
+	}
 
 	smContext.SetState(smf_context.PFCPModification)
 
