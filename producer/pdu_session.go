@@ -177,7 +177,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	var smPolicyDecision *models.SmPolicyDecision
 	if smPolicyID, smPolicyDecisionRsp, err := consumer.SendSMPolicyAssociationCreate(smContext); err != nil {
-		smContext.Log.Errorf("SM Policy Association failed")
+		smContext.Log.Errorf("SM Policy Association failed: %v", err)
 	} else {
 		smPolicyDecision = smPolicyDecisionRsp
 		smContext.SMPolicyID = smPolicyID

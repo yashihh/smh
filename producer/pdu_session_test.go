@@ -296,6 +296,7 @@ func initSMPoliciesPostStubPCF() {
 	gock.New("http://127.0.0.7:8000/npcf-smpolicycontrol/v1").
 		Post("/sm-policies").
 		Reply(http.StatusCreated).
+		AddHeader("Location", "http://127.0.0.7:8000/npcf-smpolicycontrol/v1/sm-policies/imsi-208930000007487-10").
 		JSON(smPolicyDecision)
 }
 
