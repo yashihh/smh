@@ -4,7 +4,6 @@ import (
 	"net"
 
 	"bitbucket.org/free5gc-team/openapi/models"
-	"bitbucket.org/free5gc-team/smf/context/pool"
 )
 
 type SNssai struct {
@@ -30,12 +29,6 @@ type DnnUPFInfoItem struct {
 	UeIPPools       []*UeIPPool
 }
 
-// UeIPPool represent IP address pool for UE
-type UeIPPool struct {
-	ueSubNet *net.IPNet
-	pool     *pool.LazyReusePool
-}
-
 // ContainsDNAI return true if the this dnn Info contains the specify DNAI
 func (d *DnnUPFInfoItem) ContainsDNAI(targetDnai string) bool {
 	if targetDnai == "" {
@@ -43,6 +36,19 @@ func (d *DnnUPFInfoItem) ContainsDNAI(targetDnai string) bool {
 	}
 	for _, dnai := range d.DnaiList {
 		if dnai == targetDnai {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsIPPool returns true if the ip pool of this upf dnn info contains the `ip`
+func (d *DnnUPFInfoItem) ContainsIPPool(ip net.IP) bool {
+	if ip == nil {
+		return true
+	}
+	for _, ipPool := range d.UeIPPools {
+		if ipPool.ueSubNet.Contains(ip) {
 			return true
 		}
 	}
