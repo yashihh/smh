@@ -204,13 +204,32 @@ func TestLazyReusePool_ManySegment(t *testing.T) {
 	assert.Nil(t, p.head.next)
 	assert.Equal(t, 7, p.Remain())
 
-	ok = p.Use(7) // 4-10
+	ok = p.Use(7) // 4-6 -> 8-10
 	assert.True(t, ok)
 	assert.Equal(t, 4, p.head.first)
 	assert.Equal(t, 6, p.head.last)
 	assert.Equal(t, 8, p.head.next.first)
 	assert.Equal(t, 10, p.head.next.last)
 	assert.Equal(t, 6, p.Remain())
+
+	p.Free(7) // 4-10
+	assert.Equal(t, 4, p.head.first)
+	assert.Equal(t, 10, p.head.last)
+	assert.Nil(t, p.head.next)
+
+	p.Free(3) // 4-10 -> 3
+	assert.Equal(t, 4, p.head.first)
+	assert.Equal(t, 10, p.head.last)
+	assert.Equal(t, 3, p.head.next.first)
+	assert.Equal(t, 3, p.head.next.last)
+
+	p.Free(100) // 4-10 -> 3 -> 100
+	assert.Equal(t, 4, p.head.first)
+	assert.Equal(t, 10, p.head.last)
+	assert.Equal(t, 3, p.head.next.first)
+	assert.Equal(t, 3, p.head.next.last)
+	assert.Equal(t, 100, p.head.next.next.first)
+	assert.Equal(t, 100, p.head.next.next.last)
 }
 
 func TestLazyReusePool_ManyGoroutine(t *testing.T) {

@@ -498,7 +498,7 @@ func (upi *UserPlaneInformation) SelectUPFAndAllocUEIP(selection *UPFSelectionPa
 		sortedPoolList := createPoolListForSelection(pools)
 		for _, pool := range sortedPoolList {
 			logger.CtxLog.Debugf("check start UEIPPool(%+v)", pool.ueSubNet)
-			addr := pool.allocate(nil)
+			addr := pool.allocate(selection.PDUAddress)
 			if addr != nil {
 				logger.CtxLog.Infof("Selected UPF: %s",
 					upi.GetUPFNameByIp(upf.NodeID.ResolveNodeIdToIp().String()))
@@ -534,6 +534,16 @@ func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) []*UeIPPool {
 		if currentSnssai.Equal(targetSnssai) {
 			for _, dnnInfo := range snssaiInfo.DnnList {
 				if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
+					if selection.PDUAddress != nil {
+						for _, ueIPPool := range dnnInfo.UeIPPools {
+							if ueIPPool.ueSubNet.Contains(selection.PDUAddress) {
+								// return match IPPools
+								return []*UeIPPool{ueIPPool}
+							}
+						}
+					}
+
+					// if no specify static PDU Address
 					return dnnInfo.UeIPPools
 				}
 			}
