@@ -52,7 +52,7 @@ func (ueIPPool *UeIPPool) allocate(request net.IP) net.IP {
 		ok = ueIPPool.pool.Use(allocVal)
 		if !ok {
 			logger.CtxLog.Warnf("IP[%s] is used in Pool[%+v]", request, ueIPPool.ueSubNet)
-			// if not allocated the request address, use other available address of the ue ip pool
+			return nil
 		}
 		// if allocated request IP address
 		goto RETURNIP
@@ -68,6 +68,13 @@ RETURNIP:
 	retIP := uint32ToIP(uint32(allocVal))
 	logger.CtxLog.Infof("Allocated UE IP address: %s", retIP)
 	return retIP
+}
+
+func (ueIPPool *UeIPPool) exclude(excludePool *UeIPPool) error {
+	if err := ueIPPool.pool.Reserve(excludePool.pool.Min(), excludePool.pool.Max()); err != nil {
+		return fmt.Errorf("exclude uePool fail: %v", err)
+	}
+	return nil
 }
 
 func uint32ToIP(intval uint32) net.IP {

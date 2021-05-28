@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewLazyReusePool(t *testing.T) {
@@ -230,6 +231,35 @@ func TestLazyReusePool_ManySegment(t *testing.T) {
 	assert.Equal(t, 3, p.head.next.last)
 	assert.Equal(t, 100, p.head.next.next.first)
 	assert.Equal(t, 100, p.head.next.next.last)
+}
+
+func TestLazyReusePool_ReserveSection(t *testing.T) {
+	p, err := NewLazyReusePool(1, 100)
+	require.NoError(t, err)
+	require.Equal(t, 100, p.Remain())
+
+	err = p.Reserve(30, 69)
+	require.NoError(t, err)
+	require.Equal(t, 60, p.Remain())
+
+	var allocated []int
+	for {
+		a, ok := p.Allocate()
+		if ok {
+			allocated = append(allocated, a)
+		} else {
+			break
+		}
+	}
+	var expected []int
+	for i := 1; i <= 29; i++ {
+		expected = append(expected, i)
+	}
+	for i := 70; i <= 100; i++ {
+		expected = append(expected, i)
+	}
+
+	require.Equal(t, expected, allocated)
 }
 
 func TestLazyReusePool_ManyGoroutine(t *testing.T) {

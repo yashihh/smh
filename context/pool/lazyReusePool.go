@@ -161,6 +161,38 @@ success:
 	return true
 }
 
+func (p *LazyReusePool) Reserve(first, last int) error {
+	if !p.Contains(first, last) {
+		return fmt.Errorf("reserve range should in [%d, %d]", p.first, p.last)
+	}
+
+	for seg := p.head; seg != nil; seg = seg.next {
+		if seg.first <= first && seg.last >= last {
+			seg.next = &segment{
+				first: last + 1,
+				last:  seg.last,
+			}
+
+			seg.last = first - 1
+			p.remain -= last - first + 1
+		}
+	}
+
+	return nil
+}
+
+func (p *LazyReusePool) Contains(first, last int) bool {
+	return first <= last && p.first <= first && p.last >= last
+}
+
+func (p *LazyReusePool) Min() int {
+	return p.first
+}
+
+func (p *LazyReusePool) Max() int {
+	return p.last
+}
+
 func (p *LazyReusePool) Remain() int {
 	return p.remain
 }

@@ -114,6 +114,7 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 
 				for _, dnnInfoConfig := range snssaiInfoConfig.DnnUpfInfoList {
 					ueIPPools := make([]*UeIPPool, 0)
+					staticUeIPPools := make([]*UeIPPool, 0)
 					for _, pool := range dnnInfoConfig.Pools {
 						ueIPPool := NewUEIPPool(&pool)
 						if ueIPPool == nil {
@@ -123,11 +124,27 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 							allUEIPPools = append(allUEIPPools, ueIPPool)
 						}
 					}
+					for _, pool := range dnnInfoConfig.StaticPools {
+						ueIPPool := NewUEIPPool(&pool)
+						if ueIPPool == nil {
+							logger.InitLog.Fatalf("invalid pools value: %+v", pool)
+						} else {
+							staticUeIPPools = append(staticUeIPPools, ueIPPool)
+							for _, dynamicUePool := range ueIPPools {
+								if dynamicUePool.ueSubNet.Contains(ueIPPool.ueSubNet.IP) {
+									if err := dynamicUePool.exclude(ueIPPool); err != nil {
+										logger.InitLog.Fatalf("exclude static Pool[%s] failed: %v", ueIPPool.ueSubNet, err)
+									}
+								}
+							}
+						}
+					}
 					snssaiInfo.DnnList = append(snssaiInfo.DnnList, DnnUPFInfoItem{
 						Dnn:             dnnInfoConfig.Dnn,
 						DnaiList:        dnnInfoConfig.DnaiList,
 						PduSessionTypes: dnnInfoConfig.PduSessionTypes,
 						UeIPPools:       ueIPPools,
+						StaticIPPools:   staticUeIPPools,
 					})
 				}
 				snssaiInfos = append(snssaiInfos, snssaiInfo)
@@ -535,7 +552,8 @@ func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) []*UeIPPool {
 			for _, dnnInfo := range snssaiInfo.DnnList {
 				if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
 					if selection.PDUAddress != nil {
-						for _, ueIPPool := range dnnInfo.UeIPPools {
+						// return static ue ip pool
+						for _, ueIPPool := range dnnInfo.StaticIPPools {
 							if ueIPPool.ueSubNet.Contains(selection.PDUAddress) {
 								// return match IPPools
 								return []*UeIPPool{ueIPPool}
@@ -552,8 +570,8 @@ func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) []*UeIPPool {
 	return nil
 }
 
-func (upi *UserPlaneInformation) ReleaseUEIP(upf *UPNode, addr net.IP) {
-	pool := findPoolByAddr(upf, addr)
+func (upi *UserPlaneInformation) ReleaseUEIP(upf *UPNode, addr net.IP, static bool) {
+	pool := findPoolByAddr(upf, addr, static)
 	if pool == nil {
 		// nothing to do
 		logger.CtxLog.Warnf("Fail to release UE IP address: %v to UPF: %s",
@@ -563,12 +581,20 @@ func (upi *UserPlaneInformation) ReleaseUEIP(upf *UPNode, addr net.IP) {
 	pool.release(addr)
 }
 
-func findPoolByAddr(upf *UPNode, addr net.IP) *UeIPPool {
+func findPoolByAddr(upf *UPNode, addr net.IP, static bool) *UeIPPool {
 	for _, snssaiInfo := range upf.UPF.SNssaiInfos {
 		for _, dnnInfo := range snssaiInfo.DnnList {
-			for _, pool := range dnnInfo.UeIPPools {
-				if pool.ueSubNet.Contains(addr) {
-					return pool
+			if static {
+				for _, pool := range dnnInfo.StaticIPPools {
+					if pool.ueSubNet.Contains(addr) {
+						return pool
+					}
+				}
+			} else {
+				for _, pool := range dnnInfo.UeIPPools {
+					if pool.ueSubNet.Contains(addr) {
+						return pool
+					}
 				}
 			}
 		}

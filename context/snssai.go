@@ -27,6 +27,7 @@ type DnnUPFInfoItem struct {
 	DnaiList        []string
 	PduSessionTypes []models.PduSessionType
 	UeIPPools       []*UeIPPool
+	StaticIPPools   []*UeIPPool
 }
 
 // ContainsDNAI return true if the this dnn Info contains the specify DNAI

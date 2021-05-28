@@ -89,6 +89,7 @@ type SMContext struct {
 	HoState         models.HoState
 
 	PDUAddress             net.IP
+	UseStaticIP            bool
 	SelectedPDUSessionType uint8
 
 	DnnConfiguration models.DnnConfiguration
@@ -205,7 +206,8 @@ func RemoveSMContext(ref string) {
 	if smContext.SelectedUPF != nil {
 		logger.PduSessLog.Infof("UE[%s] PDUSessionID[%d] Release IP[%s]",
 			smContext.Supi, smContext.PDUSessionID, smContext.PDUAddress.String())
-		GetUserPlaneInformation().ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress)
+		GetUserPlaneInformation().
+			ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress, smContext.UseStaticIP)
 	}
 
 	for _, pfcpSessionContext := range smContext.PFCPContext {

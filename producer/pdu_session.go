@@ -116,6 +116,9 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		if staticIPConfig.Ipv4Addr != "" {
 			upfSelectionParams.PDUAddress = net.ParseIP(staticIPConfig.Ipv4Addr).To4()
 		}
+		smContext.UseStaticIP = true
+	} else {
+		smContext.UseStaticIP = false
 	}
 
 	var selectedUPF *smf_context.UPNode
@@ -350,7 +353,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			HandlePDUSessionReleaseRequest(smContext, m.PDUSessionReleaseRequest)
 			if smContext.SelectedUPF != nil {
 				smContext.Log.Infof("Release IP[%s]", smContext.PDUAddress.String())
-				smf_context.GetUserPlaneInformation().ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress)
+				smf_context.
+					GetUserPlaneInformation().
+					ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress, smContext.UseStaticIP)
 			}
 
 			// remove SM Policy Association
