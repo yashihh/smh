@@ -386,18 +386,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
 			smContext.SetState(smf_context.InActive)
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
-			problemDetails, err := consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
-			if problemDetails != nil || err != nil {
-				if problemDetails != nil {
-					smContext.Log.Warnf("Send SMContext Status Notification Problem[%+v]", problemDetails)
-				}
 
-				if err != nil {
-					smContext.Log.Warnf("Send SMContext Status Notification Error[%v]", err)
-				}
-			} else {
-				smContext.Log.Traceln("Send SMContext Status Notification successfully")
-			}
+			// Use go routine to send Notification to prevent blocking the handling process
+			go sendSMContextStatusNotification(smContext)
 		}
 	}
 
@@ -519,18 +510,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 			smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = false
 			smf_context.RemoveSMContext(smContext.Ref)
-			problemDetails, err := consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
-			if problemDetails != nil || err != nil {
-				if problemDetails != nil {
-					smContext.Log.Warnf("Send SMContext Status Notification Problem[%+v]", problemDetails)
-				}
 
-				if err != nil {
-					smContext.Log.Warnf("Send SMContext Status Notification Error[%v]", err)
-				}
-			} else {
-				smContext.Log.Traceln("Send SMContext Status Notification successfully")
-			}
+			// Use go routine to send Notification to prevent blocking the handling process
+			go sendSMContextStatusNotification(smContext)
 		} else { // normal case
 			smContext.CheckState(smf_context.InActivePending)
 			// Wait till the state becomes Active again
@@ -824,6 +806,22 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	}
 
 	return httpResponse
+}
+
+func sendSMContextStatusNotification(smContext *smf_context.SMContext) {
+	// Use go routine to send Notification to prevent blocking the handling process
+	problemDetails, err := consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
+	if problemDetails != nil || err != nil {
+		if problemDetails != nil {
+			smContext.Log.Warnf("Send SMContext Status Notification Problem[%+v]", problemDetails)
+		}
+
+		if err != nil {
+			smContext.Log.Warnf("Send SMContext Status Notification Error[%v]", err)
+		}
+	} else {
+		smContext.Log.Traceln("Send SMContext Status Notification successfully")
+	}
 }
 
 func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSmContextRequest) *http_wrapper.Response {
