@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	SMF_EXPECTED_CONFIG_VERSION        = "1.0.1"
+	SMF_EXPECTED_CONFIG_VERSION        = "1.0.2"
 	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.1"
 	SMF_DEFAULT_IPV4                   = "127.0.0.2"
 	SMF_DEFAULT_PORT                   = "8000"
@@ -508,6 +508,7 @@ type DnnUpfInfoItem struct {
 	DnaiList        []string                `yaml:"dnaiList" valid:"optional"`
 	PduSessionTypes []models.PduSessionType `yaml:"pduSessionTypes" valid:"optional"`
 	Pools           []UEIPPool              `yaml:"pools" valid:"optional"`
+	StaticPools     []UEIPPool              `yaml:"static_pools" valid:"optional"`
 }
 
 func (d *DnnUpfInfoItem) validate() (bool, error) {
@@ -545,7 +546,7 @@ func appendInvalid(err error) error {
 
 	es := err.(govalidator.Errors).Errors()
 	for _, e := range es {
-		errs = append(errs, fmt.Errorf("Invalid %w", e))
+		errs = append(errs, fmt.Errorf("invalid %w", e))
 	}
 
 	return error(errs)

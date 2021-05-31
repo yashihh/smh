@@ -81,9 +81,10 @@ type UPF struct {
 
 // UPFSelectionParams ... parameters for upf selection
 type UPFSelectionParams struct {
-	Dnn    string
-	SNssai *SNssai
-	Dnai   string
+	Dnn        string
+	SNssai     *SNssai
+	Dnai       string
+	PDUAddress net.IP
 }
 
 // UPFInterfaceInfo store the UPF interface information
@@ -169,6 +170,11 @@ func (upfSelectionParams *UPFSelectionParams) String() string {
 	Dnai := upfSelectionParams.Dnai
 	if Dnai != "" {
 		str += fmt.Sprintf("DNAI: %s\n", Dnai)
+	}
+
+	pduAddress := upfSelectionParams.PDUAddress
+	if pduAddress != nil {
+		str += fmt.Sprintf("PDUAddress: %s\n", pduAddress)
 	}
 
 	return str

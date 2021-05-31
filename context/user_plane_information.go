@@ -1,17 +1,13 @@
 package context
 
 import (
-	"encoding/binary"
 	"errors"
-	"fmt"
-	"math"
 	"math/rand"
 	"net"
 	"reflect"
 	"sort"
 
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"bitbucket.org/free5gc-team/smf/context/pool"
 	"bitbucket.org/free5gc-team/smf/factory"
 	"bitbucket.org/free5gc-team/smf/logger"
 )
@@ -118,6 +114,7 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 
 				for _, dnnInfoConfig := range snssaiInfoConfig.DnnUpfInfoList {
 					ueIPPools := make([]*UeIPPool, 0)
+					staticUeIPPools := make([]*UeIPPool, 0)
 					for _, pool := range dnnInfoConfig.Pools {
 						ueIPPool := NewUEIPPool(&pool)
 						if ueIPPool == nil {
@@ -127,11 +124,27 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 							allUEIPPools = append(allUEIPPools, ueIPPool)
 						}
 					}
+					for _, pool := range dnnInfoConfig.StaticPools {
+						ueIPPool := NewUEIPPool(&pool)
+						if ueIPPool == nil {
+							logger.InitLog.Fatalf("invalid pools value: %+v", pool)
+						} else {
+							staticUeIPPools = append(staticUeIPPools, ueIPPool)
+							for _, dynamicUePool := range ueIPPools {
+								if dynamicUePool.ueSubNet.Contains(ueIPPool.ueSubNet.IP) {
+									if err := dynamicUePool.exclude(ueIPPool); err != nil {
+										logger.InitLog.Fatalf("exclude static Pool[%s] failed: %v", ueIPPool.ueSubNet, err)
+									}
+								}
+							}
+						}
+					}
 					snssaiInfo.DnnList = append(snssaiInfo.DnnList, DnnUPFInfoItem{
 						Dnn:             dnnInfoConfig.Dnn,
 						DnaiList:        dnnInfoConfig.DnaiList,
 						PduSessionTypes: dnnInfoConfig.PduSessionTypes,
 						UeIPPools:       ueIPPools,
+						StaticIPPools:   staticUeIPPools,
 					})
 				}
 				snssaiInfos = append(snssaiInfos, snssaiInfo)
@@ -175,61 +188,6 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 	}
 
 	return userplaneInformation
-}
-
-func NewUEIPPool(factoryPool *factory.UEIPPool) *UeIPPool {
-	_, ipNet, err := net.ParseCIDR(factoryPool.Cidr)
-	if err != nil {
-		logger.InitLog.Errorln(err)
-		return nil
-	}
-
-	minAddr, maxAddr, err := calcAddrRange(ipNet)
-	if err != nil {
-		logger.InitLog.Errorln(err)
-		return nil
-	}
-
-	newPool, err := pool.NewLazyReusePool(int(minAddr), int(maxAddr))
-	if err != nil {
-		logger.InitLog.Errorln(err)
-		return nil
-	}
-
-	ueIPPool := &UeIPPool{
-		ueSubNet: ipNet,
-		pool:     newPool,
-	}
-	return ueIPPool
-}
-
-func calcAddrRange(ipNet *net.IPNet) (minAddr, maxAddr uint32, err error) {
-	maskVal := binary.BigEndian.Uint32(ipNet.Mask)
-	baseIPVal := binary.BigEndian.Uint32(ipNet.IP)
-	if maskVal == math.MaxUint32 {
-		return baseIPVal, baseIPVal, nil
-	}
-	minAddr = (baseIPVal & maskVal) + 1  // 0 is network address
-	maxAddr = (baseIPVal | ^maskVal) - 1 // all 1 is broadcast address
-	if minAddr > maxAddr {
-		return minAddr, maxAddr, errors.New("Mask is invalid.")
-	}
-	return minAddr, maxAddr, nil
-}
-
-func isOverlap(pools []*UeIPPool) bool {
-	if len(pools) < 2 {
-		// no need to check
-		return false
-	}
-	for i := 0; i < len(pools)-1; i++ {
-		for j := i + 1; j < len(pools); j++ {
-			if pools[i].pool.IsJoint(pools[j].pool) {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func (upi *UserPlaneInformation) GetUPFNameByIp(ip string) string {
@@ -557,7 +515,7 @@ func (upi *UserPlaneInformation) SelectUPFAndAllocUEIP(selection *UPFSelectionPa
 		sortedPoolList := createPoolListForSelection(pools)
 		for _, pool := range sortedPoolList {
 			logger.CtxLog.Debugf("check start UEIPPool(%+v)", pool.ueSubNet)
-			addr := pool.allocate()
+			addr := pool.allocate(selection.PDUAddress)
 			if addr != nil {
 				logger.CtxLog.Infof("Selected UPF: %s",
 					upi.GetUPFNameByIp(upf.NodeID.ResolveNodeIdToIp().String()))
@@ -593,6 +551,17 @@ func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) []*UeIPPool {
 		if currentSnssai.Equal(targetSnssai) {
 			for _, dnnInfo := range snssaiInfo.DnnList {
 				if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
+					if selection.PDUAddress != nil {
+						// return static ue ip pool
+						for _, ueIPPool := range dnnInfo.StaticIPPools {
+							if ueIPPool.ueSubNet.Contains(selection.PDUAddress) {
+								// return match IPPools
+								return []*UeIPPool{ueIPPool}
+							}
+						}
+					}
+
+					// if no specify static PDU Address
 					return dnnInfo.UeIPPools
 				}
 			}
@@ -601,20 +570,8 @@ func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) []*UeIPPool {
 	return nil
 }
 
-func (ueIPPool *UeIPPool) allocate() net.IP {
-	allocVal, res := ueIPPool.pool.Allocate()
-	if !res {
-		logger.CtxLog.Warnf("Pool is empty: %+v", ueIPPool.ueSubNet)
-		return nil
-	}
-	buf := make([]byte, 4)
-	binary.BigEndian.PutUint32(buf, uint32(allocVal))
-	logger.CtxLog.Infof("Allocated UE IP address: %v", net.IPv4(buf[0], buf[1], buf[2], buf[3]))
-	return buf
-}
-
-func (upi *UserPlaneInformation) ReleaseUEIP(upf *UPNode, addr net.IP) {
-	pool := findPoolByAddr(upf, addr)
+func (upi *UserPlaneInformation) ReleaseUEIP(upf *UPNode, addr net.IP, static bool) {
+	pool := findPoolByAddr(upf, addr, static)
 	if pool == nil {
 		// nothing to do
 		logger.CtxLog.Warnf("Fail to release UE IP address: %v to UPF: %s",
@@ -624,45 +581,23 @@ func (upi *UserPlaneInformation) ReleaseUEIP(upf *UPNode, addr net.IP) {
 	pool.release(addr)
 }
 
-func findPoolByAddr(upf *UPNode, addr net.IP) *UeIPPool {
+func findPoolByAddr(upf *UPNode, addr net.IP, static bool) *UeIPPool {
 	for _, snssaiInfo := range upf.UPF.SNssaiInfos {
 		for _, dnnInfo := range snssaiInfo.DnnList {
-			for _, pool := range dnnInfo.UeIPPools {
-				if pool.ueSubNet.Contains(addr) {
-					return pool
+			if static {
+				for _, pool := range dnnInfo.StaticIPPools {
+					if pool.ueSubNet.Contains(addr) {
+						return pool
+					}
+				}
+			} else {
+				for _, pool := range dnnInfo.UeIPPools {
+					if pool.ueSubNet.Contains(addr) {
+						return pool
+					}
 				}
 			}
 		}
 	}
 	return nil
-}
-
-func (ueIPPool *UeIPPool) release(addr net.IP) {
-	addrVal := binary.BigEndian.Uint32(addr)
-	res := ueIPPool.pool.Free(int(addrVal))
-	if !res {
-		logger.CtxLog.Warnf("failed to release UE Address: %s", addr)
-	}
-	logger.CtxLog.Debug(ueIPPool.dump())
-}
-
-func (ueIPPool *UeIPPool) dump() string {
-	str := "["
-	elements := ueIPPool.pool.Dump()
-	for index, element := range elements {
-		var firstAddr net.IP
-		var lastAddr net.IP
-		buf := make([]byte, 4)
-		binary.BigEndian.PutUint32(buf, uint32(element[0]))
-		firstAddr = buf
-		buf = make([]byte, 4)
-		binary.BigEndian.PutUint32(buf, uint32(element[1]))
-		lastAddr = buf
-		if index > 0 {
-			str += ("->")
-		}
-		str += fmt.Sprintf("{%s - %s}", firstAddr.String(), lastAddr.String())
-	}
-	str += ("]")
-	return str
 }

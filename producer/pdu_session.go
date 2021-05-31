@@ -75,6 +75,33 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Infoln("Send NF Discovery Serving UDM Successfully")
 	}
 
+	smPlmnID := createData.Guami.PlmnId
+
+	smDataParams := &Nudm_SubscriberDataManagement.GetSmDataParamOpts{
+		Dnn:         optional.NewString(createData.Dnn),
+		PlmnId:      optional.NewInterface(smPlmnID.Mcc + smPlmnID.Mnc),
+		SingleNssai: optional.NewInterface(openapi.MarshToJsonString(smContext.Snssai)),
+	}
+
+	SubscriberDataManagementClient := smf_context.SMF_Self().SubscriberDataManagementClient
+
+	if sessSubData, rsp, err := SubscriberDataManagementClient.
+		SessionManagementSubscriptionDataRetrievalApi.
+		GetSmData(context.Background(), smContext.Supi, smDataParams); err != nil {
+		smContext.Log.Errorln("Get SessionManagementSubscriptionData error:", err)
+	} else {
+		defer func() {
+			if rspCloseErr := rsp.Body.Close(); rspCloseErr != nil {
+				smContext.Log.Errorf("GetSmData response body cannot close: %+v", rspCloseErr)
+			}
+		}()
+		if len(sessSubData) > 0 {
+			smContext.DnnConfiguration = sessSubData[0].DnnConfigurations[smContext.Dnn]
+		} else {
+			smContext.Log.Errorln("SessionManagementSubscriptionData from UDM is nil")
+		}
+	}
+
 	// IP Allocation
 	upfSelectionParams := &smf_context.UPFSelectionParams{
 		Dnn: smContext.Dnn,
@@ -83,6 +110,17 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 			Sd:  smContext.Snssai.Sd,
 		},
 	}
+
+	if len(smContext.DnnConfiguration.StaticIpAddress) > 0 {
+		staticIPConfig := smContext.DnnConfiguration.StaticIpAddress[0]
+		if staticIPConfig.Ipv4Addr != "" {
+			upfSelectionParams.PDUAddress = net.ParseIP(staticIPConfig.Ipv4Addr).To4()
+		}
+		smContext.UseStaticIP = true
+	} else {
+		smContext.UseStaticIP = false
+	}
+
 	var selectedUPF *smf_context.UPNode
 	var ip net.IP
 	selectedUPFName := ""
@@ -140,33 +178,6 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	}
 	smContext.PDUAddress = ip
 	smContext.SelectedUPF = selectedUPF
-
-	smPlmnID := createData.Guami.PlmnId
-
-	smDataParams := &Nudm_SubscriberDataManagement.GetSmDataParamOpts{
-		Dnn:         optional.NewString(createData.Dnn),
-		PlmnId:      optional.NewInterface(smPlmnID.Mcc + smPlmnID.Mnc),
-		SingleNssai: optional.NewInterface(openapi.MarshToJsonString(smContext.Snssai)),
-	}
-
-	SubscriberDataManagementClient := smf_context.SMF_Self().SubscriberDataManagementClient
-
-	if sessSubData, rsp, err := SubscriberDataManagementClient.
-		SessionManagementSubscriptionDataRetrievalApi.
-		GetSmData(context.Background(), smContext.Supi, smDataParams); err != nil {
-		smContext.Log.Errorln("Get SessionManagementSubscriptionData error:", err)
-	} else {
-		defer func() {
-			if rspCloseErr := rsp.Body.Close(); rspCloseErr != nil {
-				smContext.Log.Errorf("GetSmData response body cannot close: %+v", rspCloseErr)
-			}
-		}()
-		if len(sessSubData) > 0 {
-			smContext.DnnConfiguration = sessSubData[0].DnnConfigurations[smContext.Dnn]
-		} else {
-			smContext.Log.Errorln("SessionManagementSubscriptionData from UDM is nil")
-		}
-	}
 
 	establishmentRequest := m.PDUSessionEstablishmentRequest
 	HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest)
@@ -342,7 +353,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			HandlePDUSessionReleaseRequest(smContext, m.PDUSessionReleaseRequest)
 			if smContext.SelectedUPF != nil {
 				smContext.Log.Infof("Release IP[%s]", smContext.PDUAddress.String())
-				smf_context.GetUserPlaneInformation().ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress)
+				smf_context.
+					GetUserPlaneInformation().
+					ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress, smContext.UseStaticIP)
 			}
 
 			// remove SM Policy Association
