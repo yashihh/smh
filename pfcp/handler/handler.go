@@ -146,6 +146,11 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 	SEID := msg.PfcpMessage.Header.SEID
 	smContext := smf_context.GetSMContextBySEID(SEID)
 
+	if smContext == nil {
+		logger.PfcpLog.Errorf("PFCP Session SEID[%d] not found", SEID)
+		return
+	}
+
 	// release lock after establishment
 	defer smContext.SMLock.Unlock()
 
@@ -220,6 +225,11 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 	SEID := msg.PfcpMessage.Header.SEID
 	smContext := smf_context.GetSMContextBySEID(SEID)
 
+	if smContext == nil {
+		logger.PfcpLog.Errorf("PFCP Session SEID[%d] not found", SEID)
+		return
+	}
+
 	logger.PfcpLog.Infoln("In HandlePfcpSessionModificationResponse")
 
 	if smf_context.SMF_Self().ULCLSupport && smContext.BPManager != nil {
@@ -279,7 +289,7 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 	smContext := smf_context.GetSMContextBySEID(SEID)
 
 	if smContext == nil {
-		logger.PfcpLog.Warnf("PFCP Session Deletion Response Found SM Context NULL, Request Rejected")
+		logger.PfcpLog.Errorf("PFCP Session SEID[%d] not found", SEID)
 		return
 		// TODO fix: SEID should be the value sent by UPF but now the SEID value is from sm context
 	}
@@ -314,7 +324,7 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 	var cause pfcpType.Cause
 
 	if smContext == nil {
-		logger.PfcpLog.Warnf("PFCP Session Report Request Found SM Context NULL, Request Rejected")
+		logger.PfcpLog.Errorf("PFCP Session SEID[%d] not found", SEID)
 		cause.CauseValue = pfcpType.CauseRequestRejected
 		// TODO fix: SEID should be the value sent by UPF but now the SEID value is from sm context
 		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, SEID)
