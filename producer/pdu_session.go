@@ -115,8 +115,10 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		staticIPConfig := smContext.DnnConfiguration.StaticIpAddress[0]
 		if staticIPConfig.Ipv4Addr != "" {
 			upfSelectionParams.PDUAddress = net.ParseIP(staticIPConfig.Ipv4Addr).To4()
+			smContext.UseStaticIP = true
+		} else {
+			smContext.UseStaticIP = false
 		}
-		smContext.UseStaticIP = true
 	} else {
 		smContext.UseStaticIP = false
 	}
