@@ -1,6 +1,8 @@
 package context_test
 
 import (
+	"fmt"
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +32,12 @@ var configuration = &factory.UserPlaneInformation{
 							Dnn: "internet",
 							Pools: []factory.UEIPPool{
 								{
-									Cidr: "60.60.0.0/16",
+									Cidr: "60.60.0.0/27",
+								},
+							},
+							StaticPools: []factory.UEIPPool{
+								{
+									Cidr: "60.60.0.0/28",
 								},
 							},
 						},
@@ -250,4 +257,27 @@ func TestGenerateDefaultPath(t *testing.T) {
 }
 
 func TestGetDefaultUPFTopoByDNN(t *testing.T) {
+}
+
+func TestSelectUPFAndAllocUEIP(t *testing.T) {
+	var expectedIPPool []net.IP
+
+	for i := 16; i <= 31; i++ {
+		expectedIPPool = append(expectedIPPool, net.ParseIP(fmt.Sprintf("60.60.0.%d", i)).To4())
+	}
+
+	userplaneInformation := context.NewUserPlaneInformation(configuration)
+
+	for i := 0; i <= 100; i++ {
+		upf, allocatedIP := userplaneInformation.SelectUPFAndAllocUEIP(&context.UPFSelectionParams{
+			Dnn: "internet",
+			SNssai: &context.SNssai{
+				Sst: 1,
+				Sd:  "112232",
+			},
+		})
+
+		require.Contains(t, expectedIPPool, allocatedIP)
+		userplaneInformation.ReleaseUEIP(upf, allocatedIP, false)
+	}
 }

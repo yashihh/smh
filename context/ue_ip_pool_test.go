@@ -48,3 +48,33 @@ func TestUeIPPool(t *testing.T) {
 		require.Equal(t, ip, allocIP)
 	}
 }
+
+func TestUeIPPool_ExcludeRange(t *testing.T) {
+	ueIPPool := NewUEIPPool(&factory.UEIPPool{
+		Cidr: "10.10.0.0/24",
+	})
+
+	require.Equal(t, 0x0a0a0001, ueIPPool.pool.Min())
+	require.Equal(t, 0x0a0a00FE, ueIPPool.pool.Max())
+	require.Equal(t, 254, ueIPPool.pool.Remain())
+
+	excludeUeIPPool := NewUEIPPool(&factory.UEIPPool{
+		Cidr: "10.10.0.0/28",
+	})
+
+	require.Equal(t, 0x0a0a0001, excludeUeIPPool.pool.Min())
+	require.Equal(t, 0x0a0a000E, excludeUeIPPool.pool.Max())
+
+	require.Equal(t, 14, excludeUeIPPool.pool.Remain())
+
+	err := ueIPPool.exclude(excludeUeIPPool)
+	require.NoError(t, err)
+	require.Equal(t, 239, ueIPPool.pool.Remain())
+
+	for i := 16; i <= 254; i++ {
+		allocate := ueIPPool.allocate(nil)
+		require.Equal(t, net.ParseIP(fmt.Sprintf("10.10.0.%d", i)).To4(), allocate)
+
+		ueIPPool.release(allocate)
+	}
+}

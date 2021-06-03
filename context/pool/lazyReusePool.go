@@ -166,16 +166,32 @@ func (p *LazyReusePool) Reserve(first, last int) error {
 		return fmt.Errorf("reserve range should in [%d, %d]", p.first, p.last)
 	}
 
-	for seg := p.head; seg != nil; seg = seg.next {
-		if seg.first <= first && seg.last >= last {
-			seg.next = &segment{
+	for cur, prev := p.head, (*segment)(nil); cur != nil; cur = cur.next {
+		switch {
+		case cur.first == first && cur.last > last:
+			cur.first = last + 1
+			p.remain -= last - first + 1
+		case cur.first < first && cur.last == last:
+			cur.last = first - 1
+			p.remain -= last - first + 1
+		case cur.first < first && cur.last > last:
+			cur.next = &segment{
 				first: last + 1,
-				last:  seg.last,
+				last:  cur.last,
 			}
 
-			seg.last = first - 1
+			cur.last = first - 1
 			p.remain -= last - first + 1
+
+		// this segment in reserve range
+		case cur.first > first && cur.last < last:
+			p.remain -= cur.last - cur.first + 1
+			if prev != nil {
+				prev.next = cur.next
+			}
 		}
+
+		prev = cur
 	}
 
 	return nil
