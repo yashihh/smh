@@ -71,7 +71,12 @@ RETURNIP:
 }
 
 func (ueIPPool *UeIPPool) exclude(excludePool *UeIPPool) error {
-	if err := ueIPPool.pool.Reserve(excludePool.pool.Min(), excludePool.pool.Max()); err != nil {
+	excludeMin := excludePool.pool.Min()
+	excludeMax := excludePool.pool.Max() + 1
+	if !ueIPPool.ueSubNet.IP.Equal(excludePool.ueSubNet.IP) {
+		excludeMin -= 1
+	}
+	if err := ueIPPool.pool.Reserve(excludeMin, excludeMax); err != nil {
 		return fmt.Errorf("exclude uePool fail: %v", err)
 	}
 	return nil
