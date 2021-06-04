@@ -151,9 +151,6 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 		return
 	}
 
-	// release lock after establishment
-	defer smContext.SMLock.Unlock()
-
 	if rsp.UPFSEID != nil {
 		NodeIDtoIP := rsp.NodeID.ResolveNodeIdToIp().String()
 		pfcpSessionCtx := smContext.PFCPContext[NodeIDtoIP]
@@ -161,8 +158,12 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 	}
 
 	ANUPF := smContext.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
+
+	// If this message is for the anchor UPF, trigger n1n2 transfer to amf and unlock the context lock
 	if rsp.Cause.CauseValue == pfcpType.CauseRequestAccepted &&
 		ANUPF.UPF.NodeID.ResolveNodeIdToIp().Equal(rsp.NodeID.ResolveNodeIdToIp()) {
+		defer smContext.SMLock.Unlock()
+
 		n1n2Request := models.N1N2MessageTransferRequest{}
 
 		if smNasBuf, err := smf_context.BuildGSMPDUSessionEstablishmentAccept(smContext); err != nil {
