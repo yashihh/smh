@@ -9,11 +9,11 @@ require (
 	bitbucket.org/free5gc-team/http_wrapper v0.0.0-20201211040440-7c475efe43d4
 	bitbucket.org/free5gc-team/idgenerator v0.0.0-20201211040458-d68b2cd1a422
 	bitbucket.org/free5gc-team/logger_util v0.0.0-20210414054242-2101cfc15ebb
-	bitbucket.org/free5gc-team/nas v0.0.0-20210414080401-8106268fadd6
-	bitbucket.org/free5gc-team/ngap v0.0.0-20210414080844-063a8973125d
-	bitbucket.org/free5gc-team/openapi v0.0.0-20210414074928-e9e853669ae4
-	bitbucket.org/free5gc-team/pfcp v0.0.0-20210427110535-63aa5b8cce30
-	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20210414075447-94afef878592
+	bitbucket.org/free5gc-team/nas v0.0.0-20210610112928-da6346e73fab
+	bitbucket.org/free5gc-team/ngap v0.0.0-20210610085113-7e26561720a1
+	bitbucket.org/free5gc-team/openapi v0.0.0-20210610084256-990ed030d4de
+	bitbucket.org/free5gc-team/pfcp v0.0.0-20210610094024-dbf41d12986e
+	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20210610093126-18c9713dbf0e
 	bitbucket.org/free5gc-team/version v0.0.0-20201211040438-c23ed678d8da
 	github.com/antihax/optional v1.0.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.0
