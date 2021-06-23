@@ -257,7 +257,7 @@ type UERoutingInfo struct {
 
 func (u *UERoutingInfo) validate() (bool, error) {
 	for _, member := range u.Members {
-		if result := govalidator.StringMatches(member, "imsi-[0-9]{14,15}$"); !result {
+		if result := govalidator.StringMatches(member, "imsi-[0-9]{5,15}$"); !result {
 			err := errors.New("Invalid member (SUPI): " + member)
 			return false, err
 		}
