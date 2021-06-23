@@ -2,6 +2,7 @@ package context
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"net"
 	"reflect"
@@ -33,12 +34,31 @@ const (
 
 // UPNode represent the user plane node topology
 type UPNode struct {
+	Name   string
 	Type   UPNodeType
 	NodeID pfcpType.NodeID
 	ANIP   net.IP
 	Dnn    string
 	Links  []*UPNode
 	UPF    *UPF
+}
+
+func (u *UPNode) MatchedSelection(selection *UPFSelectionParams) bool {
+	for _, snssaiInfo := range u.UPF.SNssaiInfos {
+		currentSnssai := &snssaiInfo.SNssai
+		if currentSnssai.Equal(selection.SNssai) {
+			for _, dnnInfo := range snssaiInfo.DnnList {
+				if dnnInfo.Dnn == selection.Dnn {
+					if selection.Dnai == "" {
+						return true
+					} else if dnnInfo.ContainsDNAI(selection.Dnai) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
 }
 
 // UPPath represent User Plane Sequence of this path
@@ -67,6 +87,7 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 
 	for name, node := range upTopology.UPNodes {
 		upNode := new(UPNode)
+		upNode.Name = name
 		upNode.Type = UPNodeType(node.Type)
 		switch upNode.Type {
 		case UPNODE_AN:
@@ -430,7 +451,10 @@ func (upi *UserPlaneInformation) selectAnchorUPF(source *UPNode, selection *UPFS
 	upList := make([]*UPNode, 0)
 	visited := make(map[*UPNode]bool)
 	queue := make([]*UPNode, 0)
-	targetSnssai := selection.SNssai
+	selectionForIUPF := &UPFSelectionParams{
+		Dnn:    selection.Dnn,
+		SNssai: selection.SNssai,
+	}
 
 	queue = append(queue, source)
 	for {
@@ -440,23 +464,20 @@ func (upi *UserPlaneInformation) selectAnchorUPF(source *UPNode, selection *UPFS
 		visited[node] = true
 		for _, link := range node.Links {
 			if !visited[link] {
-				for _, snssaiInfo := range link.UPF.SNssaiInfos {
-					currentSnssai := &snssaiInfo.SNssai
-					if currentSnssai.Equal(targetSnssai) {
-						for _, dnnInfo := range snssaiInfo.DnnList {
-							if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
-								queue = append(queue, link)
-								findNewNode = true
-								break
-							}
-						}
-					}
+				if link.MatchedSelection(selectionForIUPF) {
+					queue = append(queue, link)
+					findNewNode = true
+					break
 				}
 			}
 		}
 		if !findNewNode {
-			upList = append(upList, node)
+			// if new node is AN type not need to add upList
+			if node.Type == UPNODE_UPF && node.MatchedSelection(selection) {
+				upList = append(upList, node)
+			}
 		}
+
 		if len(queue) == 0 {
 			break
 		}
@@ -505,6 +526,7 @@ func (upi *UserPlaneInformation) SelectUPFAndAllocUEIP(selection *UPFSelectionPa
 	}
 	UPFList = upi.sortUPFListByName(UPFList)
 	sortedUPFList := createUPFListForSelection(UPFList)
+	fmt.Println("sortedUPFList", sortedUPFList)
 	for _, upf := range sortedUPFList {
 		logger.CtxLog.Debugf("check start UPF: %s",
 			upi.GetUPFNameByIp(upf.NodeID.ResolveNodeIdToIp().String()))
@@ -550,7 +572,10 @@ func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) []*UeIPPool {
 
 		if currentSnssai.Equal(targetSnssai) {
 			for _, dnnInfo := range snssaiInfo.DnnList {
-				if dnnInfo.Dnn == selection.Dnn && dnnInfo.ContainsDNAI(selection.Dnai) {
+				if dnnInfo.Dnn == selection.Dnn {
+					if selection.Dnai != "" && !dnnInfo.ContainsDNAI(selection.Dnai) {
+						continue
+					}
 					if selection.PDUAddress != nil {
 						// return static ue ip pool
 						for _, ueIPPool := range dnnInfo.StaticIPPools {
