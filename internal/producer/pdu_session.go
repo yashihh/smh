@@ -336,7 +336,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		smContext.Log.Tracef("N1 Message: %s", hex.EncodeToString(body.BinaryDataN1SmMessage))
 		if err != nil {
 			smContext.Log.Errorf("N1 Message parse failed: %v", err)
-			httpResponse := &http_wrapper.Response{
+			httpResponse = &http_wrapper.Response{
 				Status: http.StatusForbidden,
 				Body: models.UpdateSmContextErrorResponse{
 					JsonData: &models.SmContextUpdateError{
