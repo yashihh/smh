@@ -320,6 +320,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		return httpResponse
 	}
 
+	var httpResponse *http_wrapper.Response
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
 
@@ -404,6 +405,19 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 			// Use go routine to send Notification to prevent blocking the handling process
 			go sendSMContextStatusNotification(smContext)
+		case nas.MsgTypePDUSessionModificationRequest:
+			HandlePDUSessionModificationRequest(smContext, m.PDUSessionModificationRequest)
+			if buf, err := smf_context.BuildGSMPDUSessionModificationReject(smContext); err != nil {
+				smContext.Log.Errorf("build GSM PDUSessionModificationReject failed: %+v", err)
+			} else {
+				response.BinaryDataN1SmMessage = buf
+			}
+
+			response.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionModificationReject"}
+			return &http_wrapper.Response{
+				Status: http.StatusOK,
+				Body:   response,
+			}
 		}
 	}
 
@@ -727,7 +741,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		sendPFCPDelete = true
 	}
 
-	var httpResponse *http_wrapper.Response
 	// Check FSM and take corresponding action
 	switch smContext.State() {
 	case smf_context.PFCPModification:

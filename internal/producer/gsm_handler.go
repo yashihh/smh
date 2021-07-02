@@ -139,3 +139,11 @@ func HandlePDUSessionReleaseRequest(
 	// Retrieve PTI (Procedure transaction identity)
 	smCtx.Pti = req.GetPTI()
 }
+
+func HandlePDUSessionModificationRequest(
+	smCtx *smf_context.SMContext, req *nasMessage.PDUSessionModificationRequest) {
+	logger.GsmLog.Infof("Handle Pdu Session Modification Request")
+
+	// Retrieve PTI (Procedure transaction identity)
+	smCtx.Pti = req.GetPTI()
+}

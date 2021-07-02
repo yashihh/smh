@@ -222,3 +222,18 @@ func BuildGSMPDUSessionReleaseReject(smContext *SMContext) ([]byte, error) {
 
 	return m.PlainNasEncode()
 }
+
+func BuildGSMPDUSessionModificationReject(smContext *SMContext) ([]byte, error) {
+	m := nas.NewMessage()
+	m.GsmMessage = nas.NewGsmMessage()
+	m.GsmHeader.SetMessageType(nas.MsgTypePDUSessionModificationReject)
+	m.GsmHeader.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
+	m.PDUSessionModificationReject = nasMessage.NewPDUSessionModificationReject(0x0)
+	pDUSessionModificationReject := m.PDUSessionModificationReject
+
+	pDUSessionModificationReject.SetMessageType(nas.MsgTypePDUSessionModificationReject)
+	pDUSessionModificationReject.SetPDUSessionID(uint8(smContext.PDUSessionID))
+	pDUSessionModificationReject.SetPTI(smContext.Pti)
+
+	return m.PlainNasEncode()
+}
