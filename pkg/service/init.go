@@ -292,7 +292,7 @@ func (smf *SMF) Start() {
 		} else {
 			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", upf.NodeID.ResolveNodeIdToIp().String())
 		}
-		message.SendPfcpAssociationSetupRequest(upf.NodeID)
+		message.SendPfcpAssociationSetupRequest(upf.UPF.ExposeAddr)
 	}
 
 	time.Sleep(1000 * time.Millisecond)

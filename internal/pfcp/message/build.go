@@ -238,6 +238,7 @@ func farToUpdateFAR(far *context.FAR) *pfcp.UpdateFAR {
 
 func BuildPfcpSessionEstablishmentRequest(
 	upNodeID pfcpType.NodeID,
+	upN4Addr string,
 	smContext *context.SMContext,
 	pdrList []*context.PDR,
 	farList []*context.FAR,
@@ -347,6 +348,7 @@ func BuildPfcpSessionEstablishmentResponse() (pfcp.PFCPSessionEstablishmentRespo
 // TODO: Replace dummy value in PFCP message
 func BuildPfcpSessionModificationRequest(
 	upNodeID pfcpType.NodeID,
+	upN4Addr string,
 	smContext *context.SMContext,
 	pdrList []*context.PDR,
 	farList []*context.FAR,
