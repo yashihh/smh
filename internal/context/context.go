@@ -13,7 +13,6 @@ import (
 	"bitbucket.org/free5gc-team/openapi/Nudm_SubscriberDataManagement"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
 )
@@ -32,14 +31,17 @@ type SMFContext struct {
 	BindingIPv4  string
 	RegisterIPv4 string
 	SBIPort      int
-	CPNodeID     pfcpType.NodeID
+
+	// N4 interface-related
+	CPNodeID   pfcpType.NodeID
+	ExposeAddr string
+	ListenAddr string
 
 	UDMProfile models.NfProfile
 
-	UPNodeIDs []pfcpType.NodeID
-	Key       string
-	PEM       string
-	KeyLog    string
+	Key    string
+	PEM    string
+	KeyLog string
 
 	SnssaiInfos []SnssaiSmfInfo
 
@@ -60,6 +62,22 @@ type SMFContext struct {
 	UEPreConfigPathPool map[string]*UEPreConfigPaths
 	UEDefaultPathPool   map[string]*UEDefaultPaths
 	LocalSEIDCount      uint64
+}
+
+func ResolveIP(host string) net.IP {
+	if addr, err := net.ResolveIPAddr("ip", host); err != nil {
+		return nil
+	} else {
+		return addr.IP
+	}
+}
+
+func (s *SMFContext) ExposeIP() net.IP {
+	return ResolveIP(s.ExposeAddr)
+}
+
+func (s *SMFContext) ListenIP() net.IP {
+	return ResolveIP(s.ListenAddr)
 }
 
 // RetrieveDnnInformation gets the corresponding dnn info from S-NSSAI and DNN
@@ -129,25 +147,11 @@ func InitSmfContext(config *factory.Config) {
 	}
 
 	if pfcp := configuration.PFCP; pfcp != nil {
-		if pfcp.Port == 0 {
-			pfcp.Port = pfcpUdp.PFCP_PORT
-		}
-		pfcpAddrEnv := os.Getenv(pfcp.Addr)
-		if pfcpAddrEnv != "" {
-			logger.CtxLog.Info("Parsing PFCP IPv4 address from ENV variable found.")
-			pfcp.Addr = pfcpAddrEnv
-		}
-		if pfcp.Addr == "" {
-			logger.CtxLog.Warn("Error parsing PFCP IPv4 address as string. Using the 0.0.0.0 address as default.")
-			pfcp.Addr = "0.0.0.0"
-		}
-		addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", pfcp.Addr, pfcp.Port))
-		if err != nil {
-			logger.CtxLog.Warnf("PFCP Parse Addr Fail: %v", err)
-		}
+		smfContext.ListenAddr = pfcp.ListenAddr
+		smfContext.ExposeAddr = pfcp.ExposeAddr
 
 		smfContext.CPNodeID.NodeIdType = 0
-		smfContext.CPNodeID.NodeIdValue = addr.IP.To4()
+		smfContext.CPNodeID.NodeIdValue = net.ParseIP(pfcp.NodeID).To4()
 	}
 
 	smfContext.SnssaiInfos = make([]SnssaiSmfInfo, 0, len(configuration.SNssaiInfo))

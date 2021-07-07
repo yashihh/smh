@@ -1,5 +1,5 @@
 info:
-  version: 1.0.2
+  version: 1.0.3
   description: SMF initial local configuration
 
 configuration:
@@ -34,7 +34,10 @@ configuration:
             ipv4: 8.8.8.8
             ipv6: 2001:4860:4860::8888
   pfcp: # the IP address of N4 interface on this SMF (PFCP)
-    addr: 127.0.0.1
+    # addr config is deprecated in smf config v1.0.3, please use the following config
+    listen_addr: 127.0.0.1
+    expose_addr: 127.0.0.1
+    node_id: 127.0.0.1
   userplane_information: # list of userplane information
     up_nodes: # information of userplane node (AN or UPF)
       gNB1: # the name of the node

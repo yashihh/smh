@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	SMF_EXPECTED_CONFIG_VERSION        = "1.0.2"
+	SMF_EXPECTED_CONFIG_VERSION        = "1.0.3"
 	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.1"
 	SMF_DEFAULT_IPV4                   = "127.0.0.2"
 	SMF_DEFAULT_PORT                   = "8000"
@@ -201,11 +201,16 @@ func (t *Tls) validate() (bool, error) {
 }
 
 type PFCP struct {
-	Addr string `yaml:"addr,omitempty" valid:"ipv4,optional"`
-	Port uint16 `yaml:"port,omitempty" valid:"port,optional"`
+	ListenAddr string `yaml:"listen_addr,omitempty" valid:"ipv4,required"`
+	ExposeAddr string `yaml:"expose_addr,omitempty" valid:"ipv4,required"`
+	NodeID     string `yaml:"node_id,omitempty" valid:"ipv4,required"`
+	Addr       string `yaml:"addr,omitempty" valid:"ipv4"`
 }
 
 func (p *PFCP) validate() (bool, error) {
+	if p.Addr != "" {
+		return false, errors.New("pfcp config addr is deprecated at SMF config v1.0.3")
+	}
 	result, err := govalidator.ValidateStruct(p)
 	return result, appendInvalid(err)
 }
@@ -423,8 +428,9 @@ func (u *UserPlaneInformation) validate() (bool, error) {
 // UPNode represent the user plane node
 type UPNode struct {
 	Type                 string                 `yaml:"type" valid:"upNodeType,required"`
-	NodeID               string                 `yaml:"node_id" valid:"url,optional"`
-	ANIP                 string                 `yaml:"an_ip" valid:"url,optional"`
+	NodeID               string                 `yaml:"node_id" valid:"host,optional"`
+	ExposeAddr           string                 `yaml:"expose_addr" valid:"host,optional"`
+	ANIP                 string                 `yaml:"an_ip" valid:"host,optional"`
 	Dnn                  string                 `yaml:"dnn" valid:"type(string),minstringlength(1),optional"`
 	SNssaiInfos          []SnssaiUpfInfoItem    `yaml:"sNssaiUpfInfos,omitempty" valid:"optional"`
 	InterfaceUpfInfoList []InterfaceUpfInfoItem `yaml:"interfaces,omitempty" valid:"optional"`

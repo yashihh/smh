@@ -256,7 +256,7 @@ func BuildPfcpSessionEstablishmentRequest(
 		V4:          isv4,
 		V6:          !isv4,
 		Seid:        localSEID,
-		Ipv4Address: context.SMF_Self().CPNodeID.NodeIdValue,
+		Ipv4Address: context.SMF_Self().ExposeIP().To4(),
 	}
 
 	msg.CreatePDR = make([]*pfcp.CreatePDR, 0)

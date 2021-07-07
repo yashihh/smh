@@ -24,6 +24,8 @@ func TestRun(t *testing.T) {
 		NodeIdType:  pfcpType.NodeIdTypeIpv4Address,
 		NodeIdValue: net.ParseIP("127.0.0.1").To4(),
 	}
+	context.SMF_Self().ExposeAddr = "127.0.0.1"
+	context.SMF_Self().ListenAddr = "127.0.0.1"
 
 	udp.Run(smf_pfcp.Dispatch)
 
