@@ -75,7 +75,6 @@ func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
 		}
 
 		upf.UPFStatus = smf_context.AssociatedSetUpSuccess
-
 	}
 }
 

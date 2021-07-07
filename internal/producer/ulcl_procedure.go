@@ -221,7 +221,8 @@ func EstablishULCL(smContext *context.SMContext) {
 
 			curDPNodeIP := ulcl.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true
-			message.SendPfcpSessionModificationRequest(ulcl.NodeID, ulcl.ExposeAddr, smContext, pdrList, farList, barList, qerList)
+			message.SendPfcpSessionModificationRequest(ulcl.NodeID, ulcl.ExposeAddr,
+				smContext, pdrList, farList, barList, qerList)
 			break
 		}
 	}
@@ -373,7 +374,8 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 
 			curDPNodeIP := curDPNode.UPF.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true
-			message.SendPfcpSessionModificationRequest(curDPNode.UPF.NodeID, curDPNode.UPF.ExposeAddr, smContext, pdrList, farList, barList, qerList)
+			message.SendPfcpSessionModificationRequest(curDPNode.UPF.NodeID, curDPNode.UPF.ExposeAddr,
+				smContext, pdrList, farList, barList, qerList)
 		}
 	}
 
