@@ -57,11 +57,11 @@ func HandlePfcpAssociationSetupRequest(msg *pfcpUdp.Message) {
 }
 
 func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
-	req := msg.PfcpMessage.Body.(pfcp.PFCPAssociationSetupResponse)
+	rsp := msg.PfcpMessage.Body.(pfcp.PFCPAssociationSetupResponse)
 	logger.PfcpLog.Infoln("In HandlePfcpAssociationSetupResponse")
 
-	nodeID := req.NodeID
-	if req.Cause.CauseValue == pfcpType.CauseRequestAccepted {
+	nodeID := rsp.NodeID
+	if rsp.Cause.CauseValue == pfcpType.CauseRequestAccepted {
 		if nodeID == nil {
 			logger.PfcpLog.Errorln("pfcp association needs NodeID")
 			return
@@ -76,14 +76,6 @@ func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
 
 		upf.UPFStatus = smf_context.AssociatedSetUpSuccess
 
-		if req.UserPlaneIPResourceInformation != nil {
-			upf.UPIPInfo = *req.UserPlaneIPResourceInformation
-
-			logger.PfcpLog.Infof("UPF(%s)[%s] setup association",
-				upf.NodeID.ResolveNodeIdToIp().String(), upf.UPIPInfo.NetworkInstance)
-		} else {
-			logger.PfcpLog.Errorln("pfcp association setup response has no UserPlane IP Resource Information")
-		}
 	}
 }
 
