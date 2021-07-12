@@ -204,13 +204,9 @@ type PFCP struct {
 	ListenAddr string `yaml:"listen_addr,omitempty" valid:"ipv4,required"`
 	ExposeAddr string `yaml:"expose_addr,omitempty" valid:"ipv4,required"`
 	NodeID     string `yaml:"node_id,omitempty" valid:"ipv4,required"`
-	Addr       string `yaml:"addr,omitempty" valid:"ipv4"`
 }
 
 func (p *PFCP) validate() (bool, error) {
-	if p.Addr != "" {
-		return false, errors.New("pfcp config addr is deprecated at SMF config v1.0.3")
-	}
 	result, err := govalidator.ValidateStruct(p)
 	return result, appendInvalid(err)
 }
