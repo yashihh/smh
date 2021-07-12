@@ -201,9 +201,9 @@ func (t *Tls) validate() (bool, error) {
 }
 
 type PFCP struct {
-	ListenAddr string `yaml:"listen_addr,omitempty" valid:"ipv4,required"`
-	ExposeAddr string `yaml:"expose_addr,omitempty" valid:"ipv4,required"`
-	NodeID     string `yaml:"node_id,omitempty" valid:"ipv4,required"`
+	ListenAddr string `yaml:"listen_addr,omitempty" valid:"host,required"`
+	ExposeAddr string `yaml:"expose_addr,omitempty" valid:"host,required"`
+	NodeID     string `yaml:"node_id,omitempty" valid:"host,required"`
 }
 
 func (p *PFCP) validate() (bool, error) {
