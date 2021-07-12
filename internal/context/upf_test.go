@@ -13,8 +13,8 @@ import (
 )
 
 var mockIPv4NodeID = &pfcpType.NodeID{
-	NodeIdType:  pfcpType.NodeIdTypeIpv4Address,
-	NodeIdValue: net.ParseIP("127.0.0.1"),
+	NodeIdType: pfcpType.NodeIdTypeIpv4Address,
+	IP:         net.ParseIP("127.0.0.1"),
 }
 
 var mockIfaces = []factory.InterfaceUpfInfoItem{

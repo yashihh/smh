@@ -287,10 +287,10 @@ func (smf *SMF) Start() {
 
 	for _, upf := range context.SMF_Self().UserPlaneInformation.UPFs {
 		if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
-			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s](%s)\n", upf.NodeID.NodeIdValue,
+			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s](%s)\n", upf.NodeID.FQDN,
 				upf.NodeID.ResolveNodeIdToIp().String())
 		} else {
-			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", upf.NodeID.ResolveNodeIdToIp().String())
+			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", upf.NodeID.IP)
 		}
 		message.SendPfcpAssociationSetupRequest(upf.UPF.ExposeAddr)
 	}

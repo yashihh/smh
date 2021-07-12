@@ -107,18 +107,18 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 			switch len(ip) {
 			case net.IPv4len:
 				upNode.NodeID = pfcpType.NodeID{
-					NodeIdType:  pfcpType.NodeIdTypeIpv4Address,
-					NodeIdValue: ip,
+					NodeIdType: pfcpType.NodeIdTypeIpv4Address,
+					IP:         ip,
 				}
 			case net.IPv6len:
 				upNode.NodeID = pfcpType.NodeID{
-					NodeIdType:  pfcpType.NodeIdTypeIpv6Address,
-					NodeIdValue: ip,
+					NodeIdType: pfcpType.NodeIdTypeIpv6Address,
+					IP:         ip,
 				}
 			default:
 				upNode.NodeID = pfcpType.NodeID{
-					NodeIdType:  pfcpType.NodeIdTypeFqdn,
-					NodeIdValue: []byte(node.NodeID),
+					NodeIdType: pfcpType.NodeIdTypeFqdn,
+					FQDN:       node.NodeID,
 				}
 			}
 

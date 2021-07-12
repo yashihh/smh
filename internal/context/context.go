@@ -151,7 +151,7 @@ func InitSmfContext(config *factory.Config) {
 		smfContext.ExposeAddr = pfcp.ExposeAddr
 
 		smfContext.CPNodeID.NodeIdType = 0
-		smfContext.CPNodeID.NodeIdValue = net.ParseIP(pfcp.NodeID).To4()
+		smfContext.CPNodeID.IP = net.ParseIP(pfcp.NodeID).To4()
 	}
 
 	smfContext.SnssaiInfos = make([]SnssaiSmfInfo, 0, len(configuration.SNssaiInfo))

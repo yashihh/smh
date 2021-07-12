@@ -367,7 +367,7 @@ func BuildPfcpSessionModificationRequest(
 		V4:          true,
 		V6:          false,
 		Seid:        localSEID,
-		Ipv4Address: context.SMF_Self().CPNodeID.NodeIdValue,
+		Ipv4Address: context.SMF_Self().ExposeIP().To4(),
 	}
 
 	for _, pdr := range pdrList {

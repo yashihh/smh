@@ -116,7 +116,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 	for curDataPathNode := activatingPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		if nodeAfterULCL {
 			addr := net.UDPAddr{
-				IP:   curDataPathNode.UPF.NodeID.NodeIdValue,
+				IP:   context.ResolveIP(curDataPathNode.UPF.ExposeAddr),
 				Port: pfcpUdp.PFCP_PORT,
 			}
 
