@@ -750,7 +750,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			defaultPath := smContext.Tunnel.DataPathPool.GetDefaultPath()
 			ANUPF := defaultPath.FirstDPNode
 			pfcp_message.SendPfcpSessionModificationRequest(
-				ANUPF.UPF.NodeID, ANUPF.UPF.ExposeAddr, smContext, pdrList, farList, barList, qerList)
+				ANUPF.UPF.NodeID, ANUPF.UPF.Addr, smContext, pdrList, farList, barList, qerList)
 		}
 
 		if sendPFCPDelete {
@@ -974,7 +974,7 @@ func releaseTunnel(smContext *smf_context.SMContext) {
 				continue
 			}
 			if _, exist := deletedPFCPNode[curUPFID]; !exist {
-				pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, curDataPathNode.UPF.ExposeAddr, smContext)
+				pfcp_message.SendPfcpSessionDeletionRequest(curDataPathNode.UPF.NodeID, curDataPathNode.UPF.Addr, smContext)
 				deletedPFCPNode[curUPFID] = true
 				smContext.PendingUPF[curDataPathNode.GetNodeIP()] = true
 			}

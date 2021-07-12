@@ -123,7 +123,7 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 			}
 
 			upNode.UPF = NewUPF(&upNode.NodeID, node.InterfaceUpfInfoList)
-			upNode.UPF.ExposeAddr = node.ExposeAddr
+			upNode.UPF.Addr = node.Addr
 			snssaiInfos := make([]SnssaiUPFInfo, 0)
 			for _, snssaiInfoConfig := range node.SNssaiInfos {
 				snssaiInfo := SnssaiUPFInfo{

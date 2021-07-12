@@ -425,7 +425,7 @@ func (u *UserPlaneInformation) validate() (bool, error) {
 type UPNode struct {
 	Type                 string                 `yaml:"type" valid:"upNodeType,required"`
 	NodeID               string                 `yaml:"node_id" valid:"host,optional"`
-	ExposeAddr           string                 `yaml:"expose_addr" valid:"host,optional"`
+	Addr                 string                 `yaml:"addr" valid:"host,optional"`
 	ANIP                 string                 `yaml:"an_ip" valid:"host,optional"`
 	Dnn                  string                 `yaml:"dnn" valid:"type(string),minstringlength(1),optional"`
 	SNssaiInfos          []SnssaiUpfInfoItem    `yaml:"sNssaiUpfInfos,omitempty" valid:"optional"`

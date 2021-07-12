@@ -40,10 +40,10 @@ func SendPFCPRule(smContext *smf_context.SMContext, dataPath *smf_context.DataPa
 		sessionContext, exist := smContext.PFCPContext[curDataPathNode.GetNodeIP()]
 		if !exist || sessionContext.RemoteSEID == 0 {
 			pfcp_message.SendPfcpSessionEstablishmentRequest(
-				curDataPathNode.UPF.NodeID, curDataPathNode.UPF.ExposeAddr, smContext, pdrList, farList, nil, qerList)
+				curDataPathNode.UPF.NodeID, curDataPathNode.UPF.Addr, smContext, pdrList, farList, nil, qerList)
 		} else {
 			pfcp_message.SendPfcpSessionModificationRequest(
-				curDataPathNode.UPF.NodeID, curDataPathNode.UPF.ExposeAddr, smContext, pdrList, farList, nil, qerList)
+				curDataPathNode.UPF.NodeID, curDataPathNode.UPF.Addr, smContext, pdrList, farList, nil, qerList)
 		}
 	}
 }
@@ -92,10 +92,10 @@ func SendPFCPRules(smContext *smf_context.SMContext) {
 		sessionContext, exist := smContext.PFCPContext[ip]
 		if !exist || sessionContext.RemoteSEID == 0 {
 			pfcp_message.SendPfcpSessionEstablishmentRequest(
-				pfcp.upf.NodeID, pfcp.upf.ExposeAddr, smContext, pfcp.pdrList, pfcp.farList, nil, pfcp.qerList)
+				pfcp.upf.NodeID, pfcp.upf.Addr, smContext, pfcp.pdrList, pfcp.farList, nil, pfcp.qerList)
 		} else {
 			pfcp_message.SendPfcpSessionModificationRequest(
-				pfcp.upf.NodeID, pfcp.upf.ExposeAddr, smContext, pfcp.pdrList, pfcp.farList, nil, pfcp.qerList)
+				pfcp.upf.NodeID, pfcp.upf.Addr, smContext, pfcp.pdrList, pfcp.farList, nil, pfcp.qerList)
 		}
 	}
 }
