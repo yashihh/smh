@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
 
 	"bitbucket.org/free5gc-team/http_wrapper"
@@ -488,4 +489,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 			})
 		}
 	})
+
+	err := udp.Server.Close()
+	require.NoError(t, err)
 }

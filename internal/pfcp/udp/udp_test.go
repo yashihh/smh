@@ -60,5 +60,8 @@ func TestRun(t *testing.T) {
 	err := pfcpUdp.SendPfcpMessage(testPfcpReq, srcAddr, dstAddr)
 	require.Nil(t, err)
 
+	err = udp.Server.Close()
+	require.NoError(t, err)
+
 	time.Sleep(300 * time.Millisecond)
 }
