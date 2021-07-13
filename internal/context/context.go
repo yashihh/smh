@@ -150,8 +150,25 @@ func InitSmfContext(config *factory.Config) {
 		smfContext.ListenAddr = pfcp.ListenAddr
 		smfContext.ExposeAddr = pfcp.ExposeAddr
 
-		smfContext.CPNodeID.NodeIdType = 0
-		smfContext.CPNodeID.IP = net.ParseIP(pfcp.NodeID).To4()
+		if ip := net.ParseIP(pfcp.NodeID); ip == nil {
+			smfContext.CPNodeID = pfcpType.NodeID{
+				NodeIdType: pfcpType.NodeIdTypeFqdn,
+				FQDN:       pfcp.NodeID,
+			}
+		} else {
+			ipv4 := ip.To4()
+			if ipv4 != nil {
+				smfContext.CPNodeID = pfcpType.NodeID{
+					NodeIdType: pfcpType.NodeIdTypeIpv4Address,
+					IP:         ipv4,
+				}
+			} else {
+				smfContext.CPNodeID = pfcpType.NodeID{
+					NodeIdType: pfcpType.NodeIdTypeIpv6Address,
+					IP:         ip,
+				}
+			}
+		}
 	}
 
 	smfContext.SnssaiInfos = make([]SnssaiSmfInfo, 0, len(configuration.SNssaiInfo))
