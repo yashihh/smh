@@ -248,7 +248,7 @@ func BuildPfcpSessionEstablishmentRequest(
 
 	msg.NodeID = &context.SMF_Self().CPNodeID
 
-	isv4 := context.SMF_Self().CPNodeID.NodeIdType == 0
+	isv4 := context.SMF_Self().ExposeIP().To4() != nil
 	nodeIDtoIP := upNodeID.ResolveNodeIdToIp().String()
 
 	localSEID := smContext.PFCPContext[nodeIDtoIP].LocalSEID
