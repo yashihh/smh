@@ -68,7 +68,7 @@ type Configuration struct {
 	Sbi                  *Sbi                 `yaml:"sbi,omitempty" valid:"required"`
 	PFCP                 *PFCP                `yaml:"pfcp,omitempty" valid:"required"`
 	NrfUri               string               `yaml:"nrfUri,omitempty" valid:"url,required"`
-	UserPlaneInformation UserPlaneInformation `yaml:"userplane_information" valid:"required"`
+	UserPlaneInformation UserPlaneInformation `yaml:"userplaneInformation" valid:"required"`
 	ServiceNameList      []string             `yaml:"serviceNameList,omitempty" valid:"required"`
 	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty" valid:"required"`
 	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
@@ -201,9 +201,9 @@ func (t *Tls) validate() (bool, error) {
 }
 
 type PFCP struct {
-	ListenAddr  string `yaml:"listen_addr,omitempty" valid:"host,required"`
-	ExtenalAddr string `yaml:"external_addr,omitempty" valid:"host,required"`
-	NodeID      string `yaml:"node_id,omitempty" valid:"host,required"`
+	ListenAddr   string `yaml:"listenAddr,omitempty" valid:"host,required"`
+	ExternalAddr string `yaml:"externalAddr,omitempty" valid:"host,required"`
+	NodeID       string `yaml:"nodeID,omitempty" valid:"host,required"`
 }
 
 func (p *PFCP) validate() (bool, error) {
@@ -400,7 +400,7 @@ func (r *RoutingConfig) Validate() (bool, error) {
 
 // UserPlaneInformation describe core network userplane information
 type UserPlaneInformation struct {
-	UPNodes map[string]UPNode `yaml:"up_nodes" valid:"required"`
+	UPNodes map[string]UPNode `yaml:"upNodes" valid:"required"`
 	Links   []UPLink          `yaml:"links" valid:"required"`
 }
 
@@ -424,9 +424,9 @@ func (u *UserPlaneInformation) validate() (bool, error) {
 // UPNode represent the user plane node
 type UPNode struct {
 	Type                 string                 `yaml:"type" valid:"upNodeType,required"`
-	NodeID               string                 `yaml:"node_id" valid:"host,optional"`
+	NodeID               string                 `yaml:"nodeID" valid:"host,optional"`
 	Addr                 string                 `yaml:"addr" valid:"host,optional"`
-	ANIP                 string                 `yaml:"an_ip" valid:"host,optional"`
+	ANIP                 string                 `yaml:"anIP" valid:"host,optional"`
 	Dnn                  string                 `yaml:"dnn" valid:"type(string),minstringlength(1),optional"`
 	SNssaiInfos          []SnssaiUpfInfoItem    `yaml:"sNssaiUpfInfos,omitempty" valid:"optional"`
 	InterfaceUpfInfoList []InterfaceUpfInfoItem `yaml:"interfaces,omitempty" valid:"optional"`
@@ -510,7 +510,7 @@ type DnnUpfInfoItem struct {
 	DnaiList        []string                `yaml:"dnaiList" valid:"optional"`
 	PduSessionTypes []models.PduSessionType `yaml:"pduSessionTypes" valid:"optional"`
 	Pools           []UEIPPool              `yaml:"pools" valid:"optional"`
-	StaticPools     []UEIPPool              `yaml:"static_pools" valid:"optional"`
+	StaticPools     []UEIPPool              `yaml:"staticPools" valid:"optional"`
 }
 
 func (d *DnnUpfInfoItem) validate() (bool, error) {

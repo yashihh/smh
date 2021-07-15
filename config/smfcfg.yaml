@@ -35,16 +35,16 @@ configuration:
             ipv6: 2001:4860:4860::8888
   pfcp: # the IP address of N4 interface on this SMF (PFCP)
     # addr config is deprecated in smf config v1.0.3, please use the following config
-    node_id: 127.0.0.1 # the Node ID of this SMF
-    listen_addr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
-    external_addr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
-  userplane_information: # list of userplane information
-    up_nodes: # information of userplane node (AN or UPF)
+    nodeID: 127.0.0.1 # the Node ID of this SMF
+    listenAddr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
+    externalAddr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
+  userplaneInformation: # list of userplane information
+    upNodes: # information of userplane node (AN or UPF)
       gNB1: # the name of the node
         type: AN # the type of the node (AN or UPF)
       UPF: # the name of the node
         type: UPF # the type of the node (AN or UPF)
-        node_id: 127.0.0.8 # the Node ID of this UPF
+        nodeID: 127.0.0.8 # the Node ID of this UPF
         addr: 127.0.0.8 # the IP/FQDN of N4 interface on this UPF (PFCP)
         sNssaiUpfInfos: # S-NSSAI information list for this UPF
           - sNssai: # S-NSSAI (Single Network Slice Selection Assistance Information)
@@ -54,7 +54,7 @@ configuration:
               - dnn: internet
                 pools:
                   - cidr: 60.60.0.0/16
-                static_pools:
+                staticPools:
                   - cidr: 60.60.100.0/24
           - sNssai: # S-NSSAI (Single Network Slice Selection Assistance Information)
               sst: 1 # Slice/Service Type (uinteger, range: 0~255)
@@ -63,7 +63,7 @@ configuration:
               - dnn: internet
                 pools:
                   - cidr: 60.61.0.0/16
-                static_pools:
+                staticPools:
                   - cidr: 60.61.100.0/24
         interfaces: # Interface list for this UPF
           - interfaceType: N3 # the type of the interface (N3 or N9)

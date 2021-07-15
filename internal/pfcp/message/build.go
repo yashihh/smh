@@ -248,7 +248,7 @@ func BuildPfcpSessionEstablishmentRequest(
 
 	msg.NodeID = &context.SMF_Self().CPNodeID
 
-	isv4 := context.SMF_Self().ExtenalIP().To4() != nil
+	isv4 := context.SMF_Self().ExternalIP().To4() != nil
 	nodeIDtoIP := upNodeID.ResolveNodeIdToIp().String()
 
 	localSEID := smContext.PFCPContext[nodeIDtoIP].LocalSEID
@@ -257,7 +257,7 @@ func BuildPfcpSessionEstablishmentRequest(
 		V4:          isv4,
 		V6:          !isv4,
 		Seid:        localSEID,
-		Ipv4Address: context.SMF_Self().ExtenalIP().To4(),
+		Ipv4Address: context.SMF_Self().ExternalIP().To4(),
 	}
 
 	msg.CreatePDR = make([]*pfcp.CreatePDR, 0)
@@ -367,7 +367,7 @@ func BuildPfcpSessionModificationRequest(
 		V4:          true,
 		V6:          false,
 		Seid:        localSEID,
-		Ipv4Address: context.SMF_Self().ExtenalIP().To4(),
+		Ipv4Address: context.SMF_Self().ExternalIP().To4(),
 	}
 
 	for _, pdr := range pdrList {
