@@ -56,6 +56,19 @@ func HandlePfcpAssociationSetupRequest(msg *pfcpUdp.Message) {
 	pfcp_message.SendPfcpAssociationSetupResponse(msg.RemoteAddr, cause)
 }
 
+func nodeIDtoString(nodeID *pfcpType.NodeID) string {
+	switch nodeID.NodeIdType {
+	case pfcpType.NodeIdTypeIpv4Address:
+		fallthrough
+	case pfcpType.NodeIdTypeIpv6Address:
+		return nodeID.IP.String()
+	case pfcpType.NodeIdTypeFqdn:
+		return nodeID.FQDN
+	default:
+		return ""
+	}
+}
+
 func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
 	rsp := msg.PfcpMessage.Body.(pfcp.PFCPAssociationSetupResponse)
 	logger.PfcpLog.Infoln("In HandlePfcpAssociationSetupResponse")
@@ -66,11 +79,11 @@ func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
 			logger.PfcpLog.Errorln("pfcp association needs NodeID")
 			return
 		}
-		logger.PfcpLog.Infof("Handle PFCP Association Setup Response with NodeID[%s]", nodeID.ResolveNodeIdToIp().String())
+		logger.PfcpLog.Infof("Handle PFCP Association Setup Response with NodeID[%s]", nodeIDtoString(nodeID))
 
 		upf := smf_context.RetrieveUPFNodeByNodeID(*nodeID)
 		if upf == nil {
-			logger.PfcpLog.Errorf("can't find UPF[%s]", nodeID.ResolveNodeIdToIp().String())
+			logger.PfcpLog.Errorf("can't find UPF[%s]", nodeIDtoString(nodeID))
 			return
 		}
 
