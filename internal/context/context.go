@@ -33,9 +33,9 @@ type SMFContext struct {
 	SBIPort      int
 
 	// N4 interface-related
-	CPNodeID   pfcpType.NodeID
-	ExposeAddr string
-	ListenAddr string
+	CPNodeID    pfcpType.NodeID
+	ExtenalAddr string
+	ListenAddr  string
 
 	UDMProfile models.NfProfile
 
@@ -72,8 +72,8 @@ func ResolveIP(host string) net.IP {
 	}
 }
 
-func (s *SMFContext) ExposeIP() net.IP {
-	return ResolveIP(s.ExposeAddr)
+func (s *SMFContext) ExtenalIP() net.IP {
+	return ResolveIP(s.ExtenalAddr)
 }
 
 func (s *SMFContext) ListenIP() net.IP {
@@ -148,7 +148,7 @@ func InitSmfContext(config *factory.Config) {
 
 	if pfcp := configuration.PFCP; pfcp != nil {
 		smfContext.ListenAddr = pfcp.ListenAddr
-		smfContext.ExposeAddr = pfcp.ExposeAddr
+		smfContext.ExtenalAddr = pfcp.ExtenalAddr
 
 		if ip := net.ParseIP(pfcp.NodeID); ip == nil {
 			smfContext.CPNodeID = pfcpType.NodeID{

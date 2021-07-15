@@ -37,7 +37,7 @@ configuration:
     # addr config is deprecated in smf config v1.0.3, please use the following config
     node_id: 127.0.0.1 # the Node ID of this SMF
     listen_addr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
-    expose_addr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
+    external_addr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
   userplane_information: # list of userplane information
     up_nodes: # information of userplane node (AN or UPF)
       gNB1: # the name of the node

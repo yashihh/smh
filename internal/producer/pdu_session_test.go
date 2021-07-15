@@ -82,9 +82,9 @@ var testConfig = factory.Config{
 			Port:         8000,
 		},
 		PFCP: &factory.PFCP{
-			ListenAddr: "127.0.0.1",
-			ExposeAddr: "127.0.0.1",
-			NodeID:     "127.0.0.1",
+			ListenAddr:  "127.0.0.1",
+			ExtenalAddr: "127.0.0.1",
+			NodeID:      "127.0.0.1",
 		},
 		NrfUri:               "http://127.0.0.10:8000",
 		UserPlaneInformation: userPlaneConfig,
