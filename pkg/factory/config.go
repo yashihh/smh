@@ -11,9 +11,11 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/davecgh/go-spew/spew"
 
 	"bitbucket.org/free5gc-team/logger_util"
 	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/smf/internal/logger"
 )
 
 const (
@@ -51,6 +53,14 @@ func (c *Config) Validate() (bool, error) {
 
 	result, err := govalidator.ValidateStruct(c)
 	return result, appendInvalid(err)
+}
+
+func (c *Config) Print() {
+	spew.Config.Indent = "\t"
+	str := spew.Sdump(c.Configuration)
+	logger.CfgLog.Infof("==================================================")
+	logger.CfgLog.Infof("%s", str)
+	logger.CfgLog.Infof("==================================================")
 }
 
 type Info struct {

@@ -105,6 +105,7 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 	if _, err := factory.SmfConfig.Validate(); err != nil {
 		return err
 	}
+	factory.SmfConfig.Print()
 
 	if _, err := factory.UERoutingConfig.Validate(); err != nil {
 		return err
