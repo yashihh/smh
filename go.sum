@@ -1,5 +1,5 @@
-bitbucket.org/free5gc-team/aper v0.0.0-20210414074706-491f6ea71741 h1:0v7I09LPCG/DZ8wA/+yI46Ikcfi9k3+6i9GKdnPCHP0=
-bitbucket.org/free5gc-team/aper v0.0.0-20210414074706-491f6ea71741/go.mod h1:ESZyWN5yqFnHre5lpbsYlyrwo9DpQ1EnY0+Z+WKIr00=
+bitbucket.org/free5gc-team/aper v0.0.0-20210715094321-88fd0bb6cce9 h1:6e4uAo3cDYxdgaC/u5OLfxgTdH1M6Ut9rf5SoKE/ZNs=
+bitbucket.org/free5gc-team/aper v0.0.0-20210715094321-88fd0bb6cce9/go.mod h1:ESZyWN5yqFnHre5lpbsYlyrwo9DpQ1EnY0+Z+WKIr00=
 bitbucket.org/free5gc-team/flowdesc v0.0.0-20201211040502-ec124a7d65a1 h1:Vdib5ZJcOWBoweYYxIPZapkGq5CdZtyrzapwwhPs+is=
 bitbucket.org/free5gc-team/flowdesc v0.0.0-20201211040502-ec124a7d65a1/go.mod h1:Qt4dksxTnqap8DHyJQRr10yiuER1WShvl5JmVv2jLd4=
 bitbucket.org/free5gc-team/http2_util v0.0.0-20201212235925-bd3a307d110a h1:jeZeox8I0w66Y7nBZhWiQqxoBRNgpjJJgYYCSPz8QcA=
@@ -12,8 +12,8 @@ bitbucket.org/free5gc-team/logger_util v0.0.0-20210414054242-2101cfc15ebb h1:ybH
 bitbucket.org/free5gc-team/logger_util v0.0.0-20210414054242-2101cfc15ebb/go.mod h1:di3i5yJROrZiHsdl/SUNZU0DjiJa7k7Kr1YgBp10KI4=
 bitbucket.org/free5gc-team/nas v0.0.0-20210610112928-da6346e73fab h1:Ye0gE0KiHiZFPhVbUIHtK3RVfN2NruO+Y95ypN2/vTo=
 bitbucket.org/free5gc-team/nas v0.0.0-20210610112928-da6346e73fab/go.mod h1:sxMzZJneemCh3BxAQTQ1eZqM4/YjyCDUvIEWPWeKsus=
-bitbucket.org/free5gc-team/ngap v0.0.0-20210610085113-7e26561720a1 h1:ICZQF/ORaMaFtR/iuXka64GRx2Uc0e+FoObz1t0E3UU=
-bitbucket.org/free5gc-team/ngap v0.0.0-20210610085113-7e26561720a1/go.mod h1:gkB298cwfTugOMT6X37MgkLG2nH1Damm3GWsDAskpd4=
+bitbucket.org/free5gc-team/ngap v0.0.0-20210715110807-6f4274fe49a7 h1:pKbUJr54+p0cQMU/mcEF2C90jizQA8RKH999cYxzwG0=
+bitbucket.org/free5gc-team/ngap v0.0.0-20210715110807-6f4274fe49a7/go.mod h1:ETGDxIL69kZ13+SAer6vHtT5y/7Z4JedaDJdE1ujsG8=
 bitbucket.org/free5gc-team/openapi v0.0.0-20210414074928-e9e853669ae4 h1:PtmovoojrAlOXkhnI5A2b4j9S6P6fZfSjT3UOZy+Jxw=
 bitbucket.org/free5gc-team/openapi v0.0.0-20210414074928-e9e853669ae4/go.mod h1:gR4X9f+PehijY2n/l2HgxmSmW0ZLatADz8B7hh8PYZ8=
 bitbucket.org/free5gc-team/openapi v0.0.0-20210610084256-990ed030d4de h1:w0sm1e7IqVlFQS/tlzYFGey/fzId3XyHxPVY42SxxGc=
