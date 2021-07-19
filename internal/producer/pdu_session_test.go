@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
 
 	"bitbucket.org/free5gc-team/http_wrapper"
@@ -81,7 +82,9 @@ var testConfig = factory.Config{
 			Port:         8000,
 		},
 		PFCP: &factory.PFCP{
-			Addr: "127.0.0.1",
+			ListenAddr:   "127.0.0.1",
+			ExternalAddr: "127.0.0.1",
+			NodeID:       "127.0.0.1",
 		},
 		NrfUri:               "http://127.0.0.10:8000",
 		UserPlaneInformation: userPlaneConfig,
@@ -486,4 +489,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 			})
 		}
 	})
+
+	err := udp.Server.Close()
+	require.NoError(t, err)
 }

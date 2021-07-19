@@ -21,9 +21,11 @@ func TestRun(t *testing.T) {
 	// Set SMF Node ID
 
 	context.SMF_Self().CPNodeID = pfcpType.NodeID{
-		NodeIdType:  pfcpType.NodeIdTypeIpv4Address,
-		NodeIdValue: net.ParseIP("127.0.0.1").To4(),
+		NodeIdType: pfcpType.NodeIdTypeIpv4Address,
+		IP:         net.ParseIP("127.0.0.1").To4(),
 	}
+	context.SMF_Self().ExternalAddr = "127.0.0.1"
+	context.SMF_Self().ListenAddr = "127.0.0.1"
 
 	udp.Run(smf_pfcp.Dispatch)
 
@@ -40,8 +42,8 @@ func TestRun(t *testing.T) {
 		},
 		Body: pfcp.PFCPAssociationSetupRequest{
 			NodeID: &pfcpType.NodeID{
-				NodeIdType:  0,
-				NodeIdValue: net.ParseIP("192.168.1.1").To4(),
+				NodeIdType: 0,
+				IP:         net.ParseIP("192.168.1.1").To4(),
 			},
 		},
 	}
@@ -57,6 +59,9 @@ func TestRun(t *testing.T) {
 
 	err := pfcpUdp.SendPfcpMessage(testPfcpReq, srcAddr, dstAddr)
 	require.Nil(t, err)
+
+	err = udp.Server.Close()
+	require.NoError(t, err)
 
 	time.Sleep(300 * time.Millisecond)
 }

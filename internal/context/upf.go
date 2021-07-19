@@ -60,6 +60,7 @@ const (
 type UPF struct {
 	uuid         uuid.UUID
 	NodeID       pfcpType.NodeID
+	Addr         string
 	UPIPInfo     pfcpType.UserPlaneIPResourceInformation
 	UPFStatus    UPFStatus
 	SNssaiInfos  []SnssaiUPFInfo

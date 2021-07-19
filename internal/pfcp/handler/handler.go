@@ -53,37 +53,41 @@ func HandlePfcpAssociationSetupRequest(msg *pfcpUdp.Message) {
 	cause := pfcpType.Cause{
 		CauseValue: pfcpType.CauseRequestAccepted,
 	}
-	pfcp_message.SendPfcpAssociationSetupResponse(*nodeID, cause)
+	pfcp_message.SendPfcpAssociationSetupResponse(msg.RemoteAddr, cause)
+}
+
+func nodeIDtoString(nodeID *pfcpType.NodeID) string {
+	switch nodeID.NodeIdType {
+	case pfcpType.NodeIdTypeIpv4Address:
+		fallthrough
+	case pfcpType.NodeIdTypeIpv6Address:
+		return nodeID.IP.String()
+	case pfcpType.NodeIdTypeFqdn:
+		return nodeID.FQDN
+	default:
+		return ""
+	}
 }
 
 func HandlePfcpAssociationSetupResponse(msg *pfcpUdp.Message) {
-	req := msg.PfcpMessage.Body.(pfcp.PFCPAssociationSetupResponse)
+	rsp := msg.PfcpMessage.Body.(pfcp.PFCPAssociationSetupResponse)
 	logger.PfcpLog.Infoln("In HandlePfcpAssociationSetupResponse")
 
-	nodeID := req.NodeID
-	if req.Cause.CauseValue == pfcpType.CauseRequestAccepted {
+	nodeID := rsp.NodeID
+	if rsp.Cause.CauseValue == pfcpType.CauseRequestAccepted {
 		if nodeID == nil {
 			logger.PfcpLog.Errorln("pfcp association needs NodeID")
 			return
 		}
-		logger.PfcpLog.Infof("Handle PFCP Association Setup Response with NodeID[%s]", nodeID.ResolveNodeIdToIp().String())
+		logger.PfcpLog.Infof("Handle PFCP Association Setup Response with NodeID[%s]", nodeIDtoString(nodeID))
 
 		upf := smf_context.RetrieveUPFNodeByNodeID(*nodeID)
 		if upf == nil {
-			logger.PfcpLog.Errorf("can't find UPF[%s]", nodeID.ResolveNodeIdToIp().String())
+			logger.PfcpLog.Errorf("can't find UPF[%s]", nodeIDtoString(nodeID))
 			return
 		}
 
 		upf.UPFStatus = smf_context.AssociatedSetUpSuccess
-
-		if req.UserPlaneIPResourceInformation != nil {
-			upf.UPIPInfo = *req.UserPlaneIPResourceInformation
-
-			logger.PfcpLog.Infof("UPF(%s)[%s] setup association",
-				upf.NodeID.ResolveNodeIdToIp().String(), upf.UPIPInfo.NetworkInstance)
-		} else {
-			logger.PfcpLog.Errorln("pfcp association setup response has no UserPlane IP Resource Information")
-		}
 	}
 }
 
@@ -108,7 +112,7 @@ func HandlePfcpAssociationReleaseRequest(msg *pfcpUdp.Message) {
 		cause.CauseValue = pfcpType.CauseNoEstablishedPfcpAssociation
 	}
 
-	pfcp_message.SendPfcpAssociationReleaseResponse(*pfcpMsg.NodeID, cause)
+	pfcp_message.SendPfcpAssociationReleaseResponse(msg.RemoteAddr, cause)
 }
 
 func HandlePfcpAssociationReleaseResponse(msg *pfcpUdp.Message) {
@@ -204,7 +208,7 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 			N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
 		smContext.SetState(smf_context.Active)
 		if err != nil {
-			logger.PfcpLog.Warnf("Send N1N2Transfer failed")
+			logger.PfcpLog.Warnf("Send N1N2Transfer failed: %s", err)
 		}
 		if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
 			logger.PfcpLog.Warnf("%v", rspData.Cause)
@@ -378,7 +382,7 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 				N1N2MessageCollectionDocumentApi.
 				N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
 			if err != nil {
-				logger.PfcpLog.Warnf("Send N1N2Transfer failed")
+				logger.PfcpLog.Warnf("Send N1N2Transfer failed: %s", err)
 			}
 			if rspData.Cause == models.N1N2MessageTransferCause_ATTEMPTING_TO_REACH_UE {
 				logger.PfcpLog.Infof("Receive %v, AMF is able to page the UE", rspData.Cause)

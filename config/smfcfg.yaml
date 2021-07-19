@@ -1,5 +1,5 @@
 info:
-  version: 1.0.2
+  version: 1.0.3
   description: SMF initial local configuration
 
 configuration:
@@ -7,7 +7,7 @@ configuration:
   sbi: # Service-based interface information
     scheme: http # the protocol for sbi (http or https)
     registerIPv4: 127.0.0.2 # IP used to register to NRF
-    bindingIPv4: 127.0.0.2  # IP used to bind the service
+    bindingIPv4: 127.0.0.2 # IP used to bind the service
     port: 8000 # Port used to bind the service
     tls: # the local path of TLS key
       key: config/TLS/smf.key # SMF TLS Certificate
@@ -34,14 +34,18 @@ configuration:
             ipv4: 8.8.8.8
             ipv6: 2001:4860:4860::8888
   pfcp: # the IP address of N4 interface on this SMF (PFCP)
-    addr: 127.0.0.1
-  userplane_information: # list of userplane information
-    up_nodes: # information of userplane node (AN or UPF)
+    # addr config is deprecated in smf config v1.0.3, please use the following config
+    nodeID: 127.0.0.1 # the Node ID of this SMF
+    listenAddr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
+    externalAddr: 127.0.0.1 # the IP/FQDN of N4 interface on this SMF (PFCP)
+  userplaneInformation: # list of userplane information
+    upNodes: # information of userplane node (AN or UPF)
       gNB1: # the name of the node
         type: AN # the type of the node (AN or UPF)
-      UPF:  # the name of the node
+      UPF: # the name of the node
         type: UPF # the type of the node (AN or UPF)
-        node_id: 127.0.0.8 # the IP/FQDN of N4 interface on this UPF (PFCP)
+        nodeID: 127.0.0.8 # the Node ID of this UPF
+        addr: 127.0.0.8 # the IP/FQDN of N4 interface on this UPF (PFCP)
         sNssaiUpfInfos: # S-NSSAI information list for this UPF
           - sNssai: # S-NSSAI (Single Network Slice Selection Assistance Information)
               sst: 1 # Slice/Service Type (uinteger, range: 0~255)
@@ -50,7 +54,7 @@ configuration:
               - dnn: internet
                 pools:
                   - cidr: 60.60.0.0/16
-                static_pools:
+                staticPools:
                   - cidr: 60.60.100.0/24
           - sNssai: # S-NSSAI (Single Network Slice Selection Assistance Information)
               sst: 1 # Slice/Service Type (uinteger, range: 0~255)
@@ -59,7 +63,7 @@ configuration:
               - dnn: internet
                 pools:
                   - cidr: 60.61.0.0/16
-                static_pools:
+                staticPools:
                   - cidr: 60.61.100.0/24
         interfaces: # Interface list for this UPF
           - interfaceType: N3 # the type of the interface (N3 or N9)
@@ -72,8 +76,8 @@ configuration:
   nrfUri: http://127.0.0.10:8000 # a valid URI of NRF
 
 # the kind of log output
-  # debugLevel: how detailed to output, value: trace, debug, info, warn, error, fatal, panic
-  # ReportCaller: enable the caller report or not, value: true or false
+# debugLevel: how detailed to output, value: trace, debug, info, warn, error, fatal, panic
+# ReportCaller: enable the caller report or not, value: true or false
 logger:
   SMF:
     debugLevel: info

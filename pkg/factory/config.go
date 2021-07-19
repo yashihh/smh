@@ -11,13 +11,15 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/davecgh/go-spew/spew"
 
 	"bitbucket.org/free5gc-team/logger_util"
 	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/smf/internal/logger"
 )
 
 const (
-	SMF_EXPECTED_CONFIG_VERSION        = "1.0.2"
+	SMF_EXPECTED_CONFIG_VERSION        = "1.0.3"
 	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.1"
 	SMF_DEFAULT_IPV4                   = "127.0.0.2"
 	SMF_DEFAULT_PORT                   = "8000"
@@ -53,6 +55,14 @@ func (c *Config) Validate() (bool, error) {
 	return result, appendInvalid(err)
 }
 
+func (c *Config) Print() {
+	spew.Config.Indent = "\t"
+	str := spew.Sdump(c.Configuration)
+	logger.CfgLog.Infof("==================================================")
+	logger.CfgLog.Infof("%s", str)
+	logger.CfgLog.Infof("==================================================")
+}
+
 type Info struct {
 	Version     string `yaml:"version,omitempty" valid:"type(string)"`
 	Description string `yaml:"description,omitempty" valid:"type(string)"`
@@ -68,7 +78,7 @@ type Configuration struct {
 	Sbi                  *Sbi                 `yaml:"sbi,omitempty" valid:"required"`
 	PFCP                 *PFCP                `yaml:"pfcp,omitempty" valid:"required"`
 	NrfUri               string               `yaml:"nrfUri,omitempty" valid:"url,required"`
-	UserPlaneInformation UserPlaneInformation `yaml:"userplane_information" valid:"required"`
+	UserPlaneInformation UserPlaneInformation `yaml:"userplaneInformation" valid:"required"`
 	ServiceNameList      []string             `yaml:"serviceNameList,omitempty" valid:"required"`
 	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty" valid:"required"`
 	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
@@ -201,8 +211,9 @@ func (t *Tls) validate() (bool, error) {
 }
 
 type PFCP struct {
-	Addr string `yaml:"addr,omitempty" valid:"ipv4,optional"`
-	Port uint16 `yaml:"port,omitempty" valid:"port,optional"`
+	ListenAddr   string `yaml:"listenAddr,omitempty" valid:"host,required"`
+	ExternalAddr string `yaml:"externalAddr,omitempty" valid:"host,required"`
+	NodeID       string `yaml:"nodeID,omitempty" valid:"host,required"`
 }
 
 func (p *PFCP) validate() (bool, error) {
@@ -399,7 +410,7 @@ func (r *RoutingConfig) Validate() (bool, error) {
 
 // UserPlaneInformation describe core network userplane information
 type UserPlaneInformation struct {
-	UPNodes map[string]UPNode `yaml:"up_nodes" valid:"required"`
+	UPNodes map[string]UPNode `yaml:"upNodes" valid:"required"`
 	Links   []UPLink          `yaml:"links" valid:"required"`
 }
 
@@ -423,8 +434,9 @@ func (u *UserPlaneInformation) validate() (bool, error) {
 // UPNode represent the user plane node
 type UPNode struct {
 	Type                 string                 `yaml:"type" valid:"upNodeType,required"`
-	NodeID               string                 `yaml:"node_id" valid:"url,optional"`
-	ANIP                 string                 `yaml:"an_ip" valid:"url,optional"`
+	NodeID               string                 `yaml:"nodeID" valid:"host,optional"`
+	Addr                 string                 `yaml:"addr" valid:"host,optional"`
+	ANIP                 string                 `yaml:"anIP" valid:"host,optional"`
 	Dnn                  string                 `yaml:"dnn" valid:"type(string),minstringlength(1),optional"`
 	SNssaiInfos          []SnssaiUpfInfoItem    `yaml:"sNssaiUpfInfos,omitempty" valid:"optional"`
 	InterfaceUpfInfoList []InterfaceUpfInfoItem `yaml:"interfaces,omitempty" valid:"optional"`
@@ -508,7 +520,7 @@ type DnnUpfInfoItem struct {
 	DnaiList        []string                `yaml:"dnaiList" valid:"optional"`
 	PduSessionTypes []models.PduSessionType `yaml:"pduSessionTypes" valid:"optional"`
 	Pools           []UEIPPool              `yaml:"pools" valid:"optional"`
-	StaticPools     []UEIPPool              `yaml:"static_pools" valid:"optional"`
+	StaticPools     []UEIPPool              `yaml:"staticPools" valid:"optional"`
 }
 
 func (d *DnnUpfInfoItem) validate() (bool, error) {

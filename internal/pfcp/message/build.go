@@ -238,6 +238,7 @@ func farToUpdateFAR(far *context.FAR) *pfcp.UpdateFAR {
 
 func BuildPfcpSessionEstablishmentRequest(
 	upNodeID pfcpType.NodeID,
+	upN4Addr string,
 	smContext *context.SMContext,
 	pdrList []*context.PDR,
 	farList []*context.FAR,
@@ -247,7 +248,7 @@ func BuildPfcpSessionEstablishmentRequest(
 
 	msg.NodeID = &context.SMF_Self().CPNodeID
 
-	isv4 := context.SMF_Self().CPNodeID.NodeIdType == 0
+	isv4 := context.SMF_Self().ExternalIP().To4() != nil
 	nodeIDtoIP := upNodeID.ResolveNodeIdToIp().String()
 
 	localSEID := smContext.PFCPContext[nodeIDtoIP].LocalSEID
@@ -256,7 +257,7 @@ func BuildPfcpSessionEstablishmentRequest(
 		V4:          isv4,
 		V6:          !isv4,
 		Seid:        localSEID,
-		Ipv4Address: context.SMF_Self().CPNodeID.NodeIdValue,
+		Ipv4Address: context.SMF_Self().ExternalIP().To4(),
 	}
 
 	msg.CreatePDR = make([]*pfcp.CreatePDR, 0)
@@ -347,6 +348,7 @@ func BuildPfcpSessionEstablishmentResponse() (pfcp.PFCPSessionEstablishmentRespo
 // TODO: Replace dummy value in PFCP message
 func BuildPfcpSessionModificationRequest(
 	upNodeID pfcpType.NodeID,
+	upN4Addr string,
 	smContext *context.SMContext,
 	pdrList []*context.PDR,
 	farList []*context.FAR,
@@ -365,7 +367,7 @@ func BuildPfcpSessionModificationRequest(
 		V4:          true,
 		V6:          false,
 		Seid:        localSEID,
-		Ipv4Address: context.SMF_Self().CPNodeID.NodeIdValue,
+		Ipv4Address: context.SMF_Self().ExternalIP().To4(),
 	}
 
 	for _, pdr := range pdrList {

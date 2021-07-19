@@ -105,6 +105,7 @@ func (smf *SMF) Initialize(c *cli.Context) error {
 	if _, err := factory.SmfConfig.Validate(); err != nil {
 		return err
 	}
+	factory.SmfConfig.Print()
 
 	if _, err := factory.UERoutingConfig.Validate(); err != nil {
 		return err
@@ -287,12 +288,12 @@ func (smf *SMF) Start() {
 
 	for _, upf := range context.SMF_Self().UserPlaneInformation.UPFs {
 		if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
-			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s](%s)\n", upf.NodeID.NodeIdValue,
+			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s](%s)\n", upf.NodeID.FQDN,
 				upf.NodeID.ResolveNodeIdToIp().String())
 		} else {
-			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", upf.NodeID.ResolveNodeIdToIp().String())
+			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", upf.NodeID.IP)
 		}
-		message.SendPfcpAssociationSetupRequest(upf.NodeID)
+		message.SendPfcpAssociationSetupRequest(upf.UPF.Addr)
 	}
 
 	time.Sleep(1000 * time.Millisecond)

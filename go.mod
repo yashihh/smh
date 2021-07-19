@@ -12,12 +12,13 @@ require (
 	bitbucket.org/free5gc-team/nas v0.0.0-20210610112928-da6346e73fab
 	bitbucket.org/free5gc-team/ngap v0.0.0-20210715110807-6f4274fe49a7
 	bitbucket.org/free5gc-team/openapi v0.0.0-20210610084256-990ed030d4de
-	bitbucket.org/free5gc-team/pfcp v0.0.0-20210610094024-dbf41d12986e
+	bitbucket.org/free5gc-team/pfcp v0.0.0-20210708092112-b8daccbee3ba
 	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20210610093126-18c9713dbf0e
 	bitbucket.org/free5gc-team/version v0.0.0-20201211040438-c23ed678d8da
 	github.com/antihax/optional v1.0.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.0
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gin-gonic/gin v1.6.3
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/google/uuid v1.1.2
