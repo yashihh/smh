@@ -26,7 +26,7 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			name: "singlePath-singleUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101/32",
+					DestinationIP:   "10.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
@@ -43,7 +43,7 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			name: "singlePath-multiUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101/32",
+					DestinationIP:   "10.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
@@ -62,14 +62,14 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			name: "multiPath-singleUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101/32",
+					DestinationIP:   "10.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
 					},
 				},
 				{
-					DestinationIP:   "60.60.0.103/32",
+					DestinationIP:   "10.60.0.103/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF2",
@@ -89,7 +89,7 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			name: "multiPath-multiUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101/32",
+					DestinationIP:   "10.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
@@ -97,7 +97,7 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 					},
 				},
 				{
-					DestinationIP:   "60.60.0.103/32",
+					DestinationIP:   "10.60.0.103/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
@@ -120,14 +120,14 @@ func TestNewUEPreConfigPaths(t *testing.T) {
 			name: "multiPath-single&multiUPF",
 			inPaths: []factory.SpecificPath{
 				{
-					DestinationIP:   "60.60.0.101/32",
+					DestinationIP:   "10.60.0.101/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",
 					},
 				},
 				{
-					DestinationIP:   "60.60.0.103/32",
+					DestinationIP:   "10.60.0.103/32",
 					DestinationPort: "12345",
 					Path: []string{
 						"UPF1",

@@ -43,7 +43,7 @@ var userPlaneConfig = factory.UserPlaneInformation{
 						{
 							Dnn: "internet",
 							Pools: []factory.UEIPPool{
-								{Cidr: "60.60.0.0/16"},
+								{Cidr: "10.60.0.0/16"},
 							},
 						},
 					},
