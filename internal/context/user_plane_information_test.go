@@ -31,12 +31,12 @@ var configuration = &factory.UserPlaneInformation{
 							Dnn: "internet",
 							Pools: []factory.UEIPPool{
 								{
-									Cidr: "60.60.0.0/27",
+									Cidr: "10.60.0.0/27",
 								},
 							},
 							StaticPools: []factory.UEIPPool{
 								{
-									Cidr: "60.60.0.0/28",
+									Cidr: "10.60.0.0/28",
 								},
 							},
 						},
@@ -52,7 +52,7 @@ var configuration = &factory.UserPlaneInformation{
 							Dnn: "internet",
 							Pools: []factory.UEIPPool{
 								{
-									Cidr: "60.61.0.0/16",
+									Cidr: "10.61.0.0/16",
 								},
 							},
 						},
@@ -74,7 +74,7 @@ var configuration = &factory.UserPlaneInformation{
 							Dnn: "internet",
 							Pools: []factory.UEIPPool{
 								{
-									Cidr: "60.62.0.0/16",
+									Cidr: "10.62.0.0/16",
 								},
 							},
 						},
@@ -96,7 +96,7 @@ var configuration = &factory.UserPlaneInformation{
 							Dnn: "internet",
 							Pools: []factory.UEIPPool{
 								{
-									Cidr: "60.63.0.0/16",
+									Cidr: "10.63.0.0/16",
 								},
 							},
 						},
@@ -118,7 +118,7 @@ var configuration = &factory.UserPlaneInformation{
 							Dnn: "internet",
 							Pools: []factory.UEIPPool{
 								{
-									Cidr: "60.64.0.0/16",
+									Cidr: "10.64.0.0/16",
 								},
 							},
 						},
@@ -262,7 +262,7 @@ func TestSelectUPFAndAllocUEIP(t *testing.T) {
 	var expectedIPPool []net.IP
 
 	for i := 16; i <= 31; i++ {
-		expectedIPPool = append(expectedIPPool, net.ParseIP(fmt.Sprintf("60.60.0.%d", i)).To4())
+		expectedIPPool = append(expectedIPPool, net.ParseIP(fmt.Sprintf("10.60.0.%d", i)).To4())
 	}
 
 	userplaneInformation := NewUserPlaneInformation(configuration)
