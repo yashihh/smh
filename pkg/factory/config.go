@@ -1,5 +1,5 @@
 /*
- * AMF Configuration Factory
+ * SMF Configuration Factory
  */
 
 package factory
@@ -82,6 +82,7 @@ type Configuration struct {
 	ServiceNameList      []string             `yaml:"serviceNameList,omitempty" valid:"required"`
 	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty" valid:"required"`
 	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
+	PLMNList             []PLMNID             `yaml:"plmnList,omitempty"  valid:"optional"`
 }
 
 func (c *Configuration) validate() (bool, error) {
@@ -118,6 +119,22 @@ func (c *Configuration) validate() (bool, error) {
 	for _, snssaiInfo := range c.SNssaiInfo {
 		if result, err := snssaiInfo.validate(); err != nil {
 			return result, err
+		}
+	}
+
+	if c.PLMNList != nil {
+		for _, plmnId := range c.PLMNList {
+			mcc := plmnId.MCC
+			if result := govalidator.StringMatches(mcc, "^[0-9]{3}$"); !result {
+				err := fmt.Errorf("Invalid mcc: %s, should be a 3-digit number", mcc)
+				return false, err
+			}
+
+			mnc := plmnId.MNC
+			if result := govalidator.StringMatches(mnc, "^[0-9]{2,3}$"); !result {
+				err := fmt.Errorf("Invalid mnc: %s, should be a 2 or 3-digit number", mnc)
+				return false, err
+			}
 		}
 	}
 
@@ -581,6 +598,11 @@ type SpecificPath struct {
 	DestinationIP   string   `yaml:"dest,omitempty" valid:"cidr,required"`
 	DestinationPort string   `yaml:"DestinationPort,omitempty" valid:"port,optional"`
 	Path            []string `yaml:"path" valid:"required"`
+}
+
+type PLMNID struct {
+	MCC string `yaml:"mcc"`
+	MNC string `yaml:"mnc"`
 }
 
 func (p *SpecificPath) validate() (bool, error) {
