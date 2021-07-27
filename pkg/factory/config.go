@@ -82,7 +82,11 @@ type Configuration struct {
 	ServiceNameList      []string             `yaml:"serviceNameList,omitempty" valid:"required"`
 	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty" valid:"required"`
 	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
+<<<<<<< HEAD
 	PLMNList             []PlmnID             `yaml:"plmnList,omitempty"  valid:"optional"`
+=======
+	Locality             string               `yaml:"locality,omitempty"`
+>>>>>>> Add locality in config and NF Profile of SMF
 }
 
 func (c *Configuration) validate() (bool, error) {
