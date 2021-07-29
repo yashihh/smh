@@ -1,8 +1,11 @@
 package producer
 
 import (
+	"github.com/davecgh/go-spew/spew"
+
 	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
+	"bitbucket.org/free5gc-team/nas/nasType"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 )
@@ -146,4 +149,29 @@ func HandlePDUSessionModificationRequest(
 
 	// Retrieve PTI (Procedure transaction identity)
 	smCtx.Pti = req.GetPTI()
+
+	if req.RequestedQosRules != nil {
+		qosRuleBytes := req.GetQoSRules()
+
+		qosRules := nasType.QoSRules{}
+
+		if err := qosRules.UnmarshalBinary(qosRuleBytes); err != nil {
+			smCtx.Log.Warning("QoS rule parse failed:", err)
+		}
+
+		spew.Dump(qosRules)
+	}
+
+	if req.RequestedQosFlowDescriptions != nil {
+
+		qosFlowDescsBytes := req.GetQoSFlowDescriptions()
+
+		qosFlowDescs := nasType.QoSFlowDescs{}
+
+		if err := qosFlowDescs.UnmarshalBinary(qosFlowDescsBytes); err != nil {
+			smCtx.Log.Warning("QoS flow descriptions parse failed:", err)
+		}
+
+		spew.Dump(qosFlowDescs)
+	}
 }
