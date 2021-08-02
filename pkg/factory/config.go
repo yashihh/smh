@@ -1,5 +1,5 @@
 /*
- * AMF Configuration Factory
+ * SMF Configuration Factory
  */
 
 package factory
@@ -82,6 +82,7 @@ type Configuration struct {
 	ServiceNameList      []string             `yaml:"serviceNameList,omitempty" valid:"required"`
 	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty" valid:"required"`
 	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
+	PLMNList             []PlmnID             `yaml:"plmnList,omitempty"  valid:"optional"`
 }
 
 func (c *Configuration) validate() (bool, error) {
@@ -118,6 +119,14 @@ func (c *Configuration) validate() (bool, error) {
 	for _, snssaiInfo := range c.SNssaiInfo {
 		if result, err := snssaiInfo.validate(); err != nil {
 			return result, err
+		}
+	}
+
+	if c.PLMNList != nil {
+		for _, plmnId := range c.PLMNList {
+			if result, err := plmnId.validate(); err != nil {
+				return result, err
+			}
 		}
 	}
 
@@ -597,6 +606,26 @@ func (p *SpecificPath) validate() (bool, error) {
 
 	result, err := govalidator.ValidateStruct(p)
 	return result, appendInvalid(err)
+}
+
+type PlmnID struct {
+	Mcc string `yaml:"mcc"`
+	Mnc string `yaml:"mnc"`
+}
+
+func (p *PlmnID) validate() (bool, error) {
+	mcc := p.Mcc
+	if result := govalidator.StringMatches(mcc, "^[0-9]{3}$"); !result {
+		err := fmt.Errorf("Invalid mcc: %s, should be a 3-digit number", mcc)
+		return false, err
+	}
+
+	mnc := p.Mnc
+	if result := govalidator.StringMatches(mnc, "^[0-9]{2,3}$"); !result {
+		err := fmt.Errorf("Invalid mnc: %s, should be a 2 or 3-digit number", mnc)
+		return false, err
+	}
+	return true, nil
 }
 
 func (c *Config) GetVersion() string {
