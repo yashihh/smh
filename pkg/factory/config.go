@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	SMF_EXPECTED_CONFIG_VERSION        = "1.0.3"
+	SMF_EXPECTED_CONFIG_VERSION        = "1.0.4"
 	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.1"
 	SMF_DEFAULT_IPV4                   = "127.0.0.2"
 	SMF_DEFAULT_PORT                   = "8000"
@@ -82,11 +82,8 @@ type Configuration struct {
 	ServiceNameList      []string             `yaml:"serviceNameList,omitempty" valid:"required"`
 	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty" valid:"required"`
 	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
-<<<<<<< HEAD
 	PLMNList             []PlmnID             `yaml:"plmnList,omitempty"  valid:"optional"`
-=======
-	Locality             string               `yaml:"locality,omitempty"`
->>>>>>> Add locality in config and NF Profile of SMF
+	Locality             string               `yaml:"locality,omitempty" valid:"type(string),optional"`
 }
 
 func (c *Configuration) validate() (bool, error) {
