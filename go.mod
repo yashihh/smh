@@ -3,18 +3,18 @@ module bitbucket.org/free5gc-team/smf
 go 1.14
 
 require (
-	bitbucket.org/free5gc-team/aper v0.0.0-20210715094321-88fd0bb6cce9
-	bitbucket.org/free5gc-team/flowdesc v0.0.0-20201211040502-ec124a7d65a1
-	bitbucket.org/free5gc-team/http2_util v0.0.0-20201212235925-bd3a307d110a
-	bitbucket.org/free5gc-team/http_wrapper v0.0.0-20201211040440-7c475efe43d4
-	bitbucket.org/free5gc-team/idgenerator v0.0.0-20201211040458-d68b2cd1a422
-	bitbucket.org/free5gc-team/logger_util v0.0.0-20210414054242-2101cfc15ebb
-	bitbucket.org/free5gc-team/nas v0.0.0-20210610112928-da6346e73fab
-	bitbucket.org/free5gc-team/ngap v0.0.0-20210715110807-6f4274fe49a7
-	bitbucket.org/free5gc-team/openapi v0.0.0-20210610084256-990ed030d4de
-	bitbucket.org/free5gc-team/pfcp v0.0.0-20210708092112-b8daccbee3ba
-	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20210610093126-18c9713dbf0e
-	bitbucket.org/free5gc-team/version v0.0.0-20201211040438-c23ed678d8da
+	bitbucket.org/free5gc-team/aper v0.0.0-20210727142431-039bf12df90e
+	bitbucket.org/free5gc-team/flowdesc v0.0.0-20210727143306-23f52bc261e3
+	bitbucket.org/free5gc-team/http2_util v0.0.0-20210727150618-67c7200d9f25
+	bitbucket.org/free5gc-team/http_wrapper v0.0.0-20210727145455-e63a06234d9e
+	bitbucket.org/free5gc-team/idgenerator v0.0.0-20210727143828-39b592d8cb4a
+	bitbucket.org/free5gc-team/logger_util v0.0.0-20210727141908-0945a67fba5f
+	bitbucket.org/free5gc-team/nas v0.0.0-20210802140121-d3fa3ad5a264
+	bitbucket.org/free5gc-team/ngap v0.0.0-20210802133653-3053161e76fd
+	bitbucket.org/free5gc-team/openapi v0.0.0-20210727151710-5d7f919e407f
+	bitbucket.org/free5gc-team/pfcp v0.0.0-20210802135334-57b7aa17ea68
+	bitbucket.org/free5gc-team/util_3gpp v0.0.0-20210802134232-007f616d9e39
+	bitbucket.org/free5gc-team/version v0.0.0-20210727144812-f6138dc35864
 	github.com/antihax/optional v1.0.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.0
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
