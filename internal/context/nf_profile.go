@@ -51,8 +51,8 @@ func SetupNFProfile(config *factory.Config) {
 		NFProfile.PLMNList = new([]models.PlmnId)
 		for _, plmn := range plmnList {
 			*NFProfile.PLMNList = append(*NFProfile.PLMNList, models.PlmnId{
-				Mcc: plmn.MCC,
-				Mnc: plmn.MNC,
+				Mcc: plmn.Mcc,
+				Mnc: plmn.Mnc,
 			})
 		}
 	}
