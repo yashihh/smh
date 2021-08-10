@@ -326,9 +326,11 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 
 		if targetTcData != nil {
 			// TODO: Fix always choosing the first RouteToLocs as targetTraRouting
-			targetTraRouting = targetTcData.RouteToLocs[0]
-			// If targetTcData is available, change UpPathChgEvent to the one in targetTcData
-			upPathChgEvt = targetTcData.UpPathChgEvent
+			if len(targetTcData.RouteToLocs) > 0 {
+				targetTraRouting = targetTcData.RouteToLocs[0]
+				// If targetTcData is available, change UpPathChgEvent to the one in targetTcData
+				upPathChgEvt = targetTcData.UpPathChgEvent
+			}
 		} else {
 			// No targetTcData in decision, roll back to the original traffic routing
 			targetTraRouting = models.RouteToLocation{

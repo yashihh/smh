@@ -21,6 +21,7 @@ import (
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
+	"bitbucket.org/free5gc-team/util/idgenerator"
 )
 
 var (
@@ -125,6 +126,12 @@ type SMContext struct {
 	SessionRules       map[string]*SessionRule
 	TrafficControlPool map[string]*TrafficControlData
 
+	// QoS
+	QoSRuleIDGenerator      *idgenerator.IDGenerator
+	PacketFilterIDGenerator *idgenerator.IDGenerator
+	PCCRuleIDToQoSRuleID    map[string]uint8
+	PacketFilterIDToNASPFID map[string]uint8
+
 	// NAS
 	Pti                     uint8
 	EstAcceptCause5gSMValue uint8
@@ -183,6 +190,11 @@ func NewSMContext(identifier string, pduSessID int32) (smContext *SMContext) {
 	smContext.SBIPFCPCommunicationChan = make(chan PFCPSessionResponseStatus, 1)
 
 	smContext.ProtocolConfigurationOptions = &ProtocolConfigurationOptions{}
+
+	smContext.QoSRuleIDGenerator = idgenerator.NewGenerator(1, 255)
+	smContext.PacketFilterIDGenerator = idgenerator.NewGenerator(1, 255)
+	smContext.PCCRuleIDToQoSRuleID = make(map[string]uint8)
+	smContext.PacketFilterIDToNASPFID = make(map[string]uint8)
 
 	return smContext
 }

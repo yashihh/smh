@@ -406,11 +406,18 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			// Use go routine to send Notification to prevent blocking the handling process
 			go sendSMContextStatusNotification(smContext)
 		case nas.MsgTypePDUSessionModificationRequest:
-			HandlePDUSessionModificationRequest(smContext, m.PDUSessionModificationRequest)
-			if buf, err := smf_context.BuildGSMPDUSessionModificationReject(smContext); err != nil {
-				smContext.Log.Errorf("build GSM PDUSessionModificationReject failed: %+v", err)
+			if rsp, err := HandlePDUSessionModificationRequest(smContext, m.PDUSessionModificationRequest); err != nil {
+				if buf, err := smf_context.BuildGSMPDUSessionModificationReject(smContext); err != nil {
+					smContext.Log.Errorf("build GSM PDUSessionModificationReject failed: %+v", err)
+				} else {
+					response.BinaryDataN1SmMessage = buf
+				}
 			} else {
-				response.BinaryDataN1SmMessage = buf
+				if buf, err := rsp.PlainNasEncode(); err != nil {
+					smContext.Log.Errorf("build GSM PDUSessionModificationCommand failed: %+v", err)
+				} else {
+					response.BinaryDataN1SmMessage = buf
+				}
 			}
 
 			response.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionModificationReject"}

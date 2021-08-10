@@ -3,13 +3,18 @@ package consumer
 import (
 	"context"
 	"fmt"
+	"net"
 	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 
 	"bitbucket.org/free5gc-team/nas/nasConvert"
+	"bitbucket.org/free5gc-team/nas/nasType"
 	"bitbucket.org/free5gc-team/openapi/models"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
+	"bitbucket.org/free5gc-team/util/flowdesc"
 )
 
 // SendSMPolicyAssociationCreate create the session management association to the PCF
@@ -68,6 +73,280 @@ func extractSMPolicyIDFromLocation(location string) string {
 	}
 	// not match submatch
 	return ""
+}
+
+func SendSMPolicyAssociationUpdateByUERequestModification(
+	smContext *smf_context.SMContext,
+	qosRules nasType.QoSRules, qosFlowDescs nasType.QoSFlowDescs) (*models.SmPolicyDecision, error) {
+	updateSMPolicy := models.SmPolicyUpdateContextData{}
+
+	updateSMPolicy.RepPolicyCtrlReqTriggers = []models.PolicyControlRequestTrigger{
+		models.PolicyControlRequestTrigger_RES_MO_RE,
+	}
+
+	// UE SHOULD only create ONE QoS Flow in a request (TS 24.501 6.4.2.2)
+	rule := qosRules[0]
+	flowDesc := qosFlowDescs[0]
+
+	var ruleOp models.RuleOperation
+	switch rule.Operation {
+	case nasType.OperationCodeCreateNewQoSRule:
+		ruleOp = models.RuleOperation_CREATE_PCC_RULE
+	case nasType.OperationCodeDeleteExistingQoSRule:
+		ruleOp = models.RuleOperation_DELETE_PCC_RULE
+	case nasType.OperationCodeModifyExistingQoSRuleAndAddPacketFilters:
+		ruleOp = models.RuleOperation_MODIFY_PCC_RULE_AND_ADD_PACKET_FILTERS
+	case nasType.OperationCodeModifyExistingQoSRuleAndDeletePacketFilters:
+		ruleOp = models.RuleOperation_MODIFY_PCC_RULE_AND_DELETE_PACKET_FILTERS
+	case nasType.OperationCodeModifyExistingQoSRuleAndReplaceAllPacketFilters:
+		ruleOp = models.RuleOperation_MODIFY_PCC_RULE_AND_REPLACE_PACKET_FILTERS
+	case nasType.OperationCodeModifyExistingQoSRuleWithoutModifyingPacketFilters:
+		ruleOp = models.RuleOperation_MODIFY_PCC_RULE_WITHOUT_MODIFY_PACKET_FILTERS
+	default:
+		return nil, errors.New("QoS Rule Operation Unknown")
+	}
+
+	ueInitResReq := &models.UeInitiatedResourceRequest{}
+	ueInitResReq.RuleOp = ruleOp
+	ueInitResReq.Precedence = int32(rule.Precedence)
+	ueInitResReq.ReqQos = new(models.RequestedQos)
+
+	for _, parameter := range flowDesc.Parameters {
+		switch parameter.Identifier() {
+		case nasType.ParameterIdentifier5QI:
+			para5Qi := parameter.(*nasType.QoSFlow5QI)
+			ueInitResReq.ReqQos.Var5qi = int32(para5Qi.FiveQI)
+		case nasType.ParameterIdentifierGFBRUplink:
+			paraGFBRUplink := parameter.(*nasType.QoSFlowGFBRUplink)
+			ueInitResReq.ReqQos.GbrUl = nasBitRateToString(paraGFBRUplink.Value, paraGFBRUplink.Unit)
+		case nasType.ParameterIdentifierGFBRDownlink:
+			paraGFBRUplink := parameter.(*nasType.QoSFlowGFBRUplink)
+			ueInitResReq.ReqQos.GbrUl = nasBitRateToString(paraGFBRUplink.Value, paraGFBRUplink.Unit)
+		}
+	}
+
+	updateSMPolicy.UeInitResReq = ueInitResReq
+
+	for _, pf := range rule.PacketFilterList {
+		if PackFiltInfo, err := buildPacketFilterInfoFromNASPacketFilter(pf); err != nil {
+			smContext.Log.Warning("Build PackFiltInfo failed", err)
+			continue
+		} else {
+			updateSMPolicy.UeInitResReq.PackFiltInfo = append(updateSMPolicy.UeInitResReq.PackFiltInfo, *PackFiltInfo)
+		}
+	}
+	var smPolicyDecision *models.SmPolicyDecision
+	if smPolicyDecisionFromPCF, _, err := smContext.SMPolicyClient.
+		DefaultApi.SmPoliciesSmPolicyIdUpdatePost(context.TODO(), smContext.SMPolicyID, updateSMPolicy); err != nil {
+		return nil, fmt.Errorf("update sm policy [%s] association failed: %s", smContext.SMPolicyID, err)
+	} else {
+		smPolicyDecision = &smPolicyDecisionFromPCF
+	}
+
+	return smPolicyDecision, nil
+}
+
+func nasBitRateToString(value uint16, unit nasType.QoSFlowBitRateUnit) string {
+	var base int
+	var unitStr string
+	switch unit {
+	case nasType.QoSFlowBitRateUnit1Kbps:
+		base = 1
+		unitStr = "Kbps"
+	case nasType.QoSFlowBitRateUnit4Kbps:
+		base = 4
+		unitStr = "Kbps"
+	case nasType.QoSFlowBitRateUnit16Kbps:
+		base = 16
+		unitStr = "Kbps"
+	case nasType.QoSFlowBitRateUnit64Kbps:
+		base = 64
+		unitStr = "Kbps"
+	case nasType.QoSFlowBitRateUnit256Kbps:
+		base = 256
+		unitStr = "Kbps"
+	case nasType.QoSFlowBitRateUnit1Mbps:
+		base = 1
+		unitStr = "Mbps"
+	case nasType.QoSFlowBitRateUnit4Mbps:
+		base = 4
+		unitStr = "Mbps"
+	case nasType.QoSFlowBitRateUnit16Mbps:
+		base = 16
+		unitStr = "Mbps"
+	case nasType.QoSFlowBitRateUnit64Mbps:
+		base = 64
+		unitStr = "Mbps"
+	case nasType.QoSFlowBitRateUnit256Mbps:
+		base = 256
+		unitStr = "Mbps"
+	case nasType.QoSFlowBitRateUnit1Gbps:
+		base = 1
+		unitStr = "Gbps"
+	case nasType.QoSFlowBitRateUnit4Gbps:
+		base = 4
+		unitStr = "Gbps"
+	case nasType.QoSFlowBitRateUnit16Gbps:
+		base = 16
+		unitStr = "Gbps"
+	case nasType.QoSFlowBitRateUnit64Gbps:
+		base = 64
+		unitStr = "Gbps"
+	case nasType.QoSFlowBitRateUnit256Gbps:
+		base = 256
+		unitStr = "Gbps"
+	case nasType.QoSFlowBitRateUnit1Tbps:
+		base = 1
+		unitStr = "Tbps"
+	case nasType.QoSFlowBitRateUnit4Tbps:
+		base = 4
+		unitStr = "Tbps"
+	case nasType.QoSFlowBitRateUnit16Tbps:
+		base = 16
+		unitStr = "Tbps"
+	case nasType.QoSFlowBitRateUnit64Tbps:
+		base = 64
+		unitStr = "Tbps"
+	case nasType.QoSFlowBitRateUnit256Tbps:
+		base = 256
+		unitStr = "Tbps"
+	case nasType.QoSFlowBitRateUnit1Pbps:
+		base = 1
+		unitStr = "Pbps"
+	case nasType.QoSFlowBitRateUnit4Pbps:
+		base = 4
+		unitStr = "Pbps"
+	case nasType.QoSFlowBitRateUnit16Pbps:
+		base = 16
+		unitStr = "Pbps"
+	case nasType.QoSFlowBitRateUnit64Pbps:
+		base = 64
+		unitStr = "Pbps"
+	case nasType.QoSFlowBitRateUnit256Pbps:
+		base = 256
+		unitStr = "Pbps"
+	default:
+		base = 1
+		unitStr = "Kbps"
+	}
+
+	return fmt.Sprintf("%d %s", base*int(value), unitStr)
+}
+
+func StringToNasBitRate(str string) (uint16, nasType.QoSFlowBitRateUnit, error) {
+	strSegment := strings.Split(str, " ")
+
+	var unit nasType.QoSFlowBitRateUnit
+	switch strSegment[1] {
+	case "Kbps":
+		unit = nasType.QoSFlowBitRateUnit1Kbps
+	case "Mbps":
+		unit = nasType.QoSFlowBitRateUnit1Mbps
+	case "Gbps":
+		unit = nasType.QoSFlowBitRateUnit1Gbps
+	case "Tbps":
+		unit = nasType.QoSFlowBitRateUnit1Tbps
+	case "Pbps":
+		unit = nasType.QoSFlowBitRateUnit1Pbps
+	default:
+		unit = nasType.QoSFlowBitRateUnit1Kbps
+	}
+
+	if value, err := strconv.Atoi(strSegment[0]); err != nil {
+		return 0, 0, err
+	} else {
+		return uint16(value), unit, err
+	}
+}
+
+func buildPacketFilterInfoFromNASPacketFilter(pf nasType.PacketFilter) (*models.PacketFilterInfo, error) {
+	pfInfo := &models.PacketFilterInfo{}
+
+	switch pf.Direction {
+	case nasType.PacketFilterDirectionDownlink:
+		pfInfo.FlowDirection = models.FlowDirection_DOWNLINK
+	case nasType.PacketFilterDirectionUplink:
+		pfInfo.FlowDirection = models.FlowDirection_UPLINK
+	case nasType.PacketFilterDirectionBidirectional:
+		pfInfo.FlowDirection = models.FlowDirection_BIDIRECTIONAL
+	default:
+		pfInfo.FlowDirection = models.FlowDirection_UNSPECIFIED
+	}
+
+	fieldList := make(flowdesc.IPFilterRuleFieldList, 0)
+
+	for _, component := range pf.Components {
+		switch component.Type() {
+		case nasType.PacketFilterComponentTypeIPv4RemoteAddress:
+			ipv4Remote := component.(*nasType.PacketFilterIPv4RemoteAddress)
+			remoteIPnet := net.IPNet{
+				IP:   ipv4Remote.Address,
+				Mask: ipv4Remote.Mask,
+			}
+			fieldList = append(fieldList, &flowdesc.IPFilterSourceIP{
+				Src: remoteIPnet.String(),
+			})
+		case nasType.PacketFilterComponentTypeIPv4LocalAddress:
+			ipv4Local := component.(*nasType.PacketFilterIPv4LocalAddress)
+			localIPnet := net.IPNet{
+				IP:   ipv4Local.Address,
+				Mask: ipv4Local.Mask,
+			}
+			fieldList = append(fieldList, &flowdesc.IPFilterDestinationIP{
+				Src: localIPnet.String(),
+			})
+		case nasType.PacketFilterComponentTypeProtocolIdentifierOrNextHeader:
+			protoNumber := component.(*nasType.PacketFilterProtocolIdentifier)
+			fieldList = append(fieldList, &flowdesc.IPFilterProto{
+				Proto: protoNumber.Value,
+			})
+		case nasType.PacketFilterComponentTypeSingleLocalPort:
+			localPort := component.(*nasType.PacketFilterSingleLocalPort)
+			fieldList = append(fieldList, &flowdesc.IPFilterDestinationPorts{
+				Ports: fmt.Sprintf("%d", localPort.Value),
+			})
+		case nasType.PacketFilterComponentTypeLocalPortRange:
+			localPortRange := component.(*nasType.PacketFilterLocalPortRange)
+			fieldList = append(fieldList, &flowdesc.IPFilterDestinationPorts{
+				Ports: fmt.Sprintf("%d-%d", localPortRange.LowLimit, localPortRange.HighLimit),
+			})
+		case nasType.PacketFilterComponentTypeSingleRemotePort:
+			remotePort := component.(*nasType.PacketFilterSingleRemotePort)
+			fieldList = append(fieldList, &flowdesc.IPFilterSourcePorts{
+				Ports: fmt.Sprintf("%d", remotePort.Value),
+			})
+		case nasType.PacketFilterComponentTypeRemotePortRange:
+			remotePortRange := component.(*nasType.PacketFilterRemotePortRange)
+			fieldList = append(fieldList, &flowdesc.IPFilterSourcePorts{
+				Ports: fmt.Sprintf("%d-%d", remotePortRange.LowLimit, remotePortRange.HighLimit),
+			})
+		case nasType.PacketFilterComponentTypeSecurityParameterIndex:
+			securityParameter := component.(*nasType.PacketFilterSecurityParameterIndex)
+			pfInfo.Spi = fmt.Sprintf("%04x", securityParameter.Index)
+		case nasType.PacketFilterComponentTypeTypeOfServiceOrTrafficClass:
+			serviceClass := component.(*nasType.PacketFilterServiceClass)
+			pfInfo.TosTrafficClass = fmt.Sprintf("%x%x", serviceClass.Class, serviceClass.Mask)
+		case nasType.PacketFilterComponentTypeFlowLabel:
+			flowLabel := component.(*nasType.PacketFilterFlowLabel)
+			pfInfo.FlowLabel = fmt.Sprintf("%03x", flowLabel.Label)
+		}
+	}
+
+	var packetFilter *flowdesc.IPFilterRule
+
+	if ret, err := flowdesc.BuildIPFilterRuleFromField(fieldList); err != nil {
+		return nil, err
+	} else {
+		packetFilter = ret
+	}
+
+	if desc, err := flowdesc.Encode(packetFilter); err != nil {
+		return nil, err
+	} else {
+		pfInfo.PackFiltCont = desc
+	}
+
+	return pfInfo, nil
 }
 
 func SendSMPolicyAssociationTermination(smContext *smf_context.SMContext) error {
