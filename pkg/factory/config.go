@@ -189,9 +189,9 @@ func (s *SnssaiDnnInfoItem) validate() (bool, error) {
 type Sbi struct {
 	Scheme       string `yaml:"scheme" valid:"scheme,required"`
 	Tls          *Tls   `yaml:"tls" valid:"optional"`
-	RegisterIPv4 string `yaml:"registerIPv4,omitempty" valid:"ipv4,optional"` // IP that is registered at NRF.
+	RegisterIPv4 string `yaml:"registerIPv4,omitempty" valid:"host,optional"` // IP that is registered at NRF.
 	// IPv6Addr string `yaml:"ipv6Addr,omitempty"`
-	BindingIPv4 string `yaml:"bindingIPv4,omitempty" valid:"ipv4,required"` // IP used to run the server in the node.
+	BindingIPv4 string `yaml:"bindingIPv4,omitempty" valid:"host,required"` // IP used to run the server in the node.
 	Port        int    `yaml:"port,omitempty" valid:"port,optional"`
 }
 
