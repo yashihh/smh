@@ -194,6 +194,7 @@ func HandlePDUSessionModificationRequest(
 	}
 
 	authQoSRules := nasType.QoSRules{}
+	authQoSFlowDesc := reqQoSFlowDescs
 
 	for _, pcc := range smPolicyDecision.PccRules {
 		rule := nasType.QoSRule{}
@@ -231,15 +232,20 @@ func HandlePDUSessionModificationRequest(
 		authQoSRules = append(authQoSRules, rule)
 	}
 
-	if buf, err := authQoSRules.MarshalBinary(); err != nil {
-		return nil, err
-	} else {
-		if len(authQoSRules) > 0 {
+	if len(authQoSRules) > 0 {
+		if buf, err := authQoSRules.MarshalBinary(); err != nil {
+			return nil, err
+		} else {
 			pDUSessionModificationCommand.AuthorizedQosRules = nasType.NewAuthorizedQosRules(0x7A)
 			pDUSessionModificationCommand.AuthorizedQosRules.SetLen(uint16(len(buf)))
 			pDUSessionModificationCommand.AuthorizedQosRules.SetQosRule(buf)
 		}
-		if len(reqQoSFlowDescs) > 0 {
+	}
+
+	if len(authQoSFlowDesc) > 0 {
+		if buf, err := authQoSFlowDesc.MarshalBinary(); err != nil {
+			return nil, err
+		} else {
 			pDUSessionModificationCommand.AuthorizedQosFlowDescriptions = nasType.NewAuthorizedQosFlowDescriptions(0x79)
 			pDUSessionModificationCommand.AuthorizedQosFlowDescriptions.SetLen(uint16(len(buf)))
 			pDUSessionModificationCommand.AuthorizedQosFlowDescriptions.SetQoSFlowDescriptions(buf)
