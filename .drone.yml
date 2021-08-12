@@ -23,7 +23,7 @@ steps:
     depends_on:
       - "Unit test and build"
     settings:
-      repo: 10.10.0.50:5000/cht/free5gc/free5gc-smf
+      repo: 10.10.0.50:5000/bitbucket/free5gc/free5gc-smf
       registry: 10.10.0.50:5000
       username:
         from_secret: docker_username
@@ -45,7 +45,7 @@ steps:
     privileged: true
     settings:
       force_tag: false
-      repo: 10.10.0.50:5000/cht/free5gc/free5gc-smf
+      repo: 10.10.0.50:5000/bitbucket/free5gc/free5gc-smf
       registry: 10.10.0.50:5000
       username:
         from_secret: docker_username
