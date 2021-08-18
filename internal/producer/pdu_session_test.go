@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
 
-	"bitbucket.org/free5gc-team/http_wrapper"
 	"bitbucket.org/free5gc-team/nas"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/nas/nasType"
@@ -23,6 +22,7 @@ import (
 	"bitbucket.org/free5gc-team/smf/internal/pfcp/udp"
 	"bitbucket.org/free5gc-team/smf/internal/producer"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
+	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 
 var userPlaneConfig = factory.UserPlaneInformation{
@@ -411,7 +411,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 		request              models.PostSmContextsRequest
 		paramStr             string
 		resultStr            string
-		expectedHTTPResponse *http_wrapper.Response
+		expectedHTTPResponse *httpwrapper.Response
 	}{
 		{
 			request: models.PostSmContextsRequest{
@@ -419,7 +419,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 			},
 			paramStr:  "input wrong GSM Message type\n",
 			resultStr: "PDUSessionSMContextCreate should fail due to wrong GSM type\n",
-			expectedHTTPResponse: &http_wrapper.Response{
+			expectedHTTPResponse: &httpwrapper.Response{
 				Header: nil,
 				Status: http.StatusForbidden,
 				Body: models.PostSmContextsErrorResponse{
@@ -458,7 +458,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 			},
 			paramStr:  "input correct PostSmContexts Request\n",
 			resultStr: "PDUSessionSMContextCreate should pass\n",
-			expectedHTTPResponse: &http_wrapper.Response{
+			expectedHTTPResponse: &httpwrapper.Response{
 				Header: nil,
 				Status: http.StatusCreated,
 				Body: models.PostSmContextsResponse{

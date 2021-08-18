@@ -88,10 +88,8 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 	pDUSessionEstablishmentAccept.SNSSAI.SetSST(uint8(smContext.Snssai.Sst))
 	pDUSessionEstablishmentAccept.SNSSAI.SetSD(sd)
 
-	dnn := []byte(smContext.Dnn)
 	pDUSessionEstablishmentAccept.DNN = nasType.NewDNN(nasMessage.ULNASTransportDNNType)
-	pDUSessionEstablishmentAccept.DNN.SetLen(uint8(len(dnn)))
-	pDUSessionEstablishmentAccept.DNN.SetDNN(dnn)
+	pDUSessionEstablishmentAccept.DNN.SetDNN(smContext.Dnn)
 
 	if smContext.ProtocolConfigurationOptions.DNSIPv4Request ||
 		smContext.ProtocolConfigurationOptions.DNSIPv6Request ||

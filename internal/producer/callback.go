@@ -7,24 +7,24 @@ import (
 	"reflect"
 	"strings"
 
-	"bitbucket.org/free5gc-team/flowdesc"
-	"bitbucket.org/free5gc-team/http_wrapper"
 	"bitbucket.org/free5gc-team/openapi/Nsmf_EventExposure"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
+	"bitbucket.org/free5gc-team/util/flowdesc"
+	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 
-func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNotification) *http_wrapper.Response {
+func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNotification) *httpwrapper.Response {
 	logger.PduSessLog.Infoln("In HandleSMPolicyUpdateNotify")
 	decision := request.SmPolicyDecision
 	smContext := smf_context.GetSMContext(smContextRef)
 
 	if smContext == nil {
 		logger.PduSessLog.Errorf("SMContext[%s] not found", smContextRef)
-		httpResponse := http_wrapper.NewResponse(http.StatusBadRequest, nil, nil)
+		httpResponse := httpwrapper.NewResponse(http.StatusBadRequest, nil, nil)
 		return httpResponse
 	}
 
@@ -39,7 +39,7 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	//[200 OK] UeCampingRep
 	//[200 OK] array(PartialSuccessReport)
 	//[400 Bad Request] ErrorReport
-	httpResponse := http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
+	httpResponse := httpwrapper.NewResponse(http.StatusNoContent, nil, nil)
 	if err := ApplySmPolicyFromDecision(smContext, decision); err != nil {
 		logger.PduSessLog.Errorf("apply sm policy decision error: %+v", err)
 		// TODO: Fill the error body

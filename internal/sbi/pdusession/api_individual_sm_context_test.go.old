@@ -1,11 +1,11 @@
 package pdusession_test
 
 import (
-	"context"
 	"bitbucket.org/free5gc-team/CommonConsumerTestData/SMF/TestPDUSession"
 	"bitbucket.org/free5gc-team/openapi/Nsmf_PDUSession"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/pdusession"
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

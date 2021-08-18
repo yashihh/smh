@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"bitbucket.org/free5gc-team/http_wrapper"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/internal/context"
+	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 
 type PDUSessionInfo struct {
@@ -22,10 +22,10 @@ type PDUSessionInfo struct {
 	Tunnel       context.UPTunnel
 }
 
-func HandleOAMGetUEPDUSessionInfo(smContextRef string) *http_wrapper.Response {
+func HandleOAMGetUEPDUSessionInfo(smContextRef string) *httpwrapper.Response {
 	smContext := context.GetSMContext(smContextRef)
 	if smContext == nil {
-		httpResponse := &http_wrapper.Response{
+		httpResponse := &httpwrapper.Response{
 			Header: nil,
 			Status: http.StatusNotFound,
 			Body:   nil,
@@ -34,7 +34,7 @@ func HandleOAMGetUEPDUSessionInfo(smContextRef string) *http_wrapper.Response {
 		return httpResponse
 	}
 
-	httpResponse := &http_wrapper.Response{
+	httpResponse := &httpwrapper.Response{
 		Header: nil,
 		Status: http.StatusOK,
 		Body: PDUSessionInfo{

@@ -10,13 +10,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"bitbucket.org/free5gc-team/idgenerator"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
+	"bitbucket.org/free5gc-team/util/idgenerator"
 )
 
 var upfPool sync.Map

@@ -1,10 +1,10 @@
 package pdusession
 
 import (
-	"context"
 	"bitbucket.org/free5gc-team/CommonConsumerTestData/SMF/TestPDUSession"
 	"bitbucket.org/free5gc-team/openapi/Nsmf_PDUSession"
 	"bitbucket.org/free5gc-team/openapi/models"
+	"context"
 
 	"testing"
 

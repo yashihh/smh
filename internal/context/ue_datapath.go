@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math"
 
-	"bitbucket.org/free5gc-team/idgenerator"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
+	"bitbucket.org/free5gc-team/util/idgenerator"
 )
 
 type UEPreConfigPaths struct {

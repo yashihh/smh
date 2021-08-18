@@ -4,12 +4,12 @@ import (
 	"net"
 	"reflect"
 
-	"bitbucket.org/free5gc-team/flowdesc"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/internal/pfcp/message"
+	"bitbucket.org/free5gc-team/util/flowdesc"
 )
 
 func AddPDUSessionAnchorAndULCL(smContext *context.SMContext, nodeID pfcpType.NodeID) {

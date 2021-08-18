@@ -12,8 +12,8 @@ package callback
 import (
 	"github.com/gin-gonic/gin"
 
-	"bitbucket.org/free5gc-team/logger_util"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
+	logger_util "bitbucket.org/free5gc-team/util/logger"
 )
 
 // Route is the information for every URI.
