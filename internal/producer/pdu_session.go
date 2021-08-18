@@ -500,7 +500,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 					DestinationInterface: pfcpType.DestinationInterface{
 						InterfaceValue: pfcpType.DestinationInterfaceAccess,
 					},
-					NetworkInstance: []byte(smContext.Dnn),
+					NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
 				}
 
 				DLPDR.State = smf_context.RULE_UPDATE

@@ -342,7 +342,7 @@ func SelectUPFByDnn(Dnn string) *UPF {
 	var upf *UPF
 	upfPool.Range(func(key, value interface{}) bool {
 		upf = value.(*UPF)
-		if upf.UPIPInfo.Assoni && string(upf.UPIPInfo.NetworkInstance) == Dnn {
+		if upf.UPIPInfo.Assoni && upf.UPIPInfo.NetworkInstance.NetworkInstance == Dnn {
 			return false
 		}
 		upf = nil

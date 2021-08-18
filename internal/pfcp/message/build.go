@@ -73,7 +73,7 @@ func pdrToCreatePDR(pdr *context.PDR) *pfcp.CreatePDR {
 	createPDR.PDI = &pfcp.PDI{
 		SourceInterface: &pdr.PDI.SourceInterface,
 		LocalFTEID:      pdr.PDI.LocalFTeid,
-		NetworkInstance: &pdr.PDI.NetworkInstance,
+		NetworkInstance: pdr.PDI.NetworkInstance,
 		UEIPAddress:     pdr.PDI.UEIPAddress,
 	}
 
@@ -121,7 +121,7 @@ func farToCreateFAR(far *context.FAR) *pfcp.CreateFAR {
 	if far.ForwardingParameters != nil {
 		createFAR.ForwardingParameters = new(pfcp.ForwardingParametersIEInFAR)
 		createFAR.ForwardingParameters.DestinationInterface = &far.ForwardingParameters.DestinationInterface
-		createFAR.ForwardingParameters.NetworkInstance = &far.ForwardingParameters.NetworkInstance
+		createFAR.ForwardingParameters.NetworkInstance = far.ForwardingParameters.NetworkInstance
 		createFAR.ForwardingParameters.OuterHeaderCreation = far.ForwardingParameters.OuterHeaderCreation
 		if far.ForwardingParameters.ForwardingPolicyID != "" {
 			createFAR.ForwardingParameters.ForwardingPolicy = new(pfcpType.ForwardingPolicy)
@@ -174,7 +174,7 @@ func pdrToUpdatePDR(pdr *context.PDR) *pfcp.UpdatePDR {
 	updatePDR.PDI = &pfcp.PDI{
 		SourceInterface: &pdr.PDI.SourceInterface,
 		LocalFTEID:      pdr.PDI.LocalFTeid,
-		NetworkInstance: &pdr.PDI.NetworkInstance,
+		NetworkInstance: pdr.PDI.NetworkInstance,
 		UEIPAddress:     pdr.PDI.UEIPAddress,
 	}
 
@@ -222,7 +222,7 @@ func farToUpdateFAR(far *context.FAR) *pfcp.UpdateFAR {
 	if far.ForwardingParameters != nil {
 		updateFAR.UpdateForwardingParameters = new(pfcp.UpdateForwardingParametersIEInFAR)
 		updateFAR.UpdateForwardingParameters.DestinationInterface = &far.ForwardingParameters.DestinationInterface
-		updateFAR.UpdateForwardingParameters.NetworkInstance = &far.ForwardingParameters.NetworkInstance
+		updateFAR.UpdateForwardingParameters.NetworkInstance = far.ForwardingParameters.NetworkInstance
 		updateFAR.UpdateForwardingParameters.OuterHeaderCreation = far.ForwardingParameters.OuterHeaderCreation
 		if far.ForwardingParameters.ForwardingPolicyID != "" {
 			updateFAR.UpdateForwardingParameters.ForwardingPolicy = new(pfcpType.ForwardingPolicy)

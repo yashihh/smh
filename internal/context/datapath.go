@@ -8,7 +8,6 @@ import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/internal/util"
-	"bitbucket.org/free5gc-team/util_3gpp"
 )
 
 // GTPTunnel represents the GTP tunnel information
@@ -401,7 +400,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 						Ipv4Address: upIP,
 						Teid:        curULTunnel.TEID,
 					},
-					NetworkInstance: util_3gpp.Dnn(smContext.Dnn),
+					NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
 					UEIPAddress: &pfcpType.UEIPAddress{
 						V4:          true,
 						Ipv4Address: smContext.PDUAddress.To4(),
@@ -425,7 +424,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				DestinationInterface: pfcpType.DestinationInterface{
 					InterfaceValue: pfcpType.DestinationInterfaceCore,
 				},
-				NetworkInstance: []byte(smContext.Dnn),
+				NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
 			}
 
 			if curDataPathNode.IsAnchorUPF() {
@@ -530,7 +529,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 					DLFAR := DLPDR.FAR
 					DLFAR.ForwardingParameters = new(ForwardingParameters)
 					DLFAR.ForwardingParameters.DestinationInterface.InterfaceValue = pfcpType.DestinationInterfaceAccess
-					DLFAR.ForwardingParameters.NetworkInstance = []byte(smContext.Dnn)
+					DLFAR.ForwardingParameters.NetworkInstance = &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn}
 					DLFAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
 
 					dlOuterHeaderCreation := DLFAR.ForwardingParameters.OuterHeaderCreation
@@ -545,7 +544,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				DNDLPDR := curDataPathNode.DownLinkTunnel.PDR
 				DNDLPDR.PDI = PDI{
 					SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceCore},
-					NetworkInstance: util_3gpp.Dnn(smContext.Dnn),
+					NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
 					UEIPAddress: &pfcpType.UEIPAddress{
 						V4:          true,
 						Ipv4Address: smContext.PDUAddress.To4(),
