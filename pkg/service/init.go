@@ -12,11 +12,8 @@ import (
 	"github.com/urfave/cli"
 
 	aperLogger "bitbucket.org/free5gc-team/aper/logger"
-	"bitbucket.org/free5gc-team/http2_util"
-	"bitbucket.org/free5gc-team/logger_util"
 	nasLogger "bitbucket.org/free5gc-team/nas/logger"
 	ngapLogger "bitbucket.org/free5gc-team/ngap/logger"
-	openApiLogger "bitbucket.org/free5gc-team/openapi/logger"
 	"bitbucket.org/free5gc-team/openapi/models"
 	pfcpLogger "bitbucket.org/free5gc-team/pfcp/logger"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
@@ -32,6 +29,8 @@ import (
 	"bitbucket.org/free5gc-team/smf/internal/sbi/pdusession"
 	"bitbucket.org/free5gc-team/smf/internal/util"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
+	"bitbucket.org/free5gc-team/util/httpwrapper"
+	logger_util "bitbucket.org/free5gc-team/util/logger"
 )
 
 type SMF struct {
@@ -187,22 +186,6 @@ func (smf *SMF) setLogLevel() {
 		aperLogger.SetReportCaller(factory.SmfConfig.Logger.Aper.ReportCaller)
 	}
 
-	if factory.SmfConfig.Logger.OpenApi != nil {
-		if factory.SmfConfig.Logger.OpenApi.DebugLevel != "" {
-			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.OpenApi.DebugLevel); err != nil {
-				openApiLogger.OpenApiLog.Warnf("OpenAPI Log level [%s] is invalid, set to [info] level",
-					factory.SmfConfig.Logger.OpenApi.DebugLevel)
-				openApiLogger.SetLogLevel(logrus.InfoLevel)
-			} else {
-				openApiLogger.SetLogLevel(level)
-			}
-		} else {
-			openApiLogger.OpenApiLog.Warnln("OpenAPI Log level not set. Default set to [info] level")
-			openApiLogger.SetLogLevel(logrus.InfoLevel)
-		}
-		openApiLogger.SetReportCaller(factory.SmfConfig.Logger.OpenApi.ReportCaller)
-	}
-
 	if factory.SmfConfig.Logger.PFCP != nil {
 		if factory.SmfConfig.Logger.PFCP.DebugLevel != "" {
 			if level, err := logrus.ParseLevel(factory.SmfConfig.Logger.PFCP.DebugLevel); err != nil {
@@ -299,7 +282,7 @@ func (smf *SMF) Start() {
 	time.Sleep(1000 * time.Millisecond)
 
 	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().BindingIPv4, context.SMF_Self().SBIPort)
-	server, err := http2_util.NewServer(HTTPAddr, smf.KeyLogPath, router)
+	server, err := httpwrapper.NewHttp2Server(HTTPAddr, smf.KeyLogPath, router)
 
 	if server == nil {
 		logger.InitLog.Error("Initialize HTTP server failed:", err)

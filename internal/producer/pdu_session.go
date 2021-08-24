@@ -8,7 +8,6 @@ import (
 
 	"github.com/antihax/optional"
 
-	"bitbucket.org/free5gc-team/http_wrapper"
 	"bitbucket.org/free5gc-team/nas"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/openapi"
@@ -21,9 +20,10 @@ import (
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	pfcp_message "bitbucket.org/free5gc-team/smf/internal/pfcp/message"
+	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 
-func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http_wrapper.Response {
+func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *httpwrapper.Response {
 	// GSM State
 	// PDU Session Establishment Accept/Reject
 	var response models.PostSmContextsResponse
@@ -35,7 +35,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	if err := m.GsmMessageDecode(&request.BinaryDataN1SmMessage); err != nil ||
 		m.GsmHeader.GetMessageType() != nas.MsgTypePDUSessionEstablishmentRequest {
 		logger.PduSessLog.Warnln("GsmMessageDecode Error: ", err)
-		httpResponse := &http_wrapper.Response{
+		httpResponse := &httpwrapper.Response{
 			Header: nil,
 			Status: http.StatusForbidden,
 			Body: models.PostSmContextsErrorResponse{
@@ -147,12 +147,12 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Warnf("Data Path not found\n")
 		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
 
-		var httpResponse *http_wrapper.Response
+		var httpResponse *httpwrapper.Response
 		if buf, err := smf_context.
 			BuildGSMPDUSessionEstablishmentReject(
 				smContext,
 				nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN); err != nil {
-			httpResponse = &http_wrapper.Response{
+			httpResponse = &httpwrapper.Response{
 				Header: nil,
 				Status: http.StatusForbidden,
 				Body: models.PostSmContextsErrorResponse{
@@ -163,7 +163,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 				},
 			}
 		} else {
-			httpResponse = &http_wrapper.Response{
+			httpResponse = &httpwrapper.Response{
 				Header: nil,
 				Status: http.StatusForbidden,
 				Body: models.PostSmContextsErrorResponse{
@@ -230,12 +230,12 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Warnf("Data Path not found\n")
 		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
 
-		var httpResponse *http_wrapper.Response
+		var httpResponse *httpwrapper.Response
 		if buf, err := smf_context.
 			BuildGSMPDUSessionEstablishmentReject(
 				smContext,
 				nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN); err != nil {
-			httpResponse = &http_wrapper.Response{
+			httpResponse = &httpwrapper.Response{
 				Header: nil,
 				Status: http.StatusForbidden,
 				Body: models.PostSmContextsErrorResponse{
@@ -246,7 +246,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 				},
 			}
 		} else {
-			httpResponse = &http_wrapper.Response{
+			httpResponse = &httpwrapper.Response{
 				Header: nil,
 				Status: http.StatusForbidden,
 				Body: models.PostSmContextsErrorResponse{
@@ -281,7 +281,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	SendPFCPRules(smContext)
 
 	response.JsonData = smContext.BuildCreatedData()
-	httpResponse := &http_wrapper.Response{
+	httpResponse := &httpwrapper.Response{
 		Header: http.Header{
 			"Location": {smContext.Ref},
 		},
@@ -293,7 +293,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	// TODO: UECM registration
 }
 
-func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmContextRequest) *http_wrapper.Response {
+func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmContextRequest) *httpwrapper.Response {
 	// GSM State
 	// PDU Session Modification Reject(Cause Value == 43 || Cause Value != 43)/Complete
 	// PDU Session Release Command/Complete
@@ -303,7 +303,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	if smContext == nil {
 		logger.PduSessLog.Warnf("SMContext[%s] is not found", smContextRef)
 
-		httpResponse := &http_wrapper.Response{
+		httpResponse := &httpwrapper.Response{
 			Header: nil,
 			Status: http.StatusNotFound,
 			Body: models.UpdateSmContextErrorResponse{
@@ -320,7 +320,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		return httpResponse
 	}
 
-	var httpResponse *http_wrapper.Response
+	var httpResponse *httpwrapper.Response
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
 
@@ -336,7 +336,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		smContext.Log.Tracef("N1 Message: %s", hex.EncodeToString(body.BinaryDataN1SmMessage))
 		if err != nil {
 			smContext.Log.Errorf("N1 Message parse failed: %v", err)
-			httpResponse = &http_wrapper.Response{
+			httpResponse = &httpwrapper.Response{
 				Status: http.StatusForbidden,
 				Body: models.UpdateSmContextErrorResponse{
 					JsonData: &models.SmContextUpdateError{
@@ -414,7 +414,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			}
 
 			response.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionModificationReject"}
-			return &http_wrapper.Response{
+			return &httpwrapper.Response{
 				Status: http.StatusOK,
 				Body:   response,
 			}
@@ -500,7 +500,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 					DestinationInterface: pfcpType.DestinationInterface{
 						InterfaceValue: pfcpType.DestinationInterfaceAccess,
 					},
-					NetworkInstance: []byte(smContext.Dnn),
+					NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
 				}
 
 				DLPDR.State = smf_context.RULE_UPDATE
@@ -763,7 +763,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		case smf_context.SessionUpdateSuccess:
 			smContext.Log.Traceln("In case SessionUpdateSuccess")
 			smContext.SetState(smf_context.Active)
-			httpResponse = &http_wrapper.Response{
+			httpResponse = &httpwrapper.Response{
 				Status: http.StatusOK,
 				Body:   response,
 			}
@@ -771,7 +771,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Traceln("In case SessionUpdateFailed")
 			smContext.SetState(smf_context.Active)
 			// It is just a template
-			httpResponse = &http_wrapper.Response{
+			httpResponse = &httpwrapper.Response{
 				Status: http.StatusForbidden,
 				Body: models.UpdateSmContextErrorResponse{
 					JsonData: &models.SmContextUpdateError{
@@ -783,7 +783,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		case smf_context.SessionReleaseSuccess:
 			smContext.Log.Traceln("In case SessionReleaseSuccess")
 			smContext.SetState(smf_context.InActivePending)
-			httpResponse = &http_wrapper.Response{
+			httpResponse = &httpwrapper.Response{
 				Status: http.StatusOK,
 				Body:   response,
 			}
@@ -796,7 +796,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				Status: http.StatusInternalServerError,
 				Cause:  "SYSTEM_FAILULE",
 			}
-			httpResponse = &http_wrapper.Response{
+			httpResponse = &httpwrapper.Response{
 				Status: int(problemDetail.Status),
 			}
 			smContext.SetState(smf_context.Active)
@@ -817,18 +817,18 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	case smf_context.ModificationPending:
 		smContext.Log.Traceln("In case ModificationPending")
 		smContext.SetState(smf_context.Active)
-		httpResponse = &http_wrapper.Response{
+		httpResponse = &httpwrapper.Response{
 			Status: http.StatusOK,
 			Body:   response,
 		}
 	case smf_context.InActive, smf_context.InActivePending:
 		smContext.Log.Traceln("In case InActive, InActivePending")
-		httpResponse = &http_wrapper.Response{
+		httpResponse = &httpwrapper.Response{
 			Status: http.StatusOK,
 			Body:   response,
 		}
 	default:
-		httpResponse = &http_wrapper.Response{
+		httpResponse = &httpwrapper.Response{
 			Status: http.StatusOK,
 			Body:   response,
 		}
@@ -853,14 +853,14 @@ func sendSMContextStatusNotification(smContext *smf_context.SMContext) {
 	}
 }
 
-func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSmContextRequest) *http_wrapper.Response {
+func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSmContextRequest) *httpwrapper.Response {
 	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextRelease")
 	smContext := smf_context.GetSMContext(smContextRef)
 
 	if smContext == nil {
 		logger.PduSessLog.Warnf("SMContext[%s] is not found", smContextRef)
 
-		httpResponse := &http_wrapper.Response{
+		httpResponse := &httpwrapper.Response{
 			Header: nil,
 			Status: http.StatusNotFound,
 			Body: models.UpdateSmContextErrorResponse{
@@ -893,14 +893,14 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 
 	releaseTunnel(smContext)
 
-	var httpResponse *http_wrapper.Response
+	var httpResponse *httpwrapper.Response
 	PFCPResponseStatus := <-smContext.SBIPFCPCommunicationChan
 
 	switch PFCPResponseStatus {
 	case smf_context.SessionReleaseSuccess:
 		smContext.Log.Traceln("In case SessionReleaseSuccess")
 		smContext.SetState(smf_context.InActivePending)
-		httpResponse = &http_wrapper.Response{
+		httpResponse = &httpwrapper.Response{
 			Status: http.StatusNoContent,
 			Body:   nil,
 		}
@@ -913,7 +913,7 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 			Status: http.StatusInternalServerError,
 			Cause:  "SYSTEM_FAILULE",
 		}
-		httpResponse = &http_wrapper.Response{
+		httpResponse = &httpwrapper.Response{
 			Status: int(problemDetail.Status),
 		}
 		smContext.SetState(smf_context.Active)
@@ -938,7 +938,7 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 			Status: http.StatusInternalServerError,
 			Cause:  "SYSTEM_FAILULE",
 		}
-		httpResponse = &http_wrapper.Response{
+		httpResponse = &httpwrapper.Response{
 			Status: int(problemDetail.Status),
 		}
 		smContext.SetState(smf_context.Active)

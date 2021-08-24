@@ -13,9 +13,9 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/davecgh/go-spew/spew"
 
-	"bitbucket.org/free5gc-team/logger_util"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
+	logger_util "bitbucket.org/free5gc-team/util/logger"
 )
 
 const (

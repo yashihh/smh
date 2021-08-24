@@ -15,11 +15,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"bitbucket.org/free5gc-team/http_wrapper"
 	"bitbucket.org/free5gc-team/openapi"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/internal/producer"
+	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 
 // HTTPPostSmContexts - Create SM Context
@@ -50,7 +50,7 @@ func HTTPPostSmContexts(c *gin.Context) {
 		return
 	}
 
-	req := http_wrapper.NewRequest(c.Request, request)
+	req := httpwrapper.NewRequest(c.Request, request)
 	HTTPResponse := producer.HandlePDUSessionSMContextCreate(req.Body.(models.PostSmContextsRequest))
 	// Http Response to AMF
 	for key, val := range HTTPResponse.Header {

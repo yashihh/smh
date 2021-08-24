@@ -16,11 +16,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"bitbucket.org/free5gc-team/http_wrapper"
 	"bitbucket.org/free5gc-team/openapi"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/internal/producer"
+	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 
 // HTTPReleaseSmContext - Release SM Context
@@ -42,7 +42,7 @@ func HTTPReleaseSmContext(c *gin.Context) {
 		return
 	}
 
-	req := http_wrapper.NewRequest(c.Request, request)
+	req := httpwrapper.NewRequest(c.Request, request)
 	req.Params["smContextRef"] = c.Params.ByName("smContextRef")
 
 	smContextRef := req.Params["smContextRef"]
@@ -76,7 +76,7 @@ func HTTPUpdateSmContext(c *gin.Context) {
 		return
 	}
 
-	req := http_wrapper.NewRequest(c.Request, request)
+	req := httpwrapper.NewRequest(c.Request, request)
 	req.Params["smContextRef"] = c.Params.ByName("smContextRef")
 
 	smContextRef := req.Params["smContextRef"]

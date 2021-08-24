@@ -2,7 +2,6 @@ package context
 
 import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"bitbucket.org/free5gc-team/util_3gpp"
 )
 
 const (
@@ -33,7 +32,7 @@ type PDR struct {
 type PDI struct {
 	SourceInterface pfcpType.SourceInterface
 	LocalFTeid      *pfcpType.FTEID
-	NetworkInstance util_3gpp.Dnn
+	NetworkInstance *pfcpType.NetworkInstance
 	UEIPAddress     *pfcpType.UEIPAddress
 	SDFFilter       *pfcpType.SDFFilter
 	ApplicationID   string
@@ -53,7 +52,7 @@ type FAR struct {
 // Forwarding Parameters. 7.5.2.3-2
 type ForwardingParameters struct {
 	DestinationInterface pfcpType.DestinationInterface
-	NetworkInstance      util_3gpp.Dnn
+	NetworkInstance      *pfcpType.NetworkInstance
 	OuterHeaderCreation  *pfcpType.OuterHeaderCreation
 	ForwardingPolicyID   string
 }
