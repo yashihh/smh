@@ -167,6 +167,7 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 	if rsp.Cause.CauseValue == pfcpType.CauseRequestAccepted &&
 		ANUPF.UPF.NodeID.ResolveNodeIdToIp().Equal(rsp.NodeID.ResolveNodeIdToIp()) {
 		defer smContext.SMLock.Unlock()
+		smContext.SMLockTimer.Stop()
 
 		n1n2Request := models.N1N2MessageTransferRequest{}
 

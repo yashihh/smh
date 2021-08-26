@@ -147,7 +147,8 @@ type SMContext struct {
 	Log *logrus.Entry
 
 	// lock
-	SMLock sync.Mutex
+	SMLock      sync.Mutex
+	SMLockTimer *time.Timer
 }
 
 func canonicalName(identifier string, pduSessID int32) (canonical string) {
@@ -261,7 +262,6 @@ func (smContext *SMContext) WaitPFCPCommunicationStatus() PFCPSessionResponseSta
 	select {
 	case <-time.After(time.Second * 4):
 		PFCPResponseStatus = SessionUpdateFailed
-		smContext.SMLock.Unlock()
 	case PFCPResponseStatus = <-smContext.sbiPFCPCommunicationChan:
 	}
 	return PFCPResponseStatus

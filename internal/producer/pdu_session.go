@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/antihax/optional"
 
@@ -279,6 +280,11 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	}
 
 	SendPFCPRules(smContext)
+
+	// Add sm lock timer workaround, it Should be remove after PFCP trasaction function complete
+	smContext.SMLockTimer = time.AfterFunc(4*time.Second, func() {
+		smContext.SMLock.Unlock()
+	})
 
 	response.JsonData = smContext.BuildCreatedData()
 	httpResponse := &httpwrapper.Response{
