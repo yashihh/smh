@@ -764,9 +764,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Infoln("Send PFCP Deletion from HandlePDUSessionSMContextUpdate")
 		}
 
-		PFCPResponseStatus := <-smContext.SBIPFCPCommunicationChan
-
-		switch PFCPResponseStatus {
+		switch smContext.WaitPFCPCommunicationStatus() {
 		case smf_context.SessionUpdateSuccess:
 			smContext.Log.Traceln("In case SessionUpdateSuccess")
 			smContext.SetState(smf_context.Active)
@@ -901,9 +899,8 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 	releaseTunnel(smContext)
 
 	var httpResponse *httpwrapper.Response
-	PFCPResponseStatus := <-smContext.SBIPFCPCommunicationChan
 
-	switch PFCPResponseStatus {
+	switch PFCPResponseStatus := smContext.WaitPFCPCommunicationStatus(); PFCPResponseStatus {
 	case smf_context.SessionReleaseSuccess:
 		smContext.Log.Traceln("In case SessionReleaseSuccess")
 		smContext.SetState(smf_context.InActivePending)

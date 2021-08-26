@@ -255,7 +255,7 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 			logger.PduSessLog.Tracef("Delete pending pfcp response: UPF IP [%s]\n", upfIP)
 
 			if smContext.PendingUPF.IsEmpty() {
-				smContext.SBIPFCPCommunicationChan <- smf_context.SessionUpdateSuccess
+				smContext.SendPFCPCommunicationStatus(smf_context.SessionUpdateSuccess)
 			}
 
 			if smf_context.SMF_Self().ULCLSupport && smContext.BPManager != nil {
@@ -274,9 +274,9 @@ func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
 	} else {
 		logger.PfcpLog.Infof("PFCP Session Modification Failed[%d]\n", SEID)
 		if smContext.CheckState(smf_context.PFCPModification) {
-			smContext.SBIPFCPCommunicationChan <- smf_context.SessionUpdateFailed
+			smContext.SendPFCPCommunicationStatus(smf_context.SessionUpdateFailed)
 		} else {
-			smContext.SBIPFCPCommunicationChan <- smf_context.SessionUpdateFailed
+			smContext.SendPFCPCommunicationStatus(smf_context.SessionUpdateFailed)
 		}
 	}
 
@@ -307,13 +307,13 @@ func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
 			logger.PduSessLog.Tracef("Delete pending pfcp response: UPF IP [%s]\n", upfIP)
 
 			if smContext.PendingUPF.IsEmpty() {
-				smContext.SBIPFCPCommunicationChan <- smf_context.SessionReleaseSuccess
+				smContext.SendPFCPCommunicationStatus(smf_context.SessionReleaseSuccess)
 			}
 		}
 		logger.PfcpLog.Infof("PFCP Session Deletion Success[%d]\n", SEID)
 	} else {
 		if smContext.CheckState(smf_context.PFCPModification) {
-			smContext.SBIPFCPCommunicationChan <- smf_context.SessionReleaseFailed
+			smContext.SendPFCPCommunicationStatus(smf_context.SessionReleaseFailed)
 		}
 		logger.PfcpLog.Infof("PFCP Session Deletion Failed[%d]\n", SEID)
 	}
