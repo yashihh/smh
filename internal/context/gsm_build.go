@@ -45,7 +45,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 			QFI:        uint8(authDefQos.Var5qi),
 			PacketFilterList: nasType.PacketFilterList{
 				{
-					Identifier: 01,
+					Identifier: 1,
 					Direction:  nasType.PacketFilterDirectionBidirectional,
 					Components: nasType.PacketFilterComponentList{
 						&nasType.PacketFilterMatchAll{},

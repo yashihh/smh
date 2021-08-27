@@ -4,9 +4,10 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"bitbucket.org/free5gc-team/nas/nasType"
 	"bitbucket.org/free5gc-team/openapi/models"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBuildNASPacketFilterFromPacketFilterInfo(t *testing.T) {
