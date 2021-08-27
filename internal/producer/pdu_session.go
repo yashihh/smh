@@ -3,6 +3,7 @@ package producer
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"net"
 	"net/http"
 	"time"
@@ -141,6 +142,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Infof("Allocated PDUAdress[%s]", smContext.PDUAddress.String())
 	}
 
+	var httpResponse *httpwrapper.Response
 	if ip == nil && (selectedUPF == nil || selectedUPFName == "") {
 		smContext.Log.Error("fail allocate PDU address")
 
@@ -148,7 +150,6 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Warnf("Data Path not found\n")
 		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
 
-		var httpResponse *httpwrapper.Response
 		if buf, err := smf_context.
 			BuildGSMPDUSessionEstablishmentReject(
 				smContext,
@@ -183,7 +184,41 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SelectedUPF = selectedUPF
 
 	establishmentRequest := m.PDUSessionEstablishmentRequest
-	HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest)
+	if err := HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest); err != nil {
+		smContext.Log.Errorf("PDU Session Establishment fail by %s", err)
+
+		gsmError := &GSMError{}
+		if errors.As(err, gsmError) {
+			if buf, buildGSMError :=
+				smf_context.BuildGSMPDUSessionEstablishmentReject(smContext, gsmError.GSMCause); buildGSMError != err {
+				smContext.Log.Errorf("Build PDU Session Establishment Reject failed: %s", buildGSMError)
+			} else {
+				httpResponse = &httpwrapper.Response{
+					Header: nil,
+					Status: http.StatusForbidden,
+					Body: models.PostSmContextsErrorResponse{
+						JsonData: &models.SmContextCreateError{
+							Error:   &Nsmf_PDUSession.N1SmError,
+							N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
+						},
+						BinaryDataN1SmMessage: buf,
+					},
+				}
+			}
+		} else {
+			httpResponse = &httpwrapper.Response{
+				Header: nil,
+				Status: http.StatusForbidden,
+				Body: models.PostSmContextsErrorResponse{
+					JsonData: &models.SmContextCreateError{
+						Error: &Nsmf_PDUSession.N1SmError,
+					},
+				},
+			}
+		}
+
+		return httpResponse
+	}
 
 	if err := smContext.PCFSelection(); err != nil {
 		smContext.Log.Errorln("pcf selection error:", err)
@@ -231,7 +266,6 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Warnf("Data Path not found\n")
 		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
 
-		var httpResponse *httpwrapper.Response
 		if buf, err := smf_context.
 			BuildGSMPDUSessionEstablishmentReject(
 				smContext,
@@ -287,7 +321,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	})
 
 	response.JsonData = smContext.BuildCreatedData()
-	httpResponse := &httpwrapper.Response{
+	httpResponse = &httpwrapper.Response{
 		Header: http.Header{
 			"Location": {smContext.Ref},
 		},

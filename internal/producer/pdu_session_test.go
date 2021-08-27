@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"reflect"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -230,7 +229,7 @@ func initGetSMDataStubUDM() {
 		{
 			SingleNssai: &models.Snssai{
 				Sst: 1,
-				Sd:  "010203",
+				Sd:  "112233",
 			},
 			DnnConfigurations: map[string]models.DnnConfiguration{
 				"internet": {
@@ -366,6 +365,23 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 	// Activate Gock
 	openapi.InterceptH2CClient()
 	defer openapi.RestoreH2CClient()
+
+	// Prepare GSM Message
+	GSMIPv6Msg := nasMessage.NewPDUSessionEstablishmentRequest(0)
+	// Set GSM Message
+	GSMIPv6Msg.PDUSessionID.SetPDUSessionID(10)
+	GSMIPv6Msg.PTI.SetPTI(1)
+	GSMIPv6Msg.PDUSessionType = nasType.NewPDUSessionType(nasMessage.PDUSessionEstablishmentRequestPDUSessionTypeType)
+	GSMIPv6Msg.PDUSessionType.SetPDUSessionTypeValue(nasMessage.PDUSessionTypeIPv6)
+	GSMIPv6Msg.PDUSESSIONESTABLISHMENTREQUESTMessageIdentity.SetMessageType(nas.MsgTypePDUSessionEstablishmentRequest)
+	// Encode GSM Message
+	buff := new(bytes.Buffer)
+	GSMIPv6Msg.EncodePDUSessionEstablishmentRequest(buff)
+	GSMMsgIPv6Bytes := make([]byte, buff.Len())
+	if _, err := buff.Read(GSMMsgIPv6Bytes); err != nil {
+		fmt.Println("GSM message bytes buffer read failed")
+	}
+
 	// Prepare GSM Message
 	GSMMsg := nasMessage.NewPDUSessionEstablishmentRequest(0)
 	// Set GSM Message
@@ -375,7 +391,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 	GSMMsg.PDUSessionType.SetPDUSessionTypeValue(nasMessage.PDUSessionTypeIPv4)
 	GSMMsg.PDUSESSIONESTABLISHMENTREQUESTMessageIdentity.SetMessageType(nas.MsgTypePDUSessionEstablishmentRequest)
 	// Encode GSM Message
-	buff := new(bytes.Buffer)
+	buff = new(bytes.Buffer)
 	GSMMsg.EncodePDUSessionEstablishmentRequest(buff)
 	GSMMsgBytes := make([]byte, buff.Len())
 	if _, err := buff.Read(GSMMsgBytes); err != nil {
@@ -428,7 +444,51 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 					},
 				},
 			},
-		}, {
+		},
+		{
+			request: models.PostSmContextsRequest{
+				JsonData: &models.SmContextCreateData{
+					Supi:         "imsi-208930000007487",
+					Pei:          "imeisv-1110000000000000",
+					Gpsi:         "msisdn-0900000000",
+					PduSessionId: 10,
+					Dnn:          "internet",
+					SNssai: &models.Snssai{
+						Sst: 1,
+						Sd:  "112232",
+					},
+					ServingNfId: "c8d0ee65-f466-48aa-a42f-235ec771cb52",
+					Guami: &models.Guami{
+						PlmnId: &models.PlmnId{
+							Mcc: "208",
+							Mnc: "93",
+						},
+						AmfId: "cafe00",
+					},
+					AnType: "3GPP_ACCESS",
+					ServingNetwork: &models.PlmnId{
+						Mcc: "208",
+						Mnc: "93",
+					},
+				},
+				BinaryDataN1SmMessage: GSMMsgIPv6Bytes,
+			},
+			paramStr:  "input correct PostSmContexts Request\n",
+			resultStr: "PDUSessionSMContextCreate should pass\n",
+			expectedHTTPResponse: &httpwrapper.Response{
+				Header: nil,
+				Status: http.StatusForbidden,
+				Body: models.PostSmContextsResponse{
+					JsonData: &models.SmContextCreatedData{
+						SNssai: &models.Snssai{
+							Sst: 1,
+							Sd:  "112232",
+						},
+					},
+				},
+			},
+		},
+		{
 			request: models.PostSmContextsRequest{
 				JsonData: &models.SmContextCreateData{
 					Supi:         "imsi-208930000007487",
@@ -482,8 +542,8 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 					httpResp := producer.HandlePDUSessionSMContextCreate(testcase.request)
 
 					Convey(testcase.resultStr, func() {
-						So(true, ShouldEqual, reflect.DeepEqual(httpResp.Status, testcase.expectedHTTPResponse.Status))
-						So(true, ShouldEqual, reflect.DeepEqual(httpResp.Body, testcase.expectedHTTPResponse.Body))
+						ShouldEqual(httpResp.Status, testcase.expectedHTTPResponse.Status)
+						ShouldEqual(httpResp.Body, testcase.expectedHTTPResponse.Body)
 					})
 				})
 			})
