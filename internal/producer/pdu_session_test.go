@@ -222,6 +222,13 @@ func initDiscPCFStubNRF() {
 		MatchParam("requester-nf-type", "SMF").
 		Reply(http.StatusOK).
 		JSON(searchResult)
+
+	gock.New("http://127.0.0.10:8000/nnrf-disc/v1").
+		Get("/nf-instances").
+		MatchParam("target-nf-type", "PCF").
+		MatchParam("requester-nf-type", "SMF").
+		Reply(http.StatusOK).
+		JSON(searchResult)
 }
 
 func initGetSMDataStubUDM() {
@@ -229,7 +236,7 @@ func initGetSMDataStubUDM() {
 		{
 			SingleNssai: &models.Snssai{
 				Sst: 1,
-				Sd:  "112233",
+				Sd:  "112232",
 			},
 			DnnConfigurations: map[string]models.DnnConfiguration{
 				"internet": {
@@ -262,6 +269,12 @@ func initGetSMDataStubUDM() {
 			},
 		},
 	}
+
+	gock.New("http://127.0.0.3:8000/nudm-sdm/v1/imsi-208930000007487").
+		Get("/sm-data").
+		MatchParam("dnn", "internet").
+		Reply(http.StatusOK).
+		JSON(SMSubscriptionData)
 
 	gock.New("http://127.0.0.3:8000/nudm-sdm/v1/imsi-208930000007487").
 		Get("/sm-data").
@@ -473,16 +486,18 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 				},
 				BinaryDataN1SmMessage: GSMMsgIPv6Bytes,
 			},
-			paramStr:  "input correct PostSmContexts Request\n",
-			resultStr: "PDUSessionSMContextCreate should pass\n",
+			paramStr:  "try request the IPv6 PDU session\n",
+			resultStr: "Reject IPv6 PDU Session and respond error\n",
 			expectedHTTPResponse: &httpwrapper.Response{
 				Header: nil,
 				Status: http.StatusForbidden,
-				Body: models.PostSmContextsResponse{
-					JsonData: &models.SmContextCreatedData{
-						SNssai: &models.Snssai{
-							Sst: 1,
-							Sd:  "112232",
+				Body: models.PostSmContextsErrorResponse{
+					JsonData: &models.SmContextCreateError{
+						Error: &models.ProblemDetails{
+							Title:  "Invalid N1 Message",
+							Status: http.StatusForbidden,
+							Detail: "N1 Message Error",
+							Cause:  "N1_SM_ERROR",
 						},
 					},
 				},
@@ -542,8 +557,8 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 					httpResp := producer.HandlePDUSessionSMContextCreate(testcase.request)
 
 					Convey(testcase.resultStr, func() {
-						ShouldEqual(httpResp.Status, testcase.expectedHTTPResponse.Status)
-						ShouldEqual(httpResp.Body, testcase.expectedHTTPResponse.Body)
+						So(httpResp.Status, ShouldResemble, testcase.expectedHTTPResponse.Status)
+						So(httpResp.Body, ShouldResemble, testcase.expectedHTTPResponse.Body)
 					})
 				})
 			})

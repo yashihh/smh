@@ -2,7 +2,6 @@ package context
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 	"net"
 	"reflect"
@@ -527,7 +526,6 @@ func (upi *UserPlaneInformation) SelectUPFAndAllocUEIP(selection *UPFSelectionPa
 	}
 	UPFList = upi.sortUPFListByName(UPFList)
 	sortedUPFList := createUPFListForSelection(UPFList)
-	fmt.Println("sortedUPFList", sortedUPFList)
 	for _, upf := range sortedUPFList {
 		logger.CtxLog.Debugf("check start UPF: %s",
 			upi.GetUPFNameByIp(upf.NodeID.ResolveNodeIdToIp().String()))
