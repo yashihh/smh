@@ -186,11 +186,10 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	establishmentRequest := m.PDUSessionEstablishmentRequest
 	if err := HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest); err != nil {
 		smContext.Log.Errorf("PDU Session Establishment fail by %s", err)
-
 		gsmError := &GSMError{}
-		if errors.As(err, gsmError) {
+		if errors.As(err, &gsmError) {
 			if buf, buildGSMError :=
-				smf_context.BuildGSMPDUSessionEstablishmentReject(smContext, gsmError.GSMCause); buildGSMError != err {
+				smf_context.BuildGSMPDUSessionEstablishmentReject(smContext, gsmError.GSMCause); buildGSMError != nil {
 				smContext.Log.Errorf("Build PDU Session Establishment Reject failed: %s", buildGSMError)
 			} else {
 				httpResponse = &httpwrapper.Response{

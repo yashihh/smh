@@ -23,7 +23,7 @@ type GSMError struct {
 
 var _ error = &GSMError{}
 
-func (e GSMError) Error() string {
+func (e *GSMError) Error() string {
 	return fmt.Sprintf("gsm error cause[%d]", e.GSMCause)
 }
 
