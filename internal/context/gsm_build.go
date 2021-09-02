@@ -156,6 +156,7 @@ func BuildGSMPDUSessionEstablishmentReject(smContext *SMContext, cause uint8) ([
 	pDUSessionEstablishmentReject := m.PDUSessionEstablishmentReject
 
 	pDUSessionEstablishmentReject.SetMessageType(nas.MsgTypePDUSessionEstablishmentReject)
+	pDUSessionEstablishmentReject.SetPTI(smContext.Pti)
 	pDUSessionEstablishmentReject.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
 	pDUSessionEstablishmentReject.SetPDUSessionID(uint8(smContext.PDUSessionID))
 	pDUSessionEstablishmentReject.SetCauseValue(cause)

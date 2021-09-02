@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -115,7 +116,7 @@ type SMContext struct {
 	BPManager   *BPManager
 	// NodeID(string form) to PFCP Session Context
 	PFCPContext                         map[string]*PFCPSessionContext
-	SBIPFCPCommunicationChan            chan PFCPSessionResponseStatus
+	sbiPFCPCommunicationChan            chan PFCPSessionResponseStatus
 	PendingUPF                          PendingUPF
 	PDUSessionRelease_DUE_TO_DUP_PDU_ID bool
 
@@ -146,7 +147,8 @@ type SMContext struct {
 	Log *logrus.Entry
 
 	// lock
-	SMLock sync.Mutex
+	SMLock      sync.Mutex
+	SMLockTimer *time.Timer
 }
 
 func canonicalName(identifier string, pduSessID int32) (canonical string) {
@@ -187,7 +189,7 @@ func NewSMContext(identifier string, pduSessID int32) (smContext *SMContext) {
 	smContext.PCCRules = make(map[string]*PCCRule)
 	smContext.SessionRules = make(map[string]*SessionRule)
 	smContext.TrafficControlPool = make(map[string]*TrafficControlData)
-	smContext.SBIPFCPCommunicationChan = make(chan PFCPSessionResponseStatus, 1)
+	smContext.sbiPFCPCommunicationChan = make(chan PFCPSessionResponseStatus, 1)
 
 	smContext.ProtocolConfigurationOptions = &ProtocolConfigurationOptions{}
 
@@ -253,6 +255,20 @@ func (smContext *SMContext) SetCreateData(createData *models.SmContextCreateData
 	smContext.AddUeLocation = createData.AddUeLocation
 	smContext.OldPduSessionId = createData.OldPduSessionId
 	smContext.ServingNfId = createData.ServingNfId
+}
+
+func (smContext *SMContext) WaitPFCPCommunicationStatus() PFCPSessionResponseStatus {
+	var PFCPResponseStatus PFCPSessionResponseStatus
+	select {
+	case <-time.After(time.Second * 4):
+		PFCPResponseStatus = SessionUpdateFailed
+	case PFCPResponseStatus = <-smContext.sbiPFCPCommunicationChan:
+	}
+	return PFCPResponseStatus
+}
+
+func (smContext *SMContext) SendPFCPCommunicationStatus(status PFCPSessionResponseStatus) {
+	smContext.sbiPFCPCommunicationChan <- status
 }
 
 func (smContext *SMContext) BuildCreatedData() (createdData *models.SmContextCreatedData) {

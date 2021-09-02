@@ -3,8 +3,10 @@ package producer
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/antihax/optional"
 
@@ -140,6 +142,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Infof("Allocated PDUAdress[%s]", smContext.PDUAddress.String())
 	}
 
+	var httpResponse *httpwrapper.Response
 	if ip == nil && (selectedUPF == nil || selectedUPFName == "") {
 		smContext.Log.Error("fail allocate PDU address")
 
@@ -147,7 +150,6 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Warnf("Data Path not found\n")
 		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
 
-		var httpResponse *httpwrapper.Response
 		if buf, err := smf_context.
 			BuildGSMPDUSessionEstablishmentReject(
 				smContext,
@@ -182,7 +184,40 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SelectedUPF = selectedUPF
 
 	establishmentRequest := m.PDUSessionEstablishmentRequest
-	HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest)
+	if err := HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest); err != nil {
+		smContext.Log.Errorf("PDU Session Establishment fail by %s", err)
+		gsmError := &GSMError{}
+		if errors.As(err, &gsmError) {
+			if buf, buildGSMError :=
+				smf_context.BuildGSMPDUSessionEstablishmentReject(smContext, gsmError.GSMCause); buildGSMError != nil {
+				smContext.Log.Errorf("Build PDU Session Establishment Reject failed: %s", buildGSMError)
+			} else {
+				httpResponse = &httpwrapper.Response{
+					Header: nil,
+					Status: http.StatusForbidden,
+					Body: models.PostSmContextsErrorResponse{
+						JsonData: &models.SmContextCreateError{
+							Error:   &Nsmf_PDUSession.N1SmError,
+							N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
+						},
+						BinaryDataN1SmMessage: buf,
+					},
+				}
+			}
+		} else {
+			httpResponse = &httpwrapper.Response{
+				Header: nil,
+				Status: http.StatusForbidden,
+				Body: models.PostSmContextsErrorResponse{
+					JsonData: &models.SmContextCreateError{
+						Error: &Nsmf_PDUSession.N1SmError,
+					},
+				},
+			}
+		}
+
+		return httpResponse
+	}
 
 	if err := smContext.PCFSelection(); err != nil {
 		smContext.Log.Errorln("pcf selection error:", err)
@@ -230,7 +265,6 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Warnf("Data Path not found\n")
 		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
 
-		var httpResponse *httpwrapper.Response
 		if buf, err := smf_context.
 			BuildGSMPDUSessionEstablishmentReject(
 				smContext,
@@ -280,8 +314,13 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	SendPFCPRules(smContext)
 
+	// Add sm lock timer workaround, it Should be remove after PFCP trasaction function complete
+	smContext.SMLockTimer = time.AfterFunc(4*time.Second, func() {
+		smContext.SMLock.Unlock()
+	})
+
 	response.JsonData = smContext.BuildCreatedData()
-	httpResponse := &httpwrapper.Response{
+	httpResponse = &httpwrapper.Response{
 		Header: http.Header{
 			"Location": {smContext.Ref},
 		},
@@ -764,9 +803,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Infoln("Send PFCP Deletion from HandlePDUSessionSMContextUpdate")
 		}
 
-		PFCPResponseStatus := <-smContext.SBIPFCPCommunicationChan
-
-		switch PFCPResponseStatus {
+		switch smContext.WaitPFCPCommunicationStatus() {
 		case smf_context.SessionUpdateSuccess:
 			smContext.Log.Traceln("In case SessionUpdateSuccess")
 			smContext.SetState(smf_context.Active)
@@ -901,9 +938,8 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 	releaseTunnel(smContext)
 
 	var httpResponse *httpwrapper.Response
-	PFCPResponseStatus := <-smContext.SBIPFCPCommunicationChan
 
-	switch PFCPResponseStatus {
+	switch PFCPResponseStatus := smContext.WaitPFCPCommunicationStatus(); PFCPResponseStatus {
 	case smf_context.SessionReleaseSuccess:
 		smContext.Log.Traceln("In case SessionReleaseSuccess")
 		smContext.SetState(smf_context.InActivePending)

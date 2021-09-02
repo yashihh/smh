@@ -17,8 +17,18 @@ import (
 	"bitbucket.org/free5gc-team/util/flowdesc"
 )
 
+type GSMError struct {
+	GSMCause uint8
+}
+
+var _ error = &GSMError{}
+
+func (e *GSMError) Error() string {
+	return fmt.Sprintf("gsm error cause[%d]", e.GSMCause)
+}
+
 func HandlePDUSessionEstablishmentRequest(
-	smCtx *smf_context.SMContext, req *nasMessage.PDUSessionEstablishmentRequest) {
+	smCtx *smf_context.SMContext, req *nasMessage.PDUSessionEstablishmentRequest) error {
 	// Retrieve PDUSessionID
 	smCtx.PDUSessionID = int32(req.PDUSessionID.GetPDUSessionID())
 	logger.GsmLog.Infoln("In HandlePDUSessionEstablishmentRequest")
@@ -31,7 +41,9 @@ func HandlePDUSessionEstablishmentRequest(
 		requestedPDUSessionType := req.PDUSessionType.GetPDUSessionTypeValue()
 		if err := smCtx.IsAllowedPDUSessionType(requestedPDUSessionType); err != nil {
 			logger.CtxLog.Errorf("%s", err)
-			return
+			return &GSMError{
+				GSMCause: nasMessage.Cause5GSMPDUSessionTypeIPv4OnlyAllowed,
+			}
 		}
 	} else {
 		// Set to default supported PDU Session Type
@@ -140,6 +152,7 @@ func HandlePDUSessionEstablishmentRequest(
 			}
 		}
 	}
+	return nil
 }
 
 func HandlePDUSessionReleaseRequest(

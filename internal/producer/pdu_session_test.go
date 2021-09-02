@@ -1,10 +1,8 @@
 package producer_test
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
-	"reflect"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -230,7 +228,7 @@ func initGetSMDataStubUDM() {
 		{
 			SingleNssai: &models.Snssai{
 				Sst: 1,
-				Sd:  "010203",
+				Sd:  "112232",
 			},
 			DnnConfigurations: map[string]models.DnnConfiguration{
 				"internet": {
@@ -362,43 +360,76 @@ func initStubPFCP() {
 	udp.Run(pfcp.Dispatch)
 }
 
+func buildPDUSessionEstablishmentRequest(pduSessID uint8, PTI uint8, pduType uint8) []byte {
+	msg := nas.NewMessage()
+	msg.GsmMessage = nas.NewGsmMessage()
+	msg.GsmMessage.PDUSessionEstablishmentRequest = nasMessage.NewPDUSessionEstablishmentRequest(0)
+	msg.GsmHeader.SetMessageType(nas.MsgTypePDUSessionEstablishmentRequest)
+	msg.GsmHeader.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
+
+	pduEstReq := msg.GsmMessage.PDUSessionEstablishmentRequest
+	// Set GSM Message
+	pduEstReq.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
+	pduEstReq.SetPDUSessionID(pduSessID)
+	pduEstReq.SetPTI(PTI)
+	pduEstReq.SetMessageType(nas.MsgTypePDUSessionEstablishmentRequest)
+	pduEstReq.PDUSessionType = nasType.NewPDUSessionType(nasMessage.PDUSessionEstablishmentRequestPDUSessionTypeType)
+	pduEstReq.PDUSessionType.SetPDUSessionTypeValue(pduType)
+
+	if b, err := msg.PlainNasEncode(); err != nil {
+		panic(err)
+	} else {
+		return b
+	}
+}
+
+func buildPDUSessionModificationRequest(pduSessID uint8, PTI uint8) []byte {
+	msg := nas.NewMessage()
+	msg.GsmMessage = nas.NewGsmMessage()
+	msg.GsmMessage.PDUSessionModificationRequest = nasMessage.NewPDUSessionModificationRequest(0)
+	msg.GsmHeader.SetMessageType(nas.MsgTypePDUSessionModificationRequest)
+	msg.GsmHeader.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
+
+	pduModReq := msg.GsmMessage.PDUSessionModificationRequest
+	// Set GSM Message
+	pduModReq.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
+	pduModReq.SetPDUSessionID(pduSessID)
+	pduModReq.SetPTI(PTI)
+	pduModReq.SetMessageType(nas.MsgTypePDUSessionModificationRequest)
+
+	if b, err := msg.PlainNasEncode(); err != nil {
+		panic(err)
+	} else {
+		return b
+	}
+}
+
+func buildPDUSessionEstablishmentReject(pduSessID uint8, PTI uint8, cause uint8) []byte {
+	msg := nas.NewMessage()
+	msg.GsmMessage = nas.NewGsmMessage()
+	msg.GsmMessage.PDUSessionEstablishmentReject = nasMessage.NewPDUSessionEstablishmentReject(0)
+	msg.GsmHeader.SetMessageType(nas.MsgTypePDUSessionEstablishmentReject)
+	msg.GsmHeader.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
+
+	pduEstRej := msg.GsmMessage.PDUSessionEstablishmentReject
+	// Set GSM Message
+	pduEstRej.SetExtendedProtocolDiscriminator(nasMessage.Epd5GSSessionManagementMessage)
+	pduEstRej.SetPDUSessionID(pduSessID)
+	pduEstRej.SetPTI(PTI)
+	pduEstRej.SetMessageType(nas.MsgTypePDUSessionEstablishmentReject)
+	pduEstRej.Cause5GSM.SetCauseValue(cause)
+
+	if b, err := msg.PlainNasEncode(); err != nil {
+		panic(err)
+	} else {
+		return b
+	}
+}
+
 func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 	// Activate Gock
 	openapi.InterceptH2CClient()
 	defer openapi.RestoreH2CClient()
-	// Prepare GSM Message
-	GSMMsg := nasMessage.NewPDUSessionEstablishmentRequest(0)
-	// Set GSM Message
-	GSMMsg.PDUSessionID.SetPDUSessionID(10)
-	GSMMsg.PTI.SetPTI(1)
-	GSMMsg.PDUSessionType = nasType.NewPDUSessionType(nasMessage.PDUSessionEstablishmentRequestPDUSessionTypeType)
-	GSMMsg.PDUSessionType.SetPDUSessionTypeValue(nasMessage.PDUSessionTypeIPv4)
-	GSMMsg.PDUSESSIONESTABLISHMENTREQUESTMessageIdentity.SetMessageType(nas.MsgTypePDUSessionEstablishmentRequest)
-	// Encode GSM Message
-	buff := new(bytes.Buffer)
-	GSMMsg.EncodePDUSessionEstablishmentRequest(buff)
-	GSMMsgBytes := make([]byte, buff.Len())
-	if _, err := buff.Read(GSMMsgBytes); err != nil {
-		fmt.Println("GSM message bytes buffer read failed")
-	}
-
-	GSMMsgWrongType := nasMessage.NewPDUSessionModificationRequest(0)
-	// Set GSM Message
-	GSMMsgWrongType.PDUSESSIONMODIFICATIONREQUESTMessageIdentity.SetMessageType(nas.MsgTypePDUSessionModificationRequest)
-	// Encode GSM Message
-	buff = new(bytes.Buffer)
-	GSMMsgWrongType.EncodePDUSessionModificationRequest(buff)
-	GSMMsgWrongType.PDUSESSIONMODIFICATIONREQUESTMessageIdentity.SetMessageType(nas.MsgTypePDUSessionModificationRequest)
-	GSMMsgWrongTypeBytes := make([]byte, buff.Len())
-	if _, err := buff.Read(GSMMsgWrongTypeBytes); err != nil {
-		fmt.Println("GSM message bytes buffer read failed")
-	}
-
-	initDiscUDMStubNRF()
-	initGetSMDataStubUDM()
-	initDiscPCFStubNRF()
-	initSMPoliciesPostStubPCF()
-	initDiscAMFStubNRF()
 	initStubPFCP()
 
 	// modify associate setup status
@@ -408,18 +439,20 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		request              models.PostSmContextsRequest
-		paramStr             string
-		resultStr            string
-		expectedHTTPResponse *httpwrapper.Response
+		initFuncs       []func()
+		request         models.PostSmContextsRequest
+		paramStr        string
+		resultStr       string
+		expectedHTTPRsp *httpwrapper.Response
 	}{
 		{
+			initFuncs: []func(){initDiscUDMStubNRF, initDiscPCFStubNRF, initSMPoliciesPostStubPCF, initDiscAMFStubNRF},
 			request: models.PostSmContextsRequest{
-				BinaryDataN1SmMessage: GSMMsgWrongTypeBytes,
+				BinaryDataN1SmMessage: buildPDUSessionModificationRequest(10, 1),
 			},
 			paramStr:  "input wrong GSM Message type\n",
 			resultStr: "PDUSessionSMContextCreate should fail due to wrong GSM type\n",
-			expectedHTTPResponse: &httpwrapper.Response{
+			expectedHTTPRsp: &httpwrapper.Response{
 				Header: nil,
 				Status: http.StatusForbidden,
 				Body: models.PostSmContextsErrorResponse{
@@ -428,7 +461,12 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 					},
 				},
 			},
-		}, {
+		},
+		{
+			initFuncs: []func(){
+				initDiscUDMStubNRF, initDiscPCFStubNRF,
+				initGetSMDataStubUDM, initSMPoliciesPostStubPCF, initDiscAMFStubNRF,
+			},
 			request: models.PostSmContextsRequest{
 				JsonData: &models.SmContextCreateData{
 					Supi:         "imsi-208930000007487",
@@ -454,11 +492,63 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 						Mnc: "93",
 					},
 				},
-				BinaryDataN1SmMessage: GSMMsgBytes,
+				BinaryDataN1SmMessage: buildPDUSessionEstablishmentRequest(10, 2, nasMessage.PDUSessionTypeIPv6),
+			},
+			paramStr:  "try request the IPv6 PDU session\n",
+			resultStr: "Reject IPv6 PDU Session and respond error\n",
+			expectedHTTPRsp: &httpwrapper.Response{
+				Header: nil,
+				Status: http.StatusForbidden,
+				Body: models.PostSmContextsErrorResponse{
+					JsonData: &models.SmContextCreateError{
+						Error: &models.ProblemDetails{
+							Title:  "Invalid N1 Message",
+							Status: http.StatusForbidden,
+							Detail: "N1 Message Error",
+							Cause:  "N1_SM_ERROR",
+						},
+						N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
+					},
+					BinaryDataN1SmMessage: buildPDUSessionEstablishmentReject(
+						10, 2, nasMessage.Cause5GSMPDUSessionTypeIPv4OnlyAllowed),
+				},
+			},
+		},
+		{
+			initFuncs: []func(){
+				initDiscUDMStubNRF, initDiscPCFStubNRF,
+				initGetSMDataStubUDM, initSMPoliciesPostStubPCF, initDiscAMFStubNRF,
+			},
+			request: models.PostSmContextsRequest{
+				JsonData: &models.SmContextCreateData{
+					Supi:         "imsi-208930000007487",
+					Pei:          "imeisv-1110000000000000",
+					Gpsi:         "msisdn-0900000000",
+					PduSessionId: 10,
+					Dnn:          "internet",
+					SNssai: &models.Snssai{
+						Sst: 1,
+						Sd:  "112232",
+					},
+					ServingNfId: "c8d0ee65-f466-48aa-a42f-235ec771cb52",
+					Guami: &models.Guami{
+						PlmnId: &models.PlmnId{
+							Mcc: "208",
+							Mnc: "93",
+						},
+						AmfId: "cafe00",
+					},
+					AnType: "3GPP_ACCESS",
+					ServingNetwork: &models.PlmnId{
+						Mcc: "208",
+						Mnc: "93",
+					},
+				},
+				BinaryDataN1SmMessage: buildPDUSessionEstablishmentRequest(10, 3, nasMessage.PDUSessionTypeIPv4),
 			},
 			paramStr:  "input correct PostSmContexts Request\n",
 			resultStr: "PDUSessionSMContextCreate should pass\n",
-			expectedHTTPResponse: &httpwrapper.Response{
+			expectedHTTPRsp: &httpwrapper.Response{
 				Header: nil,
 				Status: http.StatusCreated,
 				Body: models.PostSmContextsResponse{
@@ -473,17 +563,20 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 		},
 	}
 
-	Convey("Procedure Test: Handle PDUSession SMContext Create", t, func() {
-		for i, testcase := range testCases {
+	Convey("TestHandlePDUSessionSMContextCreate", t, func() {
+		for i, tc := range testCases {
+			for _, initFunc := range tc.initFuncs {
+				initFunc()
+			}
 			infoStr := fmt.Sprintf("testcase[%d]: ", i)
 
 			Convey(infoStr, func() {
-				Convey(testcase.paramStr, func() {
-					httpResp := producer.HandlePDUSessionSMContextCreate(testcase.request)
+				Convey(tc.paramStr, func() {
+					httpResp := producer.HandlePDUSessionSMContextCreate(tc.request)
 
-					Convey(testcase.resultStr, func() {
-						So(true, ShouldEqual, reflect.DeepEqual(httpResp.Status, testcase.expectedHTTPResponse.Status))
-						So(true, ShouldEqual, reflect.DeepEqual(httpResp.Body, testcase.expectedHTTPResponse.Body))
+					Convey(tc.resultStr, func() {
+						So(httpResp.Status, ShouldResemble, tc.expectedHTTPRsp.Status)
+						So(httpResp.Body, ShouldResemble, tc.expectedHTTPRsp.Body)
 					})
 				})
 			})
