@@ -83,6 +83,8 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 	// QoS Flow Setup Request List
 	// use Default 5qi, arp
 	// TODO: Get QFI from PCF/UDM
+
+	authDefQos := sessRule.AuthDefQos
 	ie = ngapType.PDUSessionResourceSetupRequestTransferIEs{}
 	ie.Id.Value = ngapType.ProtocolIEIDQosFlowSetupRequestList
 	ie.Criticality.Value = ngapType.CriticalityPresentReject
@@ -92,20 +94,20 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 			List: []ngapType.QosFlowSetupRequestItem{
 				{
 					QosFlowIdentifier: ngapType.QosFlowIdentifier{
-						Value: DefaultNonGBR5QI,
+						Value: int64(authDefQos.Var5qi),
 					},
 					QosFlowLevelQosParameters: ngapType.QosFlowLevelQosParameters{
 						QosCharacteristics: ngapType.QosCharacteristics{
 							Present: ngapType.QosCharacteristicsPresentNonDynamic5QI,
 							NonDynamic5QI: &ngapType.NonDynamic5QIDescriptor{
 								FiveQI: ngapType.FiveQI{
-									Value: DefaultNonGBR5QI,
+									Value: int64(authDefQos.Var5qi),
 								},
 							},
 						},
 						AllocationAndRetentionPriority: ngapType.AllocationAndRetentionPriority{
 							PriorityLevelARP: ngapType.PriorityLevelARP{
-								Value: 15,
+								Value: int64(authDefQos.Arp.PriorityLevel),
 							},
 							PreEmptionCapability: ngapType.PreEmptionCapability{
 								Value: ngapType.PreEmptionCapabilityPresentShallNotTriggerPreEmption,

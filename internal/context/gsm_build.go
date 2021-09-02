@@ -36,18 +36,20 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 	pDUSessionEstablishmentAccept.SessionAMBR = nasConvert.ModelsToSessionAMBR(sessRule.AuthSessAmbr)
 	pDUSessionEstablishmentAccept.SessionAMBR.SetLen(uint8(len(pDUSessionEstablishmentAccept.SessionAMBR.Octet)))
 
-	qoSRules := QoSRules{
-		QoSRule{
-			Identifier:    0x01,
-			DQR:           0x01,
-			OperationCode: OperationCodeCreateNewQoSRule,
-			Precedence:    0xff,
-			QFI:           uint8(authDefQos.Var5qi),
-			PacketFilterList: []PacketFilter{
+	qoSRules := nasType.QoSRules{
+		{
+			Identifier: 0x01,
+			DQR:        true,
+			Operation:  nasType.OperationCodeCreateNewQoSRule,
+			Precedence: 255,
+			QFI:        uint8(authDefQos.Var5qi),
+			PacketFilterList: nasType.PacketFilterList{
 				{
-					Identifier:    0x01,
-					Direction:     PacketFilterDirectionBidirectional,
-					ComponentType: PacketFilterComponentTypeMatchAll,
+					Identifier: 1,
+					Direction:  nasType.PacketFilterDirectionBidirectional,
+					Components: nasType.PacketFilterComponentList{
+						&nasType.PacketFilterMatchAll{},
+					},
 				},
 			},
 		},
