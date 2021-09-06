@@ -764,27 +764,40 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	switch smContextUpdateData.Cause {
 	case models.Cause_REL_DUE_TO_DUPLICATE_SESSION_ID:
 		//* release PDU Session Here
-		smContext.CheckState(smf_context.Active)
 		// Wait till the state becomes Active again
 		// TODO: implement sleep wait in concurrent architecture
 
-		response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
-		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
-		smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
-
-		if buf, err := smf_context.BuildPDUSessionResourceReleaseCommandTransfer(smContext); err != nil {
-			smContext.Log.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %v", err)
-		} else {
-			response.BinaryDataN2SmInformation = buf
-		}
-
 		smContext.Log.Infoln("[SMF] Cause_REL_DUE_TO_DUPLICATE_SESSION_ID")
 
-		smContext.SetState(smf_context.PFCPModification)
+		switch smContext.State() {
+		case smf_context.ModificationPending:
+			fallthrough
+		case smf_context.Active:
+			response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
+			response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
+			smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
 
-		releaseTunnel(smContext)
+			if buf, err := smf_context.BuildPDUSessionResourceReleaseCommandTransfer(smContext); err != nil {
+				smContext.Log.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %v", err)
+			} else {
+				response.BinaryDataN2SmInformation = buf
+			}
 
-		sendPFCPDelete = true
+			smContext.SetState(smf_context.PFCPModification)
+			releaseTunnel(smContext)
+			sendPFCPDelete = true
+		case smf_context.InActive:
+			// nothing to do, because PFCP resource not establish yet
+			fallthrough
+		case smf_context.ActivePending:
+			// nothing to do, because PFCP resource not establish yet
+			fallthrough
+		case smf_context.PFCPModification:
+			// TODO: Notify PFCP transaction should stop
+			fallthrough
+		default:
+			smContext.Log.Infof("Not needs to send pfcp release")
+		}
 	}
 
 	// Check FSM and take corresponding action
