@@ -442,8 +442,12 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.SetState(smf_context.InActive)
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
 
-			// Use go routine to send Notification to prevent blocking the handling process
-			go sendSMContextStatusNotification(smContext)
+			// If CN tunnel resource is released, should
+			if smContext.Tunnel.ANInformation.IPAddress == nil {
+				// Use go routine to send Notification to prevent blocking the handling process
+				go sendSMContextStatusNotification(smContext)
+				smf_context.RemoveSMContext(smContext.Ref)
+			}
 		case nas.MsgTypePDUSessionModificationRequest:
 			if rsp, err := HandlePDUSessionModificationRequest(smContext, m.PDUSessionModificationRequest); err != nil {
 				if buf, err := smf_context.BuildGSMPDUSessionModificationReject(smContext); err != nil {
@@ -578,16 +582,20 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.CheckState(smf_context.InActivePending)
 			// Wait till the state becomes Active again
 			// TODO: implement sleep wait in concurrent architecture
-
-			smContext.SetState(smf_context.InActive)
 			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
+			// remove an tunnel info
+			smContext.Tunnel.ANInformation = struct {
+				IPAddress net.IP
+				TEID      uint32
+			}{nil, 0}
 
-			smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = false
-			smf_context.RemoveSMContext(smContext.Ref)
-
-			// Use go routine to send Notification to prevent blocking the handling process
-			go sendSMContextStatusNotification(smContext)
+			// If NAS layer is inActive, the context should be remove
+			if smContext.CheckState(smf_context.InActive) {
+				// Use go routine to send Notification to prevent blocking the handling process
+				go sendSMContextStatusNotification(smContext)
+				smf_context.RemoveSMContext(smContextRef)
+			}
 		} else { // normal case
 			smContext.CheckState(smf_context.InActivePending)
 			// Wait till the state becomes Active again
@@ -793,7 +801,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			// nothing to do, because PFCP resource not establish yet
 			fallthrough
 		case smf_context.PFCPModification:
-			// TODO: Notify PFCP transaction should stop
+			// nothing to do, because PFCP resource not establish yet
 			fallthrough
 		default:
 			smContext.Log.Infof("Not needs to send pfcp release")
@@ -946,16 +954,19 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 		}
 	}
 
-	smContext.SetState(smf_context.PFCPModification)
-
-	releaseTunnel(smContext)
+	if !smContext.CheckState(smf_context.InActive) {
+		smContext.SetState(smf_context.PFCPModification)
+		releaseTunnel(smContext)
+	} else {
+		smContext.SendPFCPCommunicationStatus(smf_context.SessionReleaseSuccess)
+	}
 
 	var httpResponse *httpwrapper.Response
 
 	switch PFCPResponseStatus := smContext.WaitPFCPCommunicationStatus(); PFCPResponseStatus {
 	case smf_context.SessionReleaseSuccess:
 		smContext.Log.Traceln("In case SessionReleaseSuccess")
-		smContext.SetState(smf_context.InActivePending)
+		smContext.SetState(smf_context.InActive)
 		httpResponse = &httpwrapper.Response{
 			Status: http.StatusNoContent,
 			Body:   nil,
