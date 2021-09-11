@@ -398,6 +398,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				smf_context.
 					GetUserPlaneInformation().
 					ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress, smContext.UseStaticIP)
+				smContext.SelectedUPF = nil
 			}
 
 			// remove SM Policy Association
@@ -578,18 +579,19 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		}
 	case models.N2SmInfoType_PDU_RES_REL_RSP:
 		smContext.Log.Infoln("[SMF] N2 PDUSession Release Complete")
+
+		// remove an tunnel info
+		smContext.Tunnel.ANInformation = struct {
+			IPAddress net.IP
+			TEID      uint32
+		}{nil, 0}
+
 		if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
 			smContext.CheckState(smf_context.InActivePending)
 			// Wait till the state becomes Active again
 			// TODO: implement sleep wait in concurrent architecture
 			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
-			// remove an tunnel info
-			smContext.Tunnel.ANInformation = struct {
-				IPAddress net.IP
-				TEID      uint32
-			}{nil, 0}
-
 			// If NAS layer is inActive, the context should be remove
 			if smContext.CheckState(smf_context.InActive) {
 				// Use go routine to send Notification to prevent blocking the handling process
