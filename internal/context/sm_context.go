@@ -222,6 +222,7 @@ func RemoveSMContext(ref string) {
 			smContext.Supi, smContext.PDUSessionID, smContext.PDUAddress.String())
 		GetUserPlaneInformation().
 			ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress, smContext.UseStaticIP)
+		smContext.SelectedUPF = nil
 	}
 
 	for _, pfcpSessionContext := range smContext.PFCPContext {
@@ -229,6 +230,7 @@ func RemoveSMContext(ref string) {
 	}
 
 	smContextPool.Delete(ref)
+	smContext.Log.Infof("smContext[%s] is deleted from pool", ref)
 }
 
 //*** add unit test ***//
