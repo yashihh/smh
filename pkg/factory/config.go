@@ -421,7 +421,7 @@ func (r *RoutingConfig) Validate() (bool, error) {
 // UserPlaneInformation describe core network userplane information
 type UserPlaneInformation struct {
 	UPNodes map[string]*UPNode `yaml:"upNodes" valid:"required"`
-	Links   []UPLink           `yaml:"links" valid:"required"`
+	Links   []*UPLink          `yaml:"links" valid:"required"`
 }
 
 func (u *UserPlaneInformation) validate() (bool, error) {

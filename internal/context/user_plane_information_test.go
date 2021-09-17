@@ -127,7 +127,7 @@ var configuration = &factory.UserPlaneInformation{
 			},
 		},
 	},
-	Links: []factory.UPLink{
+	Links: []*factory.UPLink{
 		{
 			A: "GNodeB",
 			B: "UPF1",
@@ -165,7 +165,7 @@ func TestNewUserPlaneInformation(t *testing.T) {
 }
 
 func TestGenerateDefaultPath(t *testing.T) {
-	configuration.Links = []factory.UPLink{
+	configuration.Links = []*factory.UPLink{
 		{
 			A: "GNodeB",
 			B: "UPF1",

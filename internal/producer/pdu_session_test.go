@@ -58,7 +58,7 @@ var userPlaneConfig = factory.UserPlaneInformation{
 			},
 		},
 	},
-	Links: []factory.UPLink{
+	Links: []*factory.UPLink{
 		{
 			A: "GNodeB",
 			B: "UPF1",
