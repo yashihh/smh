@@ -17,8 +17,8 @@ func (s *SNssai) Equal(target *SNssai) bool {
 }
 
 type SnssaiUPFInfo struct {
-	SNssai  SNssai
-	DnnList []DnnUPFInfoItem
+	SNssai  *SNssai
+	DnnList []*DnnUPFInfoItem
 }
 
 // DnnUpfInfoItem presents UPF dnn information

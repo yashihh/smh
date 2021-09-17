@@ -43,7 +43,7 @@ type SMFContext struct {
 	PEM    string
 	KeyLog string
 
-	SnssaiInfos []SnssaiSmfInfo
+	SnssaiInfos []*SnssaiSmfInfo
 
 	NrfUri                         string
 	NFManagementClient             *Nnrf_NFManagement.APIClient
@@ -172,7 +172,7 @@ func InitSmfContext(config *factory.Config) {
 		}
 	}
 
-	smfContext.SnssaiInfos = make([]SnssaiSmfInfo, 0, len(configuration.SNssaiInfo))
+	smfContext.SnssaiInfos = make([]*SnssaiSmfInfo, 0, len(configuration.SNssaiInfo))
 
 	for _, snssaiInfoConfig := range configuration.SNssaiInfo {
 		snssaiInfo := SnssaiSmfInfo{}
@@ -194,7 +194,7 @@ func InitSmfContext(config *factory.Config) {
 			}
 			snssaiInfo.DnnInfos[dnnInfoConfig.Dnn] = &dnnInfo
 		}
-		smfContext.SnssaiInfos = append(smfContext.SnssaiInfos, snssaiInfo)
+		smfContext.SnssaiInfos = append(smfContext.SnssaiInfos, &snssaiInfo)
 	}
 
 	// Set client and set url

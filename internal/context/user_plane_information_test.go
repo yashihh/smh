@@ -12,7 +12,7 @@ import (
 )
 
 var configuration = &factory.UserPlaneInformation{
-	UPNodes: map[string]factory.UPNode{
+	UPNodes: map[string]*factory.UPNode{
 		"GNodeB": {
 			Type:   "AN",
 			NodeID: "192.168.179.100",
@@ -20,21 +20,21 @@ var configuration = &factory.UserPlaneInformation{
 		"UPF1": {
 			Type:   "UPF",
 			NodeID: "192.168.179.1",
-			SNssaiInfos: []factory.SnssaiUpfInfoItem{
+			SNssaiInfos: []*factory.SnssaiUpfInfoItem{
 				{
 					SNssai: &models.Snssai{
 						Sst: 1,
 						Sd:  "112232",
 					},
-					DnnUpfInfoList: []factory.DnnUpfInfoItem{
+					DnnUpfInfoList: []*factory.DnnUpfInfoItem{
 						{
 							Dnn: "internet",
-							Pools: []factory.UEIPPool{
+							Pools: []*factory.UEIPPool{
 								{
 									Cidr: "10.60.0.0/27",
 								},
 							},
-							StaticPools: []factory.UEIPPool{
+							StaticPools: []*factory.UEIPPool{
 								{
 									Cidr: "10.60.0.0/28",
 								},
@@ -47,10 +47,10 @@ var configuration = &factory.UserPlaneInformation{
 						Sst: 1,
 						Sd:  "112235",
 					},
-					DnnUpfInfoList: []factory.DnnUpfInfoItem{
+					DnnUpfInfoList: []*factory.DnnUpfInfoItem{
 						{
 							Dnn: "internet",
-							Pools: []factory.UEIPPool{
+							Pools: []*factory.UEIPPool{
 								{
 									Cidr: "10.61.0.0/16",
 								},
@@ -63,16 +63,16 @@ var configuration = &factory.UserPlaneInformation{
 		"UPF2": {
 			Type:   "UPF",
 			NodeID: "192.168.179.2",
-			SNssaiInfos: []factory.SnssaiUpfInfoItem{
+			SNssaiInfos: []*factory.SnssaiUpfInfoItem{
 				{
 					SNssai: &models.Snssai{
 						Sst: 2,
 						Sd:  "112233",
 					},
-					DnnUpfInfoList: []factory.DnnUpfInfoItem{
+					DnnUpfInfoList: []*factory.DnnUpfInfoItem{
 						{
 							Dnn: "internet",
-							Pools: []factory.UEIPPool{
+							Pools: []*factory.UEIPPool{
 								{
 									Cidr: "10.62.0.0/16",
 								},
@@ -85,16 +85,16 @@ var configuration = &factory.UserPlaneInformation{
 		"UPF3": {
 			Type:   "UPF",
 			NodeID: "192.168.179.3",
-			SNssaiInfos: []factory.SnssaiUpfInfoItem{
+			SNssaiInfos: []*factory.SnssaiUpfInfoItem{
 				{
 					SNssai: &models.Snssai{
 						Sst: 3,
 						Sd:  "112234",
 					},
-					DnnUpfInfoList: []factory.DnnUpfInfoItem{
+					DnnUpfInfoList: []*factory.DnnUpfInfoItem{
 						{
 							Dnn: "internet",
-							Pools: []factory.UEIPPool{
+							Pools: []*factory.UEIPPool{
 								{
 									Cidr: "10.63.0.0/16",
 								},
@@ -107,16 +107,16 @@ var configuration = &factory.UserPlaneInformation{
 		"UPF4": {
 			Type:   "UPF",
 			NodeID: "192.168.179.4",
-			SNssaiInfos: []factory.SnssaiUpfInfoItem{
+			SNssaiInfos: []*factory.SnssaiUpfInfoItem{
 				{
 					SNssai: &models.Snssai{
 						Sst: 1,
 						Sd:  "112235",
 					},
-					DnnUpfInfoList: []factory.DnnUpfInfoItem{
+					DnnUpfInfoList: []*factory.DnnUpfInfoItem{
 						{
 							Dnn: "internet",
-							Pools: []factory.UEIPPool{
+							Pools: []*factory.UEIPPool{
 								{
 									Cidr: "10.64.0.0/16",
 								},

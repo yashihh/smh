@@ -63,9 +63,9 @@ type UPF struct {
 	Addr         string
 	UPIPInfo     pfcpType.UserPlaneIPResourceInformation
 	UPFStatus    UPFStatus
-	SNssaiInfos  []SnssaiUPFInfo
-	N3Interfaces []UPFInterfaceInfo
-	N9Interfaces []UPFInterfaceInfo
+	SNssaiInfos  []*SnssaiUPFInfo
+	N3Interfaces []*UPFInterfaceInfo
+	N9Interfaces []*UPFInterfaceInfo
 
 	pdrPool sync.Map
 	farPool sync.Map
@@ -210,7 +210,7 @@ func (upTunnel *UPTunnel) AddDataPath(dataPath *DataPath) {
 
 //*** add unit test ***//
 // NewUPF returns a new UPF context in SMF
-func NewUPF(nodeID *pfcpType.NodeID, ifaces []factory.InterfaceUpfInfoItem) (upf *UPF) {
+func NewUPF(nodeID *pfcpType.NodeID, ifaces []*factory.InterfaceUpfInfoItem) (upf *UPF) {
 	upf = new(UPF)
 	upf.uuid = uuid.New()
 
@@ -226,17 +226,17 @@ func NewUPF(nodeID *pfcpType.NodeID, ifaces []factory.InterfaceUpfInfoItem) (upf
 	upf.urrIDGenerator = idgenerator.NewGenerator(1, math.MaxUint32)
 	upf.teidGenerator = idgenerator.NewGenerator(1, math.MaxUint32)
 
-	upf.N3Interfaces = make([]UPFInterfaceInfo, 0)
-	upf.N9Interfaces = make([]UPFInterfaceInfo, 0)
+	upf.N3Interfaces = make([]*UPFInterfaceInfo, 0)
+	upf.N9Interfaces = make([]*UPFInterfaceInfo, 0)
 
 	for _, iface := range ifaces {
-		upIface := NewUPFInterfaceInfo(&iface)
+		upIface := NewUPFInterfaceInfo(iface)
 
 		switch iface.InterfaceType {
 		case models.UpInterfaceType_N3:
-			upf.N3Interfaces = append(upf.N3Interfaces, *upIface)
+			upf.N3Interfaces = append(upf.N3Interfaces, upIface)
 		case models.UpInterfaceType_N9:
-			upf.N9Interfaces = append(upf.N9Interfaces, *upIface)
+			upf.N9Interfaces = append(upf.N9Interfaces, upIface)
 		}
 	}
 
@@ -250,13 +250,13 @@ func (upf *UPF) GetInterface(interfaceType models.UpInterfaceType, dnn string) *
 	case models.UpInterfaceType_N3:
 		for i, iface := range upf.N3Interfaces {
 			if iface.NetworkInstance == dnn {
-				return &upf.N3Interfaces[i]
+				return upf.N3Interfaces[i]
 			}
 		}
 	case models.UpInterfaceType_N9:
 		for i, iface := range upf.N9Interfaces {
 			if iface.NetworkInstance == dnn {
-				return &upf.N9Interfaces[i]
+				return upf.N9Interfaces[i]
 			}
 		}
 	}
