@@ -80,7 +80,7 @@ type Configuration struct {
 	NrfUri               string               `yaml:"nrfUri,omitempty" valid:"url,required"`
 	UserPlaneInformation UserPlaneInformation `yaml:"userplaneInformation" valid:"required"`
 	ServiceNameList      []string             `yaml:"serviceNameList,omitempty" valid:"required"`
-	SNssaiInfo           []SnssaiInfoItem     `yaml:"snssaiInfos,omitempty" valid:"required"`
+	SNssaiInfo           []*SnssaiInfoItem    `yaml:"snssaiInfos,omitempty" valid:"required"`
 	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
 	PLMNList             []PlmnID             `yaml:"plmnList,omitempty"  valid:"optional"`
 	Locality             string               `yaml:"locality,omitempty" valid:"type(string),optional"`
@@ -136,8 +136,8 @@ func (c *Configuration) validate() (bool, error) {
 }
 
 type SnssaiInfoItem struct {
-	SNssai   *models.Snssai      `yaml:"sNssai" valid:"required"`
-	DnnInfos []SnssaiDnnInfoItem `yaml:"dnnInfos" valid:"required"`
+	SNssai   *models.Snssai       `yaml:"sNssai" valid:"required"`
+	DnnInfos []*SnssaiDnnInfoItem `yaml:"dnnInfos" valid:"required"`
 }
 
 func (s *SnssaiInfoItem) validate() (bool, error) {
@@ -420,8 +420,8 @@ func (r *RoutingConfig) Validate() (bool, error) {
 
 // UserPlaneInformation describe core network userplane information
 type UserPlaneInformation struct {
-	UPNodes map[string]UPNode `yaml:"upNodes" valid:"required"`
-	Links   []UPLink          `yaml:"links" valid:"required"`
+	UPNodes map[string]*UPNode `yaml:"upNodes" valid:"required"`
+	Links   []UPLink           `yaml:"links" valid:"required"`
 }
 
 func (u *UserPlaneInformation) validate() (bool, error) {
@@ -443,13 +443,13 @@ func (u *UserPlaneInformation) validate() (bool, error) {
 
 // UPNode represent the user plane node
 type UPNode struct {
-	Type                 string                 `yaml:"type" valid:"upNodeType,required"`
-	NodeID               string                 `yaml:"nodeID" valid:"host,optional"`
-	Addr                 string                 `yaml:"addr" valid:"host,optional"`
-	ANIP                 string                 `yaml:"anIP" valid:"host,optional"`
-	Dnn                  string                 `yaml:"dnn" valid:"type(string),minstringlength(1),optional"`
-	SNssaiInfos          []SnssaiUpfInfoItem    `yaml:"sNssaiUpfInfos,omitempty" valid:"optional"`
-	InterfaceUpfInfoList []InterfaceUpfInfoItem `yaml:"interfaces,omitempty" valid:"optional"`
+	Type                 string                  `yaml:"type" valid:"upNodeType,required"`
+	NodeID               string                  `yaml:"nodeID" valid:"host,optional"`
+	Addr                 string                  `yaml:"addr" valid:"host,optional"`
+	ANIP                 string                  `yaml:"anIP" valid:"host,optional"`
+	Dnn                  string                  `yaml:"dnn" valid:"type(string),minstringlength(1),optional"`
+	SNssaiInfos          []*SnssaiUpfInfoItem    `yaml:"sNssaiUpfInfos,omitempty" valid:"optional"`
+	InterfaceUpfInfoList []*InterfaceUpfInfoItem `yaml:"interfaces,omitempty" valid:"optional"`
 }
 
 func (u *UPNode) validate() (bool, error) {
@@ -497,8 +497,8 @@ func (i *InterfaceUpfInfoItem) validate() (bool, error) {
 }
 
 type SnssaiUpfInfoItem struct {
-	SNssai         *models.Snssai   `yaml:"sNssai" valid:"required"`
-	DnnUpfInfoList []DnnUpfInfoItem `yaml:"dnnUpfInfoList" valid:"required"`
+	SNssai         *models.Snssai    `yaml:"sNssai" valid:"required"`
+	DnnUpfInfoList []*DnnUpfInfoItem `yaml:"dnnUpfInfoList" valid:"required"`
 }
 
 func (s *SnssaiUpfInfoItem) validate() (bool, error) {
@@ -529,8 +529,8 @@ type DnnUpfInfoItem struct {
 	Dnn             string                  `yaml:"dnn" valid:"required"`
 	DnaiList        []string                `yaml:"dnaiList" valid:"optional"`
 	PduSessionTypes []models.PduSessionType `yaml:"pduSessionTypes" valid:"optional"`
-	Pools           []UEIPPool              `yaml:"pools" valid:"optional"`
-	StaticPools     []UEIPPool              `yaml:"staticPools" valid:"optional"`
+	Pools           []*UEIPPool             `yaml:"pools" valid:"optional"`
+	StaticPools     []*UEIPPool             `yaml:"staticPools" valid:"optional"`
 }
 
 func (d *DnnUpfInfoItem) validate() (bool, error) {

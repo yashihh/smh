@@ -17,7 +17,7 @@ var mockIPv4NodeID = &pfcpType.NodeID{
 	IP:         net.ParseIP("127.0.0.1"),
 }
 
-var mockIfaces = []factory.InterfaceUpfInfoItem{
+var mockIfaces = []*factory.InterfaceUpfInfoItem{
 	{
 		InterfaceType:   "N3",
 		Endpoints:       []string{"127.0.0.1"},

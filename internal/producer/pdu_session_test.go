@@ -24,30 +24,30 @@ import (
 )
 
 var userPlaneConfig = factory.UserPlaneInformation{
-	UPNodes: map[string]factory.UPNode{
+	UPNodes: map[string]*factory.UPNode{
 		"GNodeB": {
 			Type: "AN",
 		},
 		"UPF1": {
 			Type:   "UPF",
 			NodeID: "192.168.179.1",
-			SNssaiInfos: []factory.SnssaiUpfInfoItem{
+			SNssaiInfos: []*factory.SnssaiUpfInfoItem{
 				{
 					SNssai: &models.Snssai{
 						Sst: 1,
 						Sd:  "112232",
 					},
-					DnnUpfInfoList: []factory.DnnUpfInfoItem{
+					DnnUpfInfoList: []*factory.DnnUpfInfoItem{
 						{
 							Dnn: "internet",
-							Pools: []factory.UEIPPool{
+							Pools: []*factory.UEIPPool{
 								{Cidr: "10.60.0.0/16"},
 							},
 						},
 					},
 				},
 			},
-			InterfaceUpfInfoList: []factory.InterfaceUpfInfoItem{
+			InterfaceUpfInfoList: []*factory.InterfaceUpfInfoItem{
 				{
 					InterfaceType: "N3",
 					Endpoints: []string{
@@ -91,13 +91,13 @@ var testConfig = factory.Config{
 			"nsmf-event-exposure",
 			"nsmf-oam",
 		},
-		SNssaiInfo: []factory.SnssaiInfoItem{
+		SNssaiInfo: []*factory.SnssaiInfoItem{
 			{
 				SNssai: &models.Snssai{
 					Sst: 1,
 					Sd:  "112232",
 				},
-				DnnInfos: []factory.SnssaiDnnInfoItem{
+				DnnInfos: []*factory.SnssaiDnnInfoItem{
 					{
 						Dnn: "internet",
 						DNS: &factory.DNS{

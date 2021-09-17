@@ -44,7 +44,7 @@ type UPNode struct {
 
 func (u *UPNode) MatchedSelection(selection *UPFSelectionParams) bool {
 	for _, snssaiInfo := range u.UPF.SNssaiInfos {
-		currentSnssai := &snssaiInfo.SNssai
+		currentSnssai := snssaiInfo.SNssai
 		if currentSnssai.Equal(selection.SNssai) {
 			for _, dnnInfo := range snssaiInfo.DnnList {
 				if dnnInfo.Dnn == selection.Dnn {
@@ -123,21 +123,21 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 
 			upNode.UPF = NewUPF(&upNode.NodeID, node.InterfaceUpfInfoList)
 			upNode.UPF.Addr = node.Addr
-			snssaiInfos := make([]SnssaiUPFInfo, 0)
+			snssaiInfos := make([]*SnssaiUPFInfo, 0)
 			for _, snssaiInfoConfig := range node.SNssaiInfos {
 				snssaiInfo := SnssaiUPFInfo{
-					SNssai: SNssai{
+					SNssai: &SNssai{
 						Sst: snssaiInfoConfig.SNssai.Sst,
 						Sd:  snssaiInfoConfig.SNssai.Sd,
 					},
-					DnnList: make([]DnnUPFInfoItem, 0),
+					DnnList: make([]*DnnUPFInfoItem, 0),
 				}
 
 				for _, dnnInfoConfig := range snssaiInfoConfig.DnnUpfInfoList {
 					ueIPPools := make([]*UeIPPool, 0)
 					staticUeIPPools := make([]*UeIPPool, 0)
 					for _, pool := range dnnInfoConfig.Pools {
-						ueIPPool := NewUEIPPool(&pool)
+						ueIPPool := NewUEIPPool(pool)
 						if ueIPPool == nil {
 							logger.InitLog.Fatalf("invalid pools value: %+v", pool)
 						} else {
@@ -146,7 +146,7 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 						}
 					}
 					for _, pool := range dnnInfoConfig.StaticPools {
-						ueIPPool := NewUEIPPool(&pool)
+						ueIPPool := NewUEIPPool(pool)
 						if ueIPPool == nil {
 							logger.InitLog.Fatalf("invalid pools value: %+v", pool)
 						} else {
@@ -160,7 +160,7 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 							}
 						}
 					}
-					snssaiInfo.DnnList = append(snssaiInfo.DnnList, DnnUPFInfoItem{
+					snssaiInfo.DnnList = append(snssaiInfo.DnnList, &DnnUPFInfoItem{
 						Dnn:             dnnInfoConfig.Dnn,
 						DnaiList:        dnnInfoConfig.DnaiList,
 						PduSessionTypes: dnnInfoConfig.PduSessionTypes,
@@ -168,7 +168,7 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 						StaticIPPools:   staticUeIPPools,
 					})
 				}
-				snssaiInfos = append(snssaiInfos, snssaiInfo)
+				snssaiInfos = append(snssaiInfos, &snssaiInfo)
 			}
 			upNode.UPF.SNssaiInfos = snssaiInfos
 			upfPool[name] = upNode
@@ -394,7 +394,7 @@ func (upi *UserPlaneInformation) selectMatchUPF(selection *UPFSelectionParams) [
 
 	for _, upNode := range upi.UPFs {
 		for _, snssaiInfo := range upNode.UPF.SNssaiInfos {
-			currentSnssai := &snssaiInfo.SNssai
+			currentSnssai := snssaiInfo.SNssai
 			targetSnssai := selection.SNssai
 
 			if currentSnssai.Equal(targetSnssai) {
@@ -566,7 +566,7 @@ func createPoolListForSelection(inputList []*UeIPPool) (outputList []*UeIPPool) 
 
 func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) []*UeIPPool {
 	for _, snssaiInfo := range upNode.UPF.SNssaiInfos {
-		currentSnssai := &snssaiInfo.SNssai
+		currentSnssai := snssaiInfo.SNssai
 		targetSnssai := selection.SNssai
 
 		if currentSnssai.Equal(targetSnssai) {
