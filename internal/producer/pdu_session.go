@@ -150,35 +150,8 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Warnf("Data Path not found\n")
 		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
 
-		if buf, err := smf_context.
-			BuildGSMPDUSessionEstablishmentReject(
-				smContext,
-				nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN); err != nil {
-			httpResponse = &httpwrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error:   &Nsmf_PDUSession.InsufficientResourceSliceDnn,
-						N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
-					},
-				},
-			}
-		} else {
-			httpResponse = &httpwrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error:   &Nsmf_PDUSession.InsufficientResourceSliceDnn,
-						N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
-					},
-					BinaryDataN1SmMessage: buf,
-				},
-			}
-		}
-
-		return httpResponse
+		return makeErrorResponse(smContext, nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
+			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
 	}
 	smContext.PDUAddress = ip
 	smContext.SelectedUPF = selectedUPF
@@ -188,34 +161,11 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Errorf("PDU Session Establishment fail by %s", err)
 		gsmError := &GSMError{}
 		if errors.As(err, &gsmError) {
-			if buf, buildGSMError :=
-				smf_context.BuildGSMPDUSessionEstablishmentReject(smContext, gsmError.GSMCause); buildGSMError != nil {
-				smContext.Log.Errorf("Build PDU Session Establishment Reject failed: %s", buildGSMError)
-			} else {
-				httpResponse = &httpwrapper.Response{
-					Header: nil,
-					Status: http.StatusForbidden,
-					Body: models.PostSmContextsErrorResponse{
-						JsonData: &models.SmContextCreateError{
-							Error:   &Nsmf_PDUSession.N1SmError,
-							N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
-						},
-						BinaryDataN1SmMessage: buf,
-					},
-				}
-			}
+			httpResponse = makeErrorResponse(smContext, gsmError.GSMCause, &Nsmf_PDUSession.N1SmError)
 		} else {
-			httpResponse = &httpwrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error: &Nsmf_PDUSession.N1SmError,
-					},
-				},
-			}
+			httpResponse = makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+				&Nsmf_PDUSession.N1SmError)
 		}
-
 		return httpResponse
 	}
 
@@ -225,7 +175,17 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	var smPolicyDecision *models.SmPolicyDecision
 	if smPolicyID, smPolicyDecisionRsp, err := consumer.SendSMPolicyAssociationCreate(smContext); err != nil {
-		smContext.Log.Errorf("SM Policy Association failed: %v", err)
+		openapiError := err.(openapi.GenericOpenAPIError)
+		problemDetails := openapiError.Model().(models.ProblemDetails)
+		smContext.Log.Errorln("setup sm policy association failed:", err, problemDetails)
+		smContext.SetState(smf_context.InActive)
+
+		if problemDetails.Cause == "USER_UNKNOWN" {
+			return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+				&Nsmf_PDUSession.SubscriptionDenied)
+		} else {
+			return makeErrorResponse(smContext, nasMessage.Cause5GSMNetworkFailure, &Nsmf_PDUSession.NetworkFailure)
+		}
 	} else {
 		smPolicyDecision = smPolicyDecisionRsp
 		smContext.SMPolicyID = smPolicyID
@@ -265,35 +225,8 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Warnf("Data Path not found\n")
 		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
 
-		if buf, err := smf_context.
-			BuildGSMPDUSessionEstablishmentReject(
-				smContext,
-				nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN); err != nil {
-			httpResponse = &httpwrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error:   &Nsmf_PDUSession.InsufficientResourceSliceDnn,
-						N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
-					},
-				},
-			}
-		} else {
-			httpResponse = &httpwrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error:   &Nsmf_PDUSession.InsufficientResourceSliceDnn,
-						N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
-					},
-					BinaryDataN1SmMessage: buf,
-				},
-			}
-		}
-
-		return httpResponse
+		return makeErrorResponse(smContext, nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
+			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
 	}
 
 	if problemDetails, err := consumer.SendNFDiscoveryServingAMF(smContext); err != nil {
@@ -1045,4 +978,38 @@ func releaseTunnel(smContext *smf_context.SMContext) {
 			}
 		}
 	}
+}
+
+func makeErrorResponse(smContext *smf_context.SMContext, nasErrorCause uint8,
+	sbiError *models.ProblemDetails) *httpwrapper.Response {
+	var httpResponse *httpwrapper.Response
+
+	if buf, err := smf_context.
+		BuildGSMPDUSessionEstablishmentReject(
+			smContext,
+			nasErrorCause); err != nil {
+		httpResponse = &httpwrapper.Response{
+			Header: nil,
+			Status: int(sbiError.Status),
+			Body: models.PostSmContextsErrorResponse{
+				JsonData: &models.SmContextCreateError{
+					Error:   sbiError,
+					N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
+				},
+			},
+		}
+	} else {
+		httpResponse = &httpwrapper.Response{
+			Header: nil,
+			Status: int(sbiError.Status),
+			Body: models.PostSmContextsErrorResponse{
+				JsonData: &models.SmContextCreateError{
+					Error:   sbiError,
+					N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
+				},
+				BinaryDataN1SmMessage: buf,
+			},
+		}
+	}
+	return httpResponse
 }
