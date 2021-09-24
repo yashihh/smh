@@ -161,34 +161,11 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Errorf("PDU Session Establishment fail by %s", err)
 		gsmError := &GSMError{}
 		if errors.As(err, &gsmError) {
-			if buf, buildGSMError :=
-				smf_context.BuildGSMPDUSessionEstablishmentReject(smContext, gsmError.GSMCause); buildGSMError != nil {
-				smContext.Log.Errorf("Build PDU Session Establishment Reject failed: %s", buildGSMError)
-			} else {
-				httpResponse = &httpwrapper.Response{
-					Header: nil,
-					Status: http.StatusForbidden,
-					Body: models.PostSmContextsErrorResponse{
-						JsonData: &models.SmContextCreateError{
-							Error:   &Nsmf_PDUSession.N1SmError,
-							N1SmMsg: &models.RefToBinaryData{ContentId: "n1SmMsg"},
-						},
-						BinaryDataN1SmMessage: buf,
-					},
-				}
-			}
+			httpResponse = makeErrorResponse(smContext, gsmError.GSMCause, &Nsmf_PDUSession.N1SmError)
 		} else {
-			httpResponse = &httpwrapper.Response{
-				Header: nil,
-				Status: http.StatusForbidden,
-				Body: models.PostSmContextsErrorResponse{
-					JsonData: &models.SmContextCreateError{
-						Error: &Nsmf_PDUSession.N1SmError,
-					},
-				},
-			}
+			httpResponse = makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+				&Nsmf_PDUSession.N1SmError)
 		}
-
 		return httpResponse
 	}
 
