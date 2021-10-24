@@ -36,6 +36,23 @@ func HandlePDUSessionEstablishmentRequest(
 	// Retrieve PTI (Procedure transaction identity)
 	smCtx.Pti = req.GetPTI()
 
+	// Retrieve MaxIntegrityProtectedDataRate of UE for UP Security
+	switch req.GetMaximumDataRatePerUEForUserPlaneIntegrityProtectionForUpLink() {
+	case 0x00:
+		smCtx.MaximumDataRatePerUEForUserPlaneIntegrityProtectionForUpLink =
+			models.MaxIntegrityProtectedDataRate__64_KBPS
+	case 0xff:
+		smCtx.MaximumDataRatePerUEForUserPlaneIntegrityProtectionForUpLink =
+			models.MaxIntegrityProtectedDataRate_MAX_UE_RATE
+	}
+	switch req.GetMaximumDataRatePerUEForUserPlaneIntegrityProtectionForDownLink() {
+	case 0x00:
+		smCtx.MaximumDataRatePerUEForUserPlaneIntegrityProtectionForDownLink =
+			models.MaxIntegrityProtectedDataRate__64_KBPS
+	case 0xff:
+		smCtx.MaximumDataRatePerUEForUserPlaneIntegrityProtectionForDownLink =
+			models.MaxIntegrityProtectedDataRate_MAX_UE_RATE
+	}
 	// Handle PDUSessionType
 	if req.PDUSessionType != nil {
 		requestedPDUSessionType := req.PDUSessionType.GetPDUSessionTypeValue()
