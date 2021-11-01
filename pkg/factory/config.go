@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	SMF_EXPECTED_CONFIG_VERSION        = "1.0.4"
+	SMF_EXPECTED_CONFIG_VERSION        = "1.0.5"
 	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.1"
 	SMF_DEFAULT_IPV4                   = "127.0.0.2"
 	SMF_DEFAULT_PORT                   = "8000"
@@ -463,9 +463,24 @@ func (u *UPNode) validate() (bool, error) {
 		}
 	}
 
+	n3IfsNum := 0
+	n9IfsNum := 0
 	for _, interfaceUpfInfo := range u.InterfaceUpfInfoList {
 		if result, err := interfaceUpfInfo.validate(); err != nil {
 			return result, err
+		}
+		if interfaceUpfInfo.InterfaceType == "N3" {
+			n3IfsNum++
+		}
+
+		if interfaceUpfInfo.InterfaceType == "N9" {
+			n9IfsNum++
+		}
+
+		if n3IfsNum > 1 || n9IfsNum > 1 {
+			return false, fmt.Errorf(
+				"Not support multiple InterfaceUpfInfo for the same type: N3 number(%d), N9 number(%d)",
+				n3IfsNum, n9IfsNum)
 		}
 	}
 	result, err := govalidator.ValidateStruct(u)
@@ -473,9 +488,9 @@ func (u *UPNode) validate() (bool, error) {
 }
 
 type InterfaceUpfInfoItem struct {
-	InterfaceType   models.UpInterfaceType `yaml:"interfaceType" valid:"required"`
-	Endpoints       []string               `yaml:"endpoints" valid:"required"`
-	NetworkInstance string                 `yaml:"networkInstance" valid:"type(string),minstringlength(1),required"`
+	InterfaceType    models.UpInterfaceType `yaml:"interfaceType" valid:"required"`
+	Endpoints        []string               `yaml:"endpoints" valid:"required"`
+	NetworkInstances []string               `yaml:"networkInstances" valid:"required"`
 }
 
 func (i *InterfaceUpfInfoItem) validate() (bool, error) {

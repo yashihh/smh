@@ -53,7 +53,7 @@ var userPlaneConfig = factory.UserPlaneInformation{
 					Endpoints: []string{
 						"127.0.0.8",
 					},
-					NetworkInstance: "internet",
+					NetworkInstances: []string{"internet"},
 				},
 			},
 		},

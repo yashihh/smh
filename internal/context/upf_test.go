@@ -19,9 +19,9 @@ var mockIPv4NodeID = &pfcpType.NodeID{
 
 var mockIfaces = []*factory.InterfaceUpfInfoItem{
 	{
-		InterfaceType:   "N3",
-		Endpoints:       []string{"127.0.0.1"},
-		NetworkInstance: "internet",
+		InterfaceType:    "N3",
+		Endpoints:        []string{"127.0.0.1"},
+		NetworkInstances: []string{"internet"},
 	},
 }
 
@@ -53,7 +53,7 @@ func TestIP(t *testing.T) {
 	}{
 		{
 			input: &UPFInterfaceInfo{
-				NetworkInstance:       "",
+				NetworkInstances:      []string{""},
 				IPv4EndPointAddresses: []net.IP{net.ParseIP("8.8.8.8")},
 				IPv6EndPointAddresses: []net.IP{net.ParseIP("2001:4860:4860::8888")},
 				EndpointFQDN:          "www.google.com",
@@ -65,7 +65,7 @@ func TestIP(t *testing.T) {
 		},
 		{
 			input: &UPFInterfaceInfo{
-				NetworkInstance:       "",
+				NetworkInstances:      []string{""},
 				IPv4EndPointAddresses: []net.IP{net.ParseIP("8.8.8.8")},
 				IPv6EndPointAddresses: []net.IP{net.ParseIP("2001:4860:4860::8888")},
 				EndpointFQDN:          "www.google.com",

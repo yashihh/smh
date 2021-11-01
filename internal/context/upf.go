@@ -90,7 +90,7 @@ type UPFSelectionParams struct {
 
 // UPFInterfaceInfo store the UPF interface information
 type UPFInterfaceInfo struct {
-	NetworkInstance       string
+	NetworkInstances      []string
 	IPv4EndPointAddresses []net.IP
 	IPv6EndPointAddresses []net.IP
 	EndpointFQDN          string
@@ -116,7 +116,8 @@ func NewUPFInterfaceInfo(i *factory.InterfaceUpfInfoItem) *UPFInterfaceInfo {
 		}
 	}
 
-	interfaceInfo.NetworkInstance = i.NetworkInstance
+	interfaceInfo.NetworkInstances = make([]string, len(i.NetworkInstances))
+	copy(interfaceInfo.NetworkInstances, i.NetworkInstances)
 
 	return interfaceInfo
 }
@@ -249,14 +250,18 @@ func (upf *UPF) GetInterface(interfaceType models.UpInterfaceType, dnn string) *
 	switch interfaceType {
 	case models.UpInterfaceType_N3:
 		for i, iface := range upf.N3Interfaces {
-			if iface.NetworkInstance == dnn {
-				return upf.N3Interfaces[i]
+			for _, nwInst := range iface.NetworkInstances {
+				if nwInst == dnn {
+					return upf.N3Interfaces[i]
+				}
 			}
 		}
 	case models.UpInterfaceType_N9:
 		for i, iface := range upf.N9Interfaces {
-			if iface.NetworkInstance == dnn {
-				return upf.N9Interfaces[i]
+			for _, nwInst := range iface.NetworkInstances {
+				if nwInst == dnn {
+					return upf.N9Interfaces[i]
+				}
 			}
 		}
 	}
