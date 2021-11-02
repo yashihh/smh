@@ -6,6 +6,7 @@
 # Build
 build/
 log/
+vendor/
 # emacs/vim
 GPATH
 GRTAGS
