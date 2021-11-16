@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	bitbucket.org/free5gc-team/aper v0.0.0-20210812055911-3c0f9b418266
-	bitbucket.org/free5gc-team/nas v0.0.0-20211014135214-bd1825a2eea4
+	bitbucket.org/free5gc-team/nas v0.0.0-20211116041141-def2de648f05
 	bitbucket.org/free5gc-team/ngap v0.0.0-20211014134938-795d0e95d472
 	bitbucket.org/free5gc-team/openapi v0.0.0-20211014134522-20e0d874611c
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20210816081806-9177891133e3
