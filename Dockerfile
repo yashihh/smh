@@ -10,6 +10,11 @@ ARG DEBUG_TOOLS
 RUN if [ "$DEBUG_TOOLS" = "true" ] ; then apk add -U vim strace net-tools curl netcat-openbsd ; fi
 
 # Set working dir
+
+Run addgroup -S free5gc && adduser -S free5gc 
+Run mkdir -p /free5gc && chown -R free5gc:free5gc /free5gc
+USER free5gc
+
 WORKDIR /free5gc
 RUN mkdir -p config/ log/ support/TLS/ ${F5GC_MODULE}/
 
