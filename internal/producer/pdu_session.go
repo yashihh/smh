@@ -451,20 +451,18 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			ANUPF := dataPath.FirstDPNode
 			DLPDR := ANUPF.DownLinkTunnel.PDR
 			if DLPDR == nil {
-				smContext.Log.Errorf("AN Release Error")
+				smContext.Log.Warnf("Access network resource is released")
 			} else {
 				DLPDR.FAR.State = smf_context.RULE_UPDATE
 				DLPDR.FAR.ApplyAction.Forw = false
 				DLPDR.FAR.ApplyAction.Buff = true
 				DLPDR.FAR.ApplyAction.Nocp = true
 				smContext.PendingUPF[ANUPF.GetNodeIP()] = true
+				farList = append(farList, DLPDR.FAR)
+				sendPFCPModification = true
+				smContext.SetState(smf_context.PFCPModification)
 			}
-
-			farList = append(farList, DLPDR.FAR)
 		}
-
-		sendPFCPModification = true
-		smContext.SetState(smf_context.PFCPModification)
 	}
 
 	switch smContextUpdateData.N2SmInfoType {
