@@ -352,6 +352,35 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				smContext.Log.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
 				response.BinaryDataN1SmMessage = buf
+				smContext.T3592 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
+					n1n2Request := models.N1N2MessageTransferRequest{}
+					n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
+						PduSessionId: smContext.PDUSessionID,
+						N1MessageContainer: &models.N1MessageContainer{
+							N1MessageClass:   "SM",
+							N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
+						},
+					}
+
+					n1n2Request.BinaryDataN1Message = buf
+
+					rspData, rsp, err := smContext.
+						CommunicationClient.
+						N1N2MessageCollectionDocumentApi.
+						N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+					if err != nil {
+						smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionReleaseCommand failed: %s", err)
+					}
+					if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+						smContext.Log.Warnf("%v", rspData.Cause)
+					}
+					if err := rsp.Body.Close(); err != nil {
+						smContext.Log.Warn("Close body failed", err)
+					}
+				}, func() {
+					smContext.Log.Warn("T3592 Expires3 times, abort notification procedure")
+					smContext.T3592 = nil
+				})
 			}
 
 			response.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseCommand"}
@@ -379,6 +408,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
 			smContext.SetState(smf_context.InActive)
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
+			smContext.T3592.Stop()
+			smContext.T3592 = nil
 
 			// If CN tunnel resource is released, should
 			if smContext.Tunnel.ANInformation.IPAddress == nil {
@@ -398,6 +429,34 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 					smContext.Log.Errorf("build GSM PDUSessionModificationCommand failed: %+v", err)
 				} else {
 					response.BinaryDataN1SmMessage = buf
+					smContext.T3591 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
+						n1n2Request := models.N1N2MessageTransferRequest{}
+						n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
+							PduSessionId: smContext.PDUSessionID,
+							N1MessageContainer: &models.N1MessageContainer{
+								N1MessageClass:   "SM",
+								N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
+							},
+						}
+						n1n2Request.BinaryDataN1Message = buf
+
+						rspData, rsp, err := smContext.
+							CommunicationClient.
+							N1N2MessageCollectionDocumentApi.
+							N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+						if err != nil {
+							smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionModificationCommand failed: %s", err)
+						}
+						if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+							smContext.Log.Warnf("%v", rspData.Cause)
+						}
+						if err := rsp.Body.Close(); err != nil {
+							smContext.Log.Warn("Close body failed", err)
+						}
+					}, func() {
+						smContext.Log.Warn("T3591 Expires3 times, abort notification procedure")
+						smContext.T3591 = nil
+					})
 				}
 			}
 
@@ -406,6 +465,12 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				Status: http.StatusOK,
 				Body:   response,
 			}
+		case nas.MsgTypePDUSessionModificationComplete:
+			smContext.T3591.Stop()
+			smContext.T3591 = nil
+		case nas.MsgTypePDUSessionModificationReject:
+			smContext.T3591.Stop()
+			smContext.T3591 = nil
 		}
 	}
 
@@ -443,8 +508,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		smContext.UpCnxState = body.JsonData.UpCnxState
 		smContext.UeLocation = body.JsonData.UeLocation
 
-		// TODO: Deactivate N2 downlink tunnel
 		// Set FAR and An, N3 Release Info
+		// TODO: Deactivate all datapath in ANUPF
 		farList = []*smf_context.FAR{}
 		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range smContext.Tunnel.DataPathPool {

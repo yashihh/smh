@@ -153,6 +153,12 @@ type SMContext struct {
 	// Loggers
 	Log *logrus.Entry
 
+	// 5GSM Timers
+	// T3591 is PDU SESSION MODIFICATION COMMAND timer
+	T3591 *Timer
+	// T3592 is PDU SESSION RELEASE COMMAND timer
+	T3592 *Timer
+
 	// lock
 	SMLock      sync.Mutex
 	SMLockTimer *time.Timer
