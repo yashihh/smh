@@ -378,8 +378,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 						smContext.Log.Warn("Close body failed", err)
 					}
 				}, func() {
-					smContext.Log.Warn("T3592 Expires3 times, abort notification procedure")
+					smContext.Log.Warn("T3592 Expires 3 times, abort notification procedure")
 					smContext.T3592 = nil
+					sendSMContextStatusNotification(smContext)
 				})
 			}
 
