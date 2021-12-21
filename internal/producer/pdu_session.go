@@ -351,39 +351,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				smContext, nasMessage.Cause5GSMRegularDeactivation); err != nil {
 				smContext.Log.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
-				smContext.SMLock.Lock()
 				response.BinaryDataN1SmMessage = buf
-				n1n2Request := models.N1N2MessageTransferRequest{}
-				n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
-					PduSessionId: smContext.PDUSessionID,
-					N1MessageContainer: &models.N1MessageContainer{
-						N1MessageClass:   "SM",
-						N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
-					},
-				}
-
-				n1n2Request.BinaryDataN1Message = buf
-
-				smContext.T3592 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
-					rspData, rsp, err := smContext.
-						CommunicationClient.
-						N1N2MessageCollectionDocumentApi.
-						N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
-					if err != nil {
-						smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionReleaseCommand failed: %s", err)
-					}
-					if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
-						smContext.Log.Warnf("%v", rspData.Cause)
-					}
-					if err := rsp.Body.Close(); err != nil {
-						smContext.Log.Warn("Close body failed", err)
-					}
-					smContext.SMLock.Unlock()
-				}, func() {
-					smContext.Log.Warn("T3592 Expires 3 times, abort notification procedure")
-					smContext.T3592 = nil
-					sendSMContextStatusNotification(smContext)
-				})
+				StartT3592(smContext, buf)
 			}
 
 			response.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseCommand"}
@@ -411,8 +380,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
 			smContext.SetState(smf_context.InActive)
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
-			smContext.T3592.Stop()
-			smContext.T3592 = nil
+			StopT3592(smContext)
 
 			// If CN tunnel resource is released, should
 			if smContext.Tunnel.ANInformation.IPAddress == nil {
@@ -431,37 +399,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				if buf, err := rsp.PlainNasEncode(); err != nil {
 					smContext.Log.Errorf("build GSM PDUSessionModificationCommand failed: %+v", err)
 				} else {
-					n1n2Request := models.N1N2MessageTransferRequest{}
-					n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
-						PduSessionId: smContext.PDUSessionID,
-						N1MessageContainer: &models.N1MessageContainer{
-							N1MessageClass:   "SM",
-							N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
-						},
-					}
-					n1n2Request.BinaryDataN1Message = buf
-
 					response.BinaryDataN1SmMessage = buf
-					smContext.T3591 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
-						smContext.SMLock.Lock()
-						rspData, rsp, err := smContext.
-							CommunicationClient.
-							N1N2MessageCollectionDocumentApi.
-							N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
-						if err != nil {
-							smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionModificationCommand failed: %s", err)
-						}
-						if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
-							smContext.Log.Warnf("%v", rspData.Cause)
-						}
-						if err := rsp.Body.Close(); err != nil {
-							smContext.Log.Warn("Close body failed", err)
-						}
-						smContext.SMLock.Unlock()
-					}, func() {
-						smContext.Log.Warn("T3591 Expires3 times, abort notification procedure")
-						smContext.T3591 = nil
-					})
+					StartT3591(smContext, buf)
 				}
 			}
 
@@ -471,11 +410,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				Body:   response,
 			}
 		case nas.MsgTypePDUSessionModificationComplete:
-			smContext.T3591.Stop()
-			smContext.T3591 = nil
+			StopT3591(smContext)
 		case nas.MsgTypePDUSessionModificationReject:
-			smContext.T3591.Stop()
-			smContext.T3591 = nil
+			StopT3591(smContext)
 		}
 	}
 
@@ -1084,4 +1021,94 @@ func makeErrorResponse(smContext *smf_context.SMContext, nasErrorCause uint8,
 		}
 	}
 	return httpResponse
+}
+
+func StartT3592(smContext *smf_context.SMContext, nasPdu []byte) {
+	n1n2Request := models.N1N2MessageTransferRequest{}
+	n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
+		PduSessionId: smContext.PDUSessionID,
+		N1MessageContainer: &models.N1MessageContainer{
+			N1MessageClass:   "SM",
+			N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
+		},
+	}
+	n1n2Request.BinaryDataN1Message = nasPdu
+	if smContext.T3592 != nil {
+		smContext.T3592.Stop()
+		smContext.T3592 = nil
+	}
+	smContext.T3592 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
+		smContext.SMLock.Lock()
+		rspData, rsp, err := smContext.
+			CommunicationClient.
+			N1N2MessageCollectionDocumentApi.
+			N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+		if err != nil {
+			smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionReleaseCommand failed: %s", err)
+		}
+		if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+			smContext.Log.Warnf("%v", rspData.Cause)
+		}
+		if err := rsp.Body.Close(); err != nil {
+			smContext.Log.Warn("Close body failed", err)
+		}
+		smContext.SMLock.Unlock()
+	}, func() {
+		smContext.Log.Warn("T3592 Expires 3 times, abort notification procedure")
+		smContext.SMLock.Lock()
+		smContext.T3592 = nil
+		sendSMContextStatusNotification(smContext)
+		smContext.SMLock.Unlock()
+	})
+}
+
+func StartT3591(smContext *smf_context.SMContext, nasPdu []byte) {
+	n1n2Request := models.N1N2MessageTransferRequest{}
+	n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
+		PduSessionId: smContext.PDUSessionID,
+		N1MessageContainer: &models.N1MessageContainer{
+			N1MessageClass:   "SM",
+			N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
+		},
+	}
+	n1n2Request.BinaryDataN1Message = nasPdu
+
+	if smContext.T3591 != nil {
+		smContext.T3591.Stop()
+		smContext.T3591 = nil
+	}
+	smContext.T3591 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
+		smContext.SMLock.Lock()
+		defer smContext.SMLock.Unlock()
+		rspData, rsp, err := smContext.
+			CommunicationClient.
+			N1N2MessageCollectionDocumentApi.
+			N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+		if err != nil {
+			smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionModificationCommand failed: %s", err)
+		}
+		if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+			smContext.Log.Warnf("%v", rspData.Cause)
+		}
+		if err := rsp.Body.Close(); err != nil {
+			smContext.Log.Warn("Close body failed", err)
+		}
+	}, func() {
+		smContext.Log.Warn("T3591 Expires3 times, abort notification procedure")
+		smContext.SMLock.Lock()
+		defer smContext.SMLock.Unlock()
+		smContext.T3591 = nil
+	})
+}
+
+func StopT3591(smContext *smf_context.SMContext) {
+	if smContext.T3591 != nil {
+		smContext.T3591.Stop()
+	}
+}
+
+func StopT3592(smContext *smf_context.SMContext) {
+	if smContext.T3592 != nil {
+		smContext.T3592.Stop()
+	}
 }
