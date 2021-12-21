@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"bitbucket.org/free5GC/smf/internal/logger"
+	"bitbucket.org/free5gc-team/smf/internal/logger"
 )
 
 // Timer can be used for retransmission, it will manage retry times automatically
