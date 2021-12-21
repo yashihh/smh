@@ -524,6 +524,20 @@ func (smContext *SMContext) SelectedSessionRule() *SessionRule {
 	return nil
 }
 
+func (smContext *SMContext) StopT3591() {
+	if smContext.T3591 != nil {
+		smContext.T3591.Stop()
+		smContext.T3591 = nil
+	}
+}
+
+func (smContext *SMContext) StopT3592() {
+	if smContext.T3592 != nil {
+		smContext.T3592.Stop()
+		smContext.T3592 = nil
+	}
+}
+
 func (smContextState SMContextState) String() string {
 	switch smContextState {
 	case InActive:

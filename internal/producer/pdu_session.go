@@ -352,7 +352,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				smContext.Log.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
 				response.BinaryDataN1SmMessage = buf
-				StartT3592(smContext, buf)
+				sendGSMPDUSessionReleaseCommand(smContext, buf)
 			}
 
 			response.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseCommand"}
@@ -380,7 +380,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
 			smContext.SetState(smf_context.InActive)
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
-			StopT3592(smContext)
+			smContext.StopT3592()
 
 			// If CN tunnel resource is released, should
 			if smContext.Tunnel.ANInformation.IPAddress == nil {
@@ -400,7 +400,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 					smContext.Log.Errorf("build GSM PDUSessionModificationCommand failed: %+v", err)
 				} else {
 					response.BinaryDataN1SmMessage = buf
-					StartT3591(smContext, buf)
+					sendGSMPDUSessionModificationCommand(smContext, buf)
 				}
 			}
 
@@ -410,9 +410,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				Body:   response,
 			}
 		case nas.MsgTypePDUSessionModificationComplete:
-			StopT3591(smContext)
+			smContext.StopT3591()
 		case nas.MsgTypePDUSessionModificationReject:
-			StopT3591(smContext)
+			smContext.StopT3591()
 		}
 	}
 
@@ -1023,7 +1023,7 @@ func makeErrorResponse(smContext *smf_context.SMContext, nasErrorCause uint8,
 	return httpResponse
 }
 
-func StartT3592(smContext *smf_context.SMContext, nasPdu []byte) {
+func sendGSMPDUSessionReleaseCommand(smContext *smf_context.SMContext, nasPdu []byte) {
 	n1n2Request := models.N1N2MessageTransferRequest{}
 	n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
 		PduSessionId: smContext.PDUSessionID,
@@ -1037,6 +1037,8 @@ func StartT3592(smContext *smf_context.SMContext, nasPdu []byte) {
 		smContext.T3592.Stop()
 		smContext.T3592 = nil
 	}
+
+	// Start T3592
 	smContext.T3592 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
 		smContext.SMLock.Lock()
 		rspData, rsp, err := smContext.
@@ -1062,7 +1064,7 @@ func StartT3592(smContext *smf_context.SMContext, nasPdu []byte) {
 	})
 }
 
-func StartT3591(smContext *smf_context.SMContext, nasPdu []byte) {
+func sendGSMPDUSessionModificationCommand(smContext *smf_context.SMContext, nasPdu []byte) {
 	n1n2Request := models.N1N2MessageTransferRequest{}
 	n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
 		PduSessionId: smContext.PDUSessionID,
@@ -1077,6 +1079,8 @@ func StartT3591(smContext *smf_context.SMContext, nasPdu []byte) {
 		smContext.T3591.Stop()
 		smContext.T3591 = nil
 	}
+
+	// Start T3591
 	smContext.T3591 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
 		smContext.SMLock.Lock()
 		defer smContext.SMLock.Unlock()
@@ -1099,16 +1103,4 @@ func StartT3591(smContext *smf_context.SMContext, nasPdu []byte) {
 		defer smContext.SMLock.Unlock()
 		smContext.T3591 = nil
 	})
-}
-
-func StopT3591(smContext *smf_context.SMContext) {
-	if smContext.T3591 != nil {
-		smContext.T3591.Stop()
-	}
-}
-
-func StopT3592(smContext *smf_context.SMContext) {
-	if smContext.T3592 != nil {
-		smContext.T3592.Stop()
-	}
 }
