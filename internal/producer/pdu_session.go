@@ -18,6 +18,7 @@ import (
 	"bitbucket.org/free5gc-team/openapi/Nudm_SubscriberDataManagement"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	"bitbucket.org/free5gc-team/smf/internal/consumer"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
@@ -885,6 +886,9 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
 
+	smContext.StopT3591()
+	smContext.StopT3592()
+
 	// remove SM Policy Association
 	if smContext.SMPolicyID != "" {
 		if err := consumer.SendSMPolicyAssociationTermination(smContext); err != nil {
@@ -973,6 +977,9 @@ func releaseTunnel(smContext *smf_context.SMContext) {
 	deletedPFCPNode := make(map[string]bool)
 	smContext.PendingUPF = make(smf_context.PendingUPF)
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
+		if !dataPath.Activated {
+			continue
+		}
 		dataPath.DeactivateTunnelAndPDR(smContext)
 		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 			curUPFID, err := curDataPathNode.GetUPFID()
@@ -1039,29 +1046,32 @@ func sendGSMPDUSessionReleaseCommand(smContext *smf_context.SMContext, nasPdu []
 	}
 
 	// Start T3592
-	smContext.T3592 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
-		smContext.SMLock.Lock()
-		rspData, rsp, err := smContext.
-			CommunicationClient.
-			N1N2MessageCollectionDocumentApi.
-			N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
-		if err != nil {
-			smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionReleaseCommand failed: %s", err)
-		}
-		if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
-			smContext.Log.Warnf("%v", rspData.Cause)
-		}
-		if err := rsp.Body.Close(); err != nil {
-			smContext.Log.Warn("Close body failed", err)
-		}
-		smContext.SMLock.Unlock()
-	}, func() {
-		smContext.Log.Warn("T3592 Expires 3 times, abort notification procedure")
-		smContext.SMLock.Lock()
-		smContext.T3592 = nil
-		sendSMContextStatusNotification(smContext)
-		smContext.SMLock.Unlock()
-	})
+	t3592 := factory.SmfConfig.Configuration.T3592
+	if t3592.Enable {
+		smContext.T3592 = smf_context.NewTimer(t3592.ExpireTime, t3592.MaxRetryTimes, func(expireTimes int32) {
+			smContext.SMLock.Lock()
+			rspData, rsp, err := smContext.
+				CommunicationClient.
+				N1N2MessageCollectionDocumentApi.
+				N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+			if err != nil {
+				smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionReleaseCommand failed: %s", err)
+			}
+			if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+				smContext.Log.Warnf("%v", rspData.Cause)
+			}
+			if err := rsp.Body.Close(); err != nil {
+				smContext.Log.Warn("Close body failed", err)
+			}
+			smContext.SMLock.Unlock()
+		}, func() {
+			smContext.Log.Warn("T3592 Expires 3 times, abort notification procedure")
+			smContext.SMLock.Lock()
+			smContext.T3592 = nil
+			sendSMContextStatusNotification(smContext)
+			smContext.SMLock.Unlock()
+		})
+	}
 }
 
 func sendGSMPDUSessionModificationCommand(smContext *smf_context.SMContext, nasPdu []byte) {
@@ -1081,26 +1091,29 @@ func sendGSMPDUSessionModificationCommand(smContext *smf_context.SMContext, nasP
 	}
 
 	// Start T3591
-	smContext.T3591 = smf_context.NewTimer(16*time.Second, 3, func(expireTimes int32) {
-		smContext.SMLock.Lock()
-		defer smContext.SMLock.Unlock()
-		rspData, rsp, err := smContext.
-			CommunicationClient.
-			N1N2MessageCollectionDocumentApi.
-			N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
-		if err != nil {
-			smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionModificationCommand failed: %s", err)
-		}
-		if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
-			smContext.Log.Warnf("%v", rspData.Cause)
-		}
-		if err := rsp.Body.Close(); err != nil {
-			smContext.Log.Warn("Close body failed", err)
-		}
-	}, func() {
-		smContext.Log.Warn("T3591 Expires3 times, abort notification procedure")
-		smContext.SMLock.Lock()
-		defer smContext.SMLock.Unlock()
-		smContext.T3591 = nil
-	})
+	t3591 := factory.SmfConfig.Configuration.T3591
+	if t3591.Enable {
+		smContext.T3591 = smf_context.NewTimer(t3591.ExpireTime, t3591.MaxRetryTimes, func(expireTimes int32) {
+			smContext.SMLock.Lock()
+			defer smContext.SMLock.Unlock()
+			rspData, rsp, err := smContext.
+				CommunicationClient.
+				N1N2MessageCollectionDocumentApi.
+				N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+			if err != nil {
+				smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionModificationCommand failed: %s", err)
+			}
+			if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+				smContext.Log.Warnf("%v", rspData.Cause)
+			}
+			if err := rsp.Body.Close(); err != nil {
+				smContext.Log.Warn("Close body failed", err)
+			}
+		}, func() {
+			smContext.Log.Warn("T3591 Expires3 times, abort notification procedure")
+			smContext.SMLock.Lock()
+			defer smContext.SMLock.Unlock()
+			smContext.T3591 = nil
+		})
+	}
 }
