@@ -682,4 +682,3 @@ func (r *RoutingConfig) GetVersion() string {
 	}
 	return ""
 }
-

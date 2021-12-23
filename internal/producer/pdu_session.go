@@ -18,11 +18,11 @@ import (
 	"bitbucket.org/free5gc-team/openapi/Nudm_SubscriberDataManagement"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	"bitbucket.org/free5gc-team/smf/internal/consumer"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	pfcp_message "bitbucket.org/free5gc-team/smf/internal/pfcp/message"
+	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 
