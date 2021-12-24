@@ -153,6 +153,12 @@ type SMContext struct {
 	// Loggers
 	Log *logrus.Entry
 
+	// 5GSM Timers
+	// T3591 is PDU SESSION MODIFICATION COMMAND timer
+	T3591 *Timer
+	// T3592 is PDU SESSION RELEASE COMMAND timer
+	T3592 *Timer
+
 	// lock
 	SMLock      sync.Mutex
 	SMLockTimer *time.Timer
@@ -516,6 +522,20 @@ func (smContext *SMContext) SelectedSessionRule() *SessionRule {
 	}
 
 	return nil
+}
+
+func (smContext *SMContext) StopT3591() {
+	if smContext.T3591 != nil {
+		smContext.T3591.Stop()
+		smContext.T3591 = nil
+	}
+}
+
+func (smContext *SMContext) StopT3592() {
+	if smContext.T3592 != nil {
+		smContext.T3592.Stop()
+		smContext.T3592 = nil
+	}
 }
 
 func (smContextState SMContextState) String() string {

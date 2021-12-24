@@ -22,6 +22,7 @@ import (
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	pfcp_message "bitbucket.org/free5gc-team/smf/internal/pfcp/message"
+	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 
@@ -249,12 +250,11 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		}
 	}
 
-	SendPFCPRules(smContext)
-
 	// Add sm lock timer workaround, it Should be remove after PFCP trasaction function complete
 	smContext.SMLockTimer = time.AfterFunc(4*time.Second, func() {
 		smContext.SMLock.Unlock()
 	})
+	SendPFCPRules(smContext)
 
 	response.JsonData = smContext.BuildCreatedData()
 	httpResponse = &httpwrapper.Response{
@@ -352,6 +352,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				smContext.Log.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
 				response.BinaryDataN1SmMessage = buf
+				sendGSMPDUSessionReleaseCommand(smContext, buf)
 			}
 
 			response.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionReleaseCommand"}
@@ -379,6 +380,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
 			smContext.SetState(smf_context.InActive)
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
+			smContext.StopT3592()
 
 			// If CN tunnel resource is released, should
 			if smContext.Tunnel.ANInformation.IPAddress == nil {
@@ -398,6 +400,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 					smContext.Log.Errorf("build GSM PDUSessionModificationCommand failed: %+v", err)
 				} else {
 					response.BinaryDataN1SmMessage = buf
+					sendGSMPDUSessionModificationCommand(smContext, buf)
 				}
 			}
 
@@ -406,6 +409,10 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				Status: http.StatusOK,
 				Body:   response,
 			}
+		case nas.MsgTypePDUSessionModificationComplete:
+			smContext.StopT3591()
+		case nas.MsgTypePDUSessionModificationReject:
+			smContext.StopT3591()
 		}
 	}
 
@@ -443,28 +450,26 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		smContext.UpCnxState = body.JsonData.UpCnxState
 		smContext.UeLocation = body.JsonData.UeLocation
 
-		// TODO: Deactivate N2 downlink tunnel
 		// Set FAR and An, N3 Release Info
+		// TODO: Deactivate all datapath in ANUPF
 		farList = []*smf_context.FAR{}
 		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range smContext.Tunnel.DataPathPool {
 			ANUPF := dataPath.FirstDPNode
 			DLPDR := ANUPF.DownLinkTunnel.PDR
 			if DLPDR == nil {
-				smContext.Log.Errorf("AN Release Error")
+				smContext.Log.Warnf("Access network resource is released")
 			} else {
 				DLPDR.FAR.State = smf_context.RULE_UPDATE
 				DLPDR.FAR.ApplyAction.Forw = false
 				DLPDR.FAR.ApplyAction.Buff = true
 				DLPDR.FAR.ApplyAction.Nocp = true
 				smContext.PendingUPF[ANUPF.GetNodeIP()] = true
+				farList = append(farList, DLPDR.FAR)
+				sendPFCPModification = true
+				smContext.SetState(smf_context.PFCPModification)
 			}
-
-			farList = append(farList, DLPDR.FAR)
 		}
-
-		sendPFCPModification = true
-		smContext.SetState(smf_context.PFCPModification)
 	}
 
 	switch smContextUpdateData.N2SmInfoType {
@@ -880,6 +885,9 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
 
+	smContext.StopT3591()
+	smContext.StopT3592()
+
 	// remove SM Policy Association
 	if smContext.SMPolicyID != "" {
 		if err := consumer.SendSMPolicyAssociationTermination(smContext); err != nil {
@@ -968,6 +976,9 @@ func releaseTunnel(smContext *smf_context.SMContext) {
 	deletedPFCPNode := make(map[string]bool)
 	smContext.PendingUPF = make(smf_context.PendingUPF)
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
+		if !dataPath.Activated {
+			continue
+		}
 		dataPath.DeactivateTunnelAndPDR(smContext)
 		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 			curUPFID, err := curDataPathNode.GetUPFID()
@@ -1016,4 +1027,92 @@ func makeErrorResponse(smContext *smf_context.SMContext, nasErrorCause uint8,
 		}
 	}
 	return httpResponse
+}
+
+func sendGSMPDUSessionReleaseCommand(smContext *smf_context.SMContext, nasPdu []byte) {
+	n1n2Request := models.N1N2MessageTransferRequest{}
+	n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
+		PduSessionId: smContext.PDUSessionID,
+		N1MessageContainer: &models.N1MessageContainer{
+			N1MessageClass:   "SM",
+			N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
+		},
+	}
+	n1n2Request.BinaryDataN1Message = nasPdu
+	if smContext.T3592 != nil {
+		smContext.T3592.Stop()
+		smContext.T3592 = nil
+	}
+
+	// Start T3592
+	t3592 := factory.SmfConfig.Configuration.T3592
+	if t3592.Enable {
+		smContext.T3592 = smf_context.NewTimer(t3592.ExpireTime, t3592.MaxRetryTimes, func(expireTimes int32) {
+			smContext.SMLock.Lock()
+			rspData, rsp, err := smContext.
+				CommunicationClient.
+				N1N2MessageCollectionDocumentApi.
+				N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+			if err != nil {
+				smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionReleaseCommand failed: %s", err)
+			}
+			if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+				smContext.Log.Warnf("%v", rspData.Cause)
+			}
+			if err := rsp.Body.Close(); err != nil {
+				smContext.Log.Warn("Close body failed", err)
+			}
+			smContext.SMLock.Unlock()
+		}, func() {
+			smContext.Log.Warn("T3592 Expires 3 times, abort notification procedure")
+			smContext.SMLock.Lock()
+			smContext.T3592 = nil
+			sendSMContextStatusNotification(smContext)
+			smContext.SMLock.Unlock()
+		})
+	}
+}
+
+func sendGSMPDUSessionModificationCommand(smContext *smf_context.SMContext, nasPdu []byte) {
+	n1n2Request := models.N1N2MessageTransferRequest{}
+	n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
+		PduSessionId: smContext.PDUSessionID,
+		N1MessageContainer: &models.N1MessageContainer{
+			N1MessageClass:   "SM",
+			N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
+		},
+	}
+	n1n2Request.BinaryDataN1Message = nasPdu
+
+	if smContext.T3591 != nil {
+		smContext.T3591.Stop()
+		smContext.T3591 = nil
+	}
+
+	// Start T3591
+	t3591 := factory.SmfConfig.Configuration.T3591
+	if t3591.Enable {
+		smContext.T3591 = smf_context.NewTimer(t3591.ExpireTime, t3591.MaxRetryTimes, func(expireTimes int32) {
+			smContext.SMLock.Lock()
+			defer smContext.SMLock.Unlock()
+			rspData, rsp, err := smContext.
+				CommunicationClient.
+				N1N2MessageCollectionDocumentApi.
+				N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+			if err != nil {
+				smContext.Log.Warnf("Send N1N2Transfer for GSMPDUSessionModificationCommand failed: %s", err)
+			}
+			if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+				smContext.Log.Warnf("%v", rspData.Cause)
+			}
+			if err := rsp.Body.Close(); err != nil {
+				smContext.Log.Warn("Close body failed", err)
+			}
+		}, func() {
+			smContext.Log.Warn("T3591 Expires3 times, abort notification procedure")
+			smContext.SMLock.Lock()
+			defer smContext.SMLock.Unlock()
+			smContext.T3591 = nil
+		})
+	}
 }

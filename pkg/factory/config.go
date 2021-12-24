@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	SMF_EXPECTED_CONFIG_VERSION        = "1.0.5"
+	SMF_EXPECTED_CONFIG_VERSION        = "1.0.6"
 	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.1"
 	SMF_DEFAULT_IPV4                   = "127.0.0.2"
 	SMF_DEFAULT_PORT                   = "8000"
@@ -84,6 +84,8 @@ type Configuration struct {
 	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
 	PLMNList             []PlmnID             `yaml:"plmnList,omitempty"  valid:"optional"`
 	Locality             string               `yaml:"locality,omitempty" valid:"type(string),optional"`
+	T3591                *TimerValue          `yaml:"t3591" valid:"required"`
+	T3592                *TimerValue          `yaml:"t3592" valid:"required"`
 }
 
 func (c *Configuration) validate() (bool, error) {
@@ -128,6 +130,18 @@ func (c *Configuration) validate() (bool, error) {
 			if result, err := plmnId.validate(); err != nil {
 				return result, err
 			}
+		}
+	}
+
+	if t3591 := c.T3591; t3591 != nil {
+		if result, err := t3591.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	if t3592 := c.T3592; t3592 != nil {
+		if result, err := t3592.validate(); err != nil {
+			return result, err
 		}
 	}
 
@@ -642,6 +656,17 @@ func (p *PlmnID) validate() (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+type TimerValue struct {
+	Enable        bool          `yaml:"enable" valid:"type(bool)"`
+	ExpireTime    time.Duration `yaml:"expireTime" valid:"type(time.Duration)"`
+	MaxRetryTimes int           `yaml:"maxRetryTimes,omitempty" valid:"type(int)"`
+}
+
+func (t *TimerValue) validate() (bool, error) {
+	result, err := govalidator.ValidateStruct(t)
+	return result, err
 }
 
 func (c *Config) GetVersion() string {
