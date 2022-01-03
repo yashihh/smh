@@ -520,19 +520,18 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Errorf("Handle PDUSessionResourceSetupResponseTransfer failed: %+v", err)
 		}
 	case models.N2SmInfoType_PDU_RES_REL_RSP:
-		smContext.Log.Infoln("[SMF] N2 PDUSession Release Complete")
-
 		// remove an tunnel info
 		smContext.Tunnel.ANInformation = struct {
 			IPAddress net.IP
 			TEID      uint32
 		}{nil, 0}
 
+		smContext.Log.Infoln("Handle N2 PDU Resource Release Response")
 		if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
 			smContext.CheckState(smf_context.InActivePending)
 			// Wait till the state becomes Active again
 			// TODO: implement sleep wait in concurrent architecture
-			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
+			smContext.Log.Infoln("Release_DUE_TO_DUP_PDU_ID: Send Update SmContext Response")
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
 			// If NAS layer is inActive, the context should be remove
 			if smContext.CheckState(smf_context.InActive) {
@@ -541,12 +540,16 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				smf_context.RemoveSMContext(smContextRef)
 			}
 		} else { // normal case
-			smContext.CheckState(smf_context.InActivePending)
 			// Wait till the state becomes Active again
 			// TODO: implement sleep wait in concurrent architecture
 
-			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
-			smContext.SetState(smf_context.InActivePending)
+			if smContext.CheckState(smf_context.InActive) {
+				// If N1 PDU Session Release Complete is received, smContext state is InActive.
+				// Remove SMContext when receiving N2 PDU Resource Release Response.
+				// Use go routine to send Notification to prevent blocking the handling process
+				go sendSMContextStatusNotification(smContext)
+				smf_context.RemoveSMContext(smContext.Ref)
+			}
 		}
 	case models.N2SmInfoType_PATH_SWITCH_REQ:
 		smContext.Log.Traceln("Handle Path Switch Request")
