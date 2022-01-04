@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/antihax/optional"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
@@ -328,6 +329,10 @@ func (smContext *SMContext) PDUAddressToNAS() (addr [12]byte, addrLen uint8) {
 func (smContext *SMContext) PCFSelection() error {
 	// Send NFDiscovery for find PCF
 	localVarOptionals := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
+
+	if SMF_Self().Locality != "" {
+		localVarOptionals.PreferredLocality = optional.NewString(SMF_Self().Locality)
+	}
 
 	rep, res, err := SMF_Self().
 		NFDiscoveryClient.
