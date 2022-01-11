@@ -20,7 +20,7 @@ import (
 func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNotification) *httpwrapper.Response {
 	logger.PduSessLog.Infoln("In HandleSMPolicyUpdateNotify")
 	decision := request.SmPolicyDecision
-	smContext := smf_context.GetSMContext(smContextRef)
+	smContext := smf_context.GetSMContextByRef(smContextRef)
 
 	if smContext == nil {
 		logger.PduSessLog.Errorf("SMContext[%s] not found", smContextRef)

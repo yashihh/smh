@@ -50,10 +50,10 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		return httpResponse
 	}
 
-	// Check duplicate SM Context
 	createData := request.JsonData
-	if check, duplicated_smContext := smf_context.CheckDuplicate(createData); check {
-		HandlePDUSessionSMContextLocalRelease(duplicated_smContext, createData)
+	// Check duplicate SM Context
+	if dup_smCtx := smf_context.GetSMContextById(createData.Supi, createData.PduSessionId); dup_smCtx != nil {
+		HandlePDUSessionSMContextLocalRelease(dup_smCtx, createData)
 	}
 
 	smContext := smf_context.NewSMContext(createData.Supi, createData.PduSessionId)
@@ -279,7 +279,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	// PDU Session Modification Reject(Cause Value == 43 || Cause Value != 43)/Complete
 	// PDU Session Release Command/Complete
 	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextUpdate")
-	smContext := smf_context.GetSMContext(smContextRef)
+	smContext := smf_context.GetSMContextByRef(smContextRef)
 
 	if smContext == nil {
 		logger.PduSessLog.Warnf("SMContext[%s] is not found", smContextRef)
@@ -878,7 +878,7 @@ func sendSMContextStatusNotification(smContext *smf_context.SMContext) {
 
 func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSmContextRequest) *httpwrapper.Response {
 	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextRelease")
-	smContext := smf_context.GetSMContext(smContextRef)
+	smContext := smf_context.GetSMContextByRef(smContextRef)
 
 	if smContext == nil {
 		logger.PduSessLog.Warnf("SMContext[%s] is not found", smContextRef)

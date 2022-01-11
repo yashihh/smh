@@ -580,6 +580,14 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 					})
 				})
 			})
+
+			createData := tc.request.JsonData
+			if createData != nil {
+				if ref, err := context.ResolveRef(createData.Supi,
+					createData.PduSessionId); err == nil {
+					context.RemoveSMContext(ref)
+				}
+			}
 		}
 	})
 
