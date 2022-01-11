@@ -450,6 +450,16 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		// Wait till the state becomes Active again
 		// TODO: implement sleep wait in concurrent architecture
 
+		// If the PDU session has been released, skip sending PFCP Session Modification Request
+		if smContext.CheckState(smf_context.InActivePending) {
+			logger.CtxLog.Infof("Skip sending PFCP Session Modification Request of PDUSessionID:%d of SUPI:%s",
+				smContext.PDUSessionID, smContext.Supi)
+			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
+			return &httpwrapper.Response{
+				Status: http.StatusOK,
+				Body:   response,
+			}
+		}
 		smContext.SetState(smf_context.ModificationPending)
 		response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
 		smContext.UpCnxState = body.JsonData.UpCnxState
