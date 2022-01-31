@@ -36,7 +36,7 @@ configuration:
   plmnList: # the list of PLMN IDs that this SMF belongs to (optional, remove this key when unnecessary)
     - mcc: 208 # Mobile Country Code (3 digits string, digit: 0~9)
       mnc: 93 # Mobile Network Code (2 or 3 digits string, digit: 0~9)
-  locality: area1 # Name of the location where a set of AMF, SMF and UPFs are located
+  locality: area1 # Name of the location where a set of AMF, SMF, PCF and UPFs are located
   pfcp: # the IP address of N4 interface on this SMF (PFCP)
     # addr config is deprecated in smf config v1.0.3, please use the following config
     nodeID: 127.0.0.1 # the Node ID of this SMF
