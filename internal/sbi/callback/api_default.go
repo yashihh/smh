@@ -17,7 +17,7 @@ import (
 	"bitbucket.org/free5gc-team/openapi"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
-	"bitbucket.org/free5gc-team/smf/internal/producer"
+	"bitbucket.org/free5gc-team/smf/internal/sbi/producer"
 	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 

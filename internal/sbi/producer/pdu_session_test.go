@@ -18,7 +18,7 @@ import (
 	"bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/pfcp"
 	"bitbucket.org/free5gc-team/smf/internal/pfcp/udp"
-	"bitbucket.org/free5gc-team/smf/internal/producer"
+	"bitbucket.org/free5gc-team/smf/internal/sbi/producer"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	"bitbucket.org/free5gc-team/util/httpwrapper"
 )

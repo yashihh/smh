@@ -3,7 +3,7 @@ package oam
 import (
 	"github.com/gin-gonic/gin"
 
-	"bitbucket.org/free5gc-team/smf/internal/producer"
+	"bitbucket.org/free5gc-team/smf/internal/sbi/producer"
 	"bitbucket.org/free5gc-team/util/httpwrapper"
 )
 

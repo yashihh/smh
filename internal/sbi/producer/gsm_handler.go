@@ -11,9 +11,9 @@ import (
 	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/nas/nasType"
 	"bitbucket.org/free5gc-team/openapi/models"
-	"bitbucket.org/free5gc-team/smf/internal/consumer"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
+	"bitbucket.org/free5gc-team/smf/internal/sbi/consumer"
 	"bitbucket.org/free5gc-team/util/flowdesc"
 )
 

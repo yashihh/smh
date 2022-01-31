@@ -11,7 +11,7 @@ import (
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	pfcp_message "bitbucket.org/free5gc-team/smf/internal/pfcp/message"
-	"bitbucket.org/free5gc-team/smf/internal/producer"
+	"bitbucket.org/free5gc-team/smf/internal/sbi/producer"
 )
 
 func HandlePfcpHeartbeatRequest(msg *pfcpUdp.Message) {
