@@ -5,7 +5,7 @@ CFG_PATH = config
 
 PWD_PATH = $(shell pwd)
 NF_GO_FILES = $(shell find . -name "*.go" ! -name "*_test.go")
-NF_MAIN_FILE = cmd/$(NF).go
+NF_MAIN_FILE = cmd/main.go
 NF_CFG_FILE = $(NF)cfg.yaml
 
 VERSION = $(shell git describe --tags)
