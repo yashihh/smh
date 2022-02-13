@@ -25,9 +25,12 @@ import (
 func HTTPSmPolicyUpdateNotification(c *gin.Context) {
 	var request models.SmPolicyNotification
 
-	reqBody, _ := c.GetRawData()
+	reqBody, err := c.GetRawData()
+	if err != nil {
+		logger.PduSessLog.Errorln("GetRawData failed")
+	}
 
-	err := openapi.Deserialize(&request, reqBody, c.ContentType())
+	err = openapi.Deserialize(&request, reqBody, c.ContentType())
 	if err != nil {
 		logger.PduSessLog.Errorln("Deserialize request failed")
 	}
@@ -43,7 +46,14 @@ func HTTPSmPolicyUpdateNotification(c *gin.Context) {
 	}
 
 	resBody, err := openapi.Serialize(HTTPResponse.Body, "application/json")
-	c.Writer.Write(resBody)
+	if err != nil {
+		logger.PduSessLog.Errorln("Serialize failed")
+	}
+
+	_, err = c.Writer.Write(resBody)
+	if err != nil {
+		logger.PduSessLog.Errorln("Write failed")
+	}
 	c.Status(HTTPResponse.Status)
 }
 
