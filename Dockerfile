@@ -14,10 +14,10 @@ USER free5gc
 
 # Set working dir
 WORKDIR /free5gc
-RUN mkdir -p config/TLS/ log/ bin/
+RUN mkdir -p config/TLS/ log/
 
 # Copy executable
-COPY build/bin/${F5GC_MODULE} ./bin/
+COPY build/bin/${F5GC_MODULE} ./
 
 # Config files volume
 VOLUME [ "/free5gc/config" ]
