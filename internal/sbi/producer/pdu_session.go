@@ -352,8 +352,12 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				}
 			}
 
-			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(
-				smContext, nasMessage.Cause5GSMRegularDeactivation); err != nil {
+			cause := nasMessage.Cause5GSMRegularDeactivation
+			if m.PDUSessionReleaseRequest.Cause5GSM != nil {
+				cause = m.PDUSessionReleaseRequest.Cause5GSM.GetCauseValue()
+			}
+
+			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext, cause); err != nil {
 				smContext.Log.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
 				response.BinaryDataN1SmMessage = buf
