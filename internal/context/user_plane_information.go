@@ -447,7 +447,9 @@ func getPathBetween(cur *UPNode, dest *UPNode, visited map[*UPNode]bool,
 	return nil, false
 }
 
+// this function select PSA by SNSSAI, DNN and DNAI exlude IP
 func (upi *UserPlaneInformation) selectAnchorUPF(source *UPNode, selection *UPFSelectionParams) []*UPNode {
+	// UPFSelectionParams may have static IP, but we would not match static IP in "MatchedSelection" function
 	upList := make([]*UPNode, 0)
 	visited := make(map[*UPNode]bool)
 	queue := make([]*UPNode, 0)
@@ -512,24 +514,25 @@ func (upi *UserPlaneInformation) selectUPPathSource() (*UPNode, error) {
 	return nil, errors.New("AN Node not found")
 }
 
-func (upi *UserPlaneInformation) SelectUPFAndAllocUEIP(selection *UPFSelectionParams) (*UPNode, net.IP) {
+// SelectUPFAndAllocUEIP will return anchor UPF, allocated UE IP and use/not use static IP
+func (upi *UserPlaneInformation) SelectUPFAndAllocUEIP(selection *UPFSelectionParams) (*UPNode, net.IP, bool) {
 	source, err := upi.selectUPPathSource()
 	if err != nil {
-		return nil, nil
+		return nil, nil, false
 	}
 	UPFList := upi.selectAnchorUPF(source, selection)
 	listLength := len(UPFList)
 	if listLength == 0 {
 		logger.CtxLog.Warnf("Can't find UPF with DNN[%s] S-NSSAI[sst: %d sd: %s] DNAI[%s]\n", selection.Dnn,
 			selection.SNssai.Sst, selection.SNssai.Sd, selection.Dnai)
-		return nil, nil
+		return nil, nil, false
 	}
 	UPFList = upi.sortUPFListByName(UPFList)
 	sortedUPFList := createUPFListForSelection(UPFList)
 	for _, upf := range sortedUPFList {
 		logger.CtxLog.Debugf("check start UPF: %s",
 			upi.GetUPFNameByIp(upf.NodeID.ResolveNodeIdToIp().String()))
-		pools := getUEIPPool(upf, selection)
+		pools, useStaticIPPool := getUEIPPool(upf, selection)
 		if len(pools) == 0 {
 			continue
 		}
@@ -540,7 +543,7 @@ func (upi *UserPlaneInformation) SelectUPFAndAllocUEIP(selection *UPFSelectionPa
 			if addr != nil {
 				logger.CtxLog.Infof("Selected UPF: %s",
 					upi.GetUPFNameByIp(upf.NodeID.ResolveNodeIdToIp().String()))
-				return upf, addr
+				return upf, addr, useStaticIPPool
 			}
 			// if all addresses in pool are used, search next pool
 			logger.CtxLog.Debug("check next pool")
@@ -551,7 +554,7 @@ func (upi *UserPlaneInformation) SelectUPFAndAllocUEIP(selection *UPFSelectionPa
 	// checked all UPFs
 	logger.CtxLog.Warnf("UE IP pool exhausted for DNN[%s] S-NSSAI[sst: %d sd: %s] DNAI[%s]\n", selection.Dnn,
 		selection.SNssai.Sst, selection.SNssai.Sd, selection.Dnai)
-	return nil, nil
+	return nil, nil, false
 }
 
 func createUPFListForSelection(inputList []*UPNode) (outputList []*UPNode) {
@@ -564,7 +567,8 @@ func createPoolListForSelection(inputList []*UeIPPool) (outputList []*UeIPPool) 
 	return append(inputList[offset:], inputList[:offset]...)
 }
 
-func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) []*UeIPPool {
+// getUEIPPool will return IP pools and use/not use static IP pool
+func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) ([]*UeIPPool, bool) {
 	for _, snssaiInfo := range upNode.UPF.SNssaiInfos {
 		currentSnssai := snssaiInfo.SNssai
 		targetSnssai := selection.SNssai
@@ -580,18 +584,29 @@ func getUEIPPool(upNode *UPNode, selection *UPFSelectionParams) []*UeIPPool {
 						for _, ueIPPool := range dnnInfo.StaticIPPools {
 							if ueIPPool.ueSubNet.Contains(selection.PDUAddress) {
 								// return match IPPools
-								return []*UeIPPool{ueIPPool}
+								return []*UeIPPool{ueIPPool}, true
 							}
 						}
+
+						// return dynamic ue ip pool
+						for _, ueIPPool := range dnnInfo.UeIPPools {
+							if ueIPPool.ueSubNet.Contains(selection.PDUAddress) {
+								logger.CfgLog.Infof("cannot find selected IP in static pool[%v], use dynamic pool[%+v]",
+									dnnInfo.StaticIPPools, dnnInfo.UeIPPools)
+								return []*UeIPPool{ueIPPool}, false
+							}
+						}
+
+						return nil, false
 					}
 
 					// if no specify static PDU Address
-					return dnnInfo.UeIPPools
+					return dnnInfo.UeIPPools, false
 				}
 			}
 		}
 	}
-	return nil
+	return nil, false
 }
 
 func (upi *UserPlaneInformation) ReleaseUEIP(upf *UPNode, addr net.IP, static bool) {

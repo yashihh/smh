@@ -127,27 +127,25 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		staticIPConfig := smContext.DnnConfiguration.StaticIpAddress[0]
 		if staticIPConfig.Ipv4Addr != "" {
 			upfSelectionParams.PDUAddress = net.ParseIP(staticIPConfig.Ipv4Addr).To4()
-			smContext.UseStaticIP = true
-		} else {
-			smContext.UseStaticIP = false
 		}
-	} else {
-		smContext.UseStaticIP = false
 	}
 
 	var selectedUPF *smf_context.UPNode
 	var ip net.IP
+	var useStaticIp bool
 	selectedUPFName := ""
 	if smf_context.SMF_Self().ULCLSupport && smf_context.CheckUEHasPreConfig(createData.Supi) {
 		groupName := smf_context.GetULCLGroupNameFromSUPI(createData.Supi)
 		defaultPathPool := smf_context.GetUEDefaultPathPool(groupName)
 		if defaultPathPool != nil {
-			selectedUPFName, ip = defaultPathPool.SelectUPFAndAllocUEIPForULCL(
+			selectedUPFName, ip, useStaticIp = defaultPathPool.SelectUPFAndAllocUEIPForULCL(
 				smf_context.GetUserPlaneInformation(), upfSelectionParams)
+			smContext.UseStaticIP = useStaticIp
 			selectedUPF = smf_context.GetUserPlaneInformation().UPFs[selectedUPFName]
 		}
 	} else {
-		selectedUPF, ip = smf_context.GetUserPlaneInformation().SelectUPFAndAllocUEIP(upfSelectionParams)
+		selectedUPF, ip, useStaticIp = smf_context.GetUserPlaneInformation().SelectUPFAndAllocUEIP(upfSelectionParams)
+		smContext.UseStaticIP = useStaticIp
 		smContext.PDUAddress = ip
 		smContext.Log.Infof("Allocated PDUAdress[%s]", smContext.PDUAddress.String())
 	}

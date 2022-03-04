@@ -268,7 +268,7 @@ func TestSelectUPFAndAllocUEIP(t *testing.T) {
 	userplaneInformation := NewUserPlaneInformation(configuration)
 
 	for i := 0; i <= 100; i++ {
-		upf, allocatedIP := userplaneInformation.SelectUPFAndAllocUEIP(&UPFSelectionParams{
+		upf, allocatedIP, _ := userplaneInformation.SelectUPFAndAllocUEIP(&UPFSelectionParams{
 			Dnn: "internet",
 			SNssai: &SNssai{
 				Sst: 1,
