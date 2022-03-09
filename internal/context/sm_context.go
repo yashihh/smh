@@ -131,9 +131,11 @@ type SMContext struct {
 	DNNInfo *SnssaiSmfDnnInfo
 
 	// SM Policy related
-	PCCRules           map[string]*PCCRule
-	SessionRules       map[string]*SessionRule
-	TrafficControlPool map[string]*TrafficControlData
+	PCCRules            map[string]*PCCRule
+	SessionRules        map[string]*SessionRule
+	TrafficControlDatas map[string]*TrafficControlData
+
+	SelectedSessionRuleID string
 
 	// QoS
 	QoSRuleIDGenerator      *idgenerator.IDGenerator
@@ -199,10 +201,14 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 	// initialize SM Policy Data
 	smContext.PCCRules = make(map[string]*PCCRule)
 	smContext.SessionRules = make(map[string]*SessionRule)
-	smContext.TrafficControlPool = make(map[string]*TrafficControlData)
+	smContext.TrafficControlDatas = make(map[string]*TrafficControlData)
 	smContext.sbiPFCPCommunicationChan = make(chan PFCPSessionResponseStatus, 1)
 
 	smContext.ProtocolConfigurationOptions = &ProtocolConfigurationOptions{}
+
+	smContext.BPManager = NewBPManager(id)
+	smContext.Tunnel = NewUPTunnel()
+	smContext.PendingUPF = make(PendingUPF)
 
 	smContext.QoSRuleIDGenerator = idgenerator.NewGenerator(1, 255)
 	smContext.PacketFilterIDGenerator = idgenerator.NewGenerator(1, 255)
@@ -443,6 +449,60 @@ func (smContext *SMContext) PutPDRtoPFCPSession(nodeID pfcpType.NodeID, pdr *PDR
 	return nil
 }
 
+func (c *SMContext) AllocUeIP(param *UPFSelectionParams, supi string) bool {
+	c.Log.Traceln("AllocUeIP")
+	if param == nil {
+		return false
+	}
+
+	upInfo := GetUserPlaneInformation()
+	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(supi) {
+		groupName := GetULCLGroupNameFromSUPI(supi)
+		preConfigPathPool := GetUEDefaultPathPool(groupName)
+		if preConfigPathPool != nil {
+			selectedUPFName := ""
+			selectedUPFName, c.PDUAddress, c.UseStaticIP =
+				preConfigPathPool.SelectUPFAndAllocUEIPForULCL(
+					upInfo, param)
+			c.SelectedUPF = GetUserPlaneInformation().UPFs[selectedUPFName]
+		}
+	} else {
+		c.SelectedUPF, c.PDUAddress, c.UseStaticIP =
+			GetUserPlaneInformation().SelectUPFAndAllocUEIP(param)
+		c.Log.Infof("Allocated PDUAdress[%s]", c.PDUAddress.String())
+	}
+	return c.PDUAddress != nil
+}
+
+func (c *SMContext) SelectDefaultDataPath(
+	param *UPFSelectionParams, supi string) *DataPath {
+	if c.SelectedUPF == nil {
+		c.Log.Warnln("SelectDefaultDataPath: No PSA-UPF is selected")
+		return nil
+	}
+
+	var defaultPath *DataPath
+	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(supi) {
+		c.Log.Infof("Has pre-config route")
+		uePreConfigPaths := GetUEPreConfigPaths(supi, c.SelectedUPF.Name)
+		c.Tunnel.DataPathPool = uePreConfigPaths.DataPathPool
+		c.Tunnel.PathIDGenerator = uePreConfigPaths.PathIDGenerator
+		defaultPath = c.Tunnel.DataPathPool.GetDefaultPath()
+	} else {
+		// UE has no pre-config path.
+		// Use default route
+		c.Log.Infof("Has no pre-config route")
+		defaultUPPath := GetUserPlaneInformation().GetDefaultUserPlanePathByDNNAndUPF(
+			param, c.SelectedUPF)
+		defaultPath = GenerateDataPath(defaultUPPath)
+		if defaultPath != nil {
+			defaultPath.IsDefaultPath = true
+			c.Tunnel.AddDataPath(defaultPath)
+		}
+	}
+	return defaultPath
+}
+
 func (smContext *SMContext) RemovePDRfromPFCPSession(nodeID pfcpType.NodeID, pdr *PDR) {
 	NodeIDtoIP := nodeID.ResolveNodeIdToIp().String()
 	pfcpSessCtx := smContext.PFCPContext[NodeIDtoIP]
@@ -534,14 +594,61 @@ func (smContext *SMContext) IsAllowedPDUSessionType(requestedPDUSessionType uint
 // SM Policy related operation
 
 // SelectedSessionRule - return the SMF selected session rule for this SM Context
-func (smContext *SMContext) SelectedSessionRule() *SessionRule {
-	for _, sessionRule := range smContext.SessionRules {
-		if sessionRule.isActivate {
-			return sessionRule
+func (c *SMContext) SelectedSessionRule() *SessionRule {
+	if c.SelectedSessionRuleID == "" {
+		return nil
+	}
+	return c.SessionRules[c.SelectedSessionRuleID]
+}
+
+func (c *SMContext) UpdateSessionRules(sessRules map[string]*models.SessionRule) error {
+	for id, r := range sessRules {
+		if r == nil {
+			c.Log.Debugf("Delete SessionRule[%s]", id)
+			delete(c.SessionRules, id)
+		} else {
+			if origRule, ok := c.SessionRules[id]; ok {
+				c.Log.Debugf("Modify SessionRule[%s]: %+v", id, r)
+				origRule.SessionRule = r
+			} else {
+				c.Log.Debugf("Install SessionRule[%s]: %+v", id, r)
+				c.SessionRules[id] = NewSessionRule(r)
+			}
 		}
 	}
 
+	if len(c.SessionRules) == 0 {
+		return fmt.Errorf("UpdateSessionRules: no session rule")
+	}
+
+	if c.SelectedSessionRuleID == "" ||
+		c.SessionRules[c.SelectedSessionRuleID] == nil {
+		// No active session rule, randomly choose a session rule to activate
+		for id := range c.SessionRules {
+			c.SelectedSessionRuleID = id
+			break
+		}
+	}
 	return nil
+
+	// TODO: need update default data path if SessionRule changed
+}
+
+func (c *SMContext) UpdateTrafficControlDatas(traffContDecs map[string]*models.TrafficControlData) {
+	for id, tc := range traffContDecs {
+		if tc == nil {
+			c.Log.Debugf("Delete TrafficControlData[%s]", id)
+			delete(c.TrafficControlDatas, id)
+		} else {
+			if origData, ok := c.TrafficControlDatas[id]; ok {
+				c.Log.Debugf("Modify TrafficControlData[%s]: %+v", id, tc)
+				origData.TrafficControlData = tc
+			} else {
+				c.Log.Debugf("Install TrafficControlData[%s]: %+v", id, tc)
+				c.TrafficControlDatas[id] = NewTrafficControlData(tc)
+			}
+		}
+	}
 }
 
 func (smContext *SMContext) StopT3591() {

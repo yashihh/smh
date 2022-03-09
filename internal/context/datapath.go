@@ -277,14 +277,13 @@ func (node *DataPathNode) GetUpLinkFAR() (far *FAR) {
 	return node.UpLinkTunnel.PDR.FAR
 }
 
-func (dataPathPool DataPathPool) GetDefaultPath() (dataPath *DataPath) {
+func (dataPathPool DataPathPool) GetDefaultPath() *DataPath {
 	for _, path := range dataPathPool {
 		if path.IsDefaultPath {
-			dataPath = path
-			return
+			return path
 		}
 	}
-	return
+	return nil
 }
 
 func (dataPath *DataPath) String() string {

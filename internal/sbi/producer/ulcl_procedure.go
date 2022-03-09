@@ -109,7 +109,6 @@ func AddPDUSessionAnchorAndULCL(smContext *context.SMContext, nodeID pfcpType.No
 func EstablishPSA2(smContext *context.SMContext) {
 	smContext.Log.Infoln("Establish PSA2")
 	bpMGR := smContext.BPManager
-	bpMGR.PendingUPF = make(context.PendingUPF)
 	activatingPath := bpMGR.ActivatingPath
 	ulcl := bpMGR.ULCL
 	nodeAfterULCL := false
@@ -163,7 +162,6 @@ func EstablishULCL(smContext *context.SMContext) {
 	logger.PduSessLog.Infoln("In EstablishULCL")
 
 	bpMGR := smContext.BPManager
-	bpMGR.PendingUPF = make(context.PendingUPF)
 	activatingPath := bpMGR.ActivatingPath
 	dest := activatingPath.Destination
 	ulcl := bpMGR.ULCL
@@ -235,7 +233,6 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 	logger.PduSessLog.Traceln("In UpdatePSA2DownLink")
 
 	bpMGR := smContext.BPManager
-	bpMGR.PendingUPF = make(context.PendingUPF)
 	ulcl := bpMGR.ULCL
 	activatingPath := bpMGR.ActivatingPath
 
@@ -313,7 +310,6 @@ func EstablishRANTunnelInfo(smContext *context.SMContext) {
 
 func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 	bpMGR := smContext.BPManager
-	bpMGR.PendingUPF = make(context.PendingUPF)
 	activatingPath := bpMGR.ActivatingPath
 	dest := activatingPath.Destination
 	ulcl := bpMGR.ULCL

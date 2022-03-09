@@ -6,13 +6,7 @@ import (
 
 // PCCRule - Policy and Charging Rule
 type PCCRule struct {
-	// shall include attribute
-	PCCRuleID  string
-	Precedence int32
-
-	// maybe include attribute
-	AppID     string
-	FlowInfos []models.FlowInformation
+	*models.PccRule
 
 	// Reference Data
 	refTrafficControlData string
@@ -21,23 +15,22 @@ type PCCRule struct {
 	Datapath *DataPath
 }
 
-// NewPCCRuleFromModel - create PCC rule from OpenAPI models
-func NewPCCRuleFromModel(pccModel *models.PccRule) *PCCRule {
-	if pccModel == nil {
+// NewPCCRule - create PCC rule from OpenAPI models
+func NewPCCRule(model *models.PccRule) *PCCRule {
+	if model == nil {
 		return nil
 	}
-	pccRule := new(PCCRule)
 
-	pccRule.PCCRuleID = pccModel.PccRuleId
-	pccRule.Precedence = pccModel.Precedence
-	pccRule.AppID = pccModel.AppId
-	pccRule.FlowInfos = pccModel.FlowInfos
-	if pccModel.RefTcData != nil {
-		// TODO: now 1 pcc rule only maps to 1 TC data
-		pccRule.refTrafficControlData = pccModel.RefTcData[0]
+	r := &PCCRule{
+		PccRule: model,
 	}
 
-	return pccRule
+	if model.RefTcData != nil {
+		// TODO: now 1 pcc rule only maps to 1 TC data
+		r.refTrafficControlData = model.RefTcData[0]
+	}
+
+	return r
 }
 
 // SetRefTrafficControlData - setting reference traffic control data

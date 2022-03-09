@@ -116,7 +116,7 @@ func createPccRuleDataPath(smContext *smf_context.SMContext,
 		Dnai: targetDNAI,
 	}
 	createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(upfSelectionParams)
-	createdDataPath := smf_context.GenerateDataPath(createdUpPath, smContext)
+	createdDataPath := smf_context.GenerateDataPath(createdUpPath)
 	if createdDataPath != nil {
 		createdDataPath.ActivateTunnelAndPDR(smContext, 255-uint32(pccRule.Precedence))
 		smContext.Tunnel.AddDataPath(createdDataPath)

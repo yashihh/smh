@@ -266,7 +266,7 @@ func (upi *UserPlaneInformation) ExistDefaultPath(dnn string) bool {
 	return exist
 }
 
-func GenerateDataPath(upPath UPPath, smContext *SMContext) *DataPath {
+func GenerateDataPath(upPath UPPath) *DataPath {
 	if len(upPath) < 1 {
 		logger.CtxLog.Errorf("Invalid data path")
 		return nil
@@ -295,14 +295,8 @@ func GenerateDataPath(upPath UPPath, smContext *SMContext) *DataPath {
 		prevDataPathNode = curDataPathNode
 	}
 
-	dataPath := &DataPath{
-		Destination: Destination{
-			DestinationIP:   "",
-			DestinationPort: "",
-			Url:             "",
-		},
-		FirstDPNode: root,
-	}
+	dataPath := NewDataPath()
+	dataPath.FirstDPNode = root
 	return dataPath
 }
 

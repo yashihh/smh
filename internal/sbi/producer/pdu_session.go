@@ -114,6 +114,44 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		}
 	}
 
+	establishmentRequest := m.PDUSessionEstablishmentRequest
+	if err := HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest); err != nil {
+		smContext.Log.Errorf("PDU Session Establishment fail by %s", err)
+		gsmError := &GSMError{}
+		if errors.As(err, &gsmError) {
+			return makeErrorResponse(smContext, gsmError.GSMCause, &Nsmf_PDUSession.N1SmError)
+		}
+		return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+			&Nsmf_PDUSession.N1SmError)
+	}
+
+	if err := smContext.PCFSelection(); err != nil {
+		smContext.Log.Errorln("pcf selection error:", err)
+	}
+
+	smPolicyID, smPolicyDecision, err := consumer.SendSMPolicyAssociationCreate(smContext)
+	if err != nil {
+		openapiError := err.(openapi.GenericOpenAPIError)
+		problemDetails := openapiError.Model().(models.ProblemDetails)
+		smContext.Log.Errorln("setup sm policy association failed:", err, problemDetails)
+		smContext.SetState(smf_context.InActive)
+
+		if problemDetails.Cause == "USER_UNKNOWN" {
+			return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+				&Nsmf_PDUSession.SubscriptionDenied)
+		}
+		return makeErrorResponse(smContext, nasMessage.Cause5GSMNetworkFailure,
+			&Nsmf_PDUSession.NetworkFailure)
+	}
+	smContext.SMPolicyID = smPolicyID
+
+	// Update SessionRule from decision
+	if err := smContext.UpdateSessionRules(smPolicyDecision.SessRules); err != nil {
+		smContext.Log.Errorf("PDUSessionSMContextCreate err: %v", err)
+		return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+			&Nsmf_PDUSession.SubscriptionDenied)
+	}
+
 	// IP Allocation
 	upfSelectionParams := &smf_context.UPFSelectionParams{
 		Dnn: smContext.Dnn,
@@ -130,113 +168,28 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		}
 	}
 
-	var selectedUPF *smf_context.UPNode
-	var ip net.IP
-	var useStaticIp bool
-	selectedUPFName := ""
-	if smf_context.SMF_Self().ULCLSupport && smf_context.CheckUEHasPreConfig(createData.Supi) {
-		groupName := smf_context.GetULCLGroupNameFromSUPI(createData.Supi)
-		defaultPathPool := smf_context.GetUEDefaultPathPool(groupName)
-		if defaultPathPool != nil {
-			selectedUPFName, ip, useStaticIp = defaultPathPool.SelectUPFAndAllocUEIPForULCL(
-				smf_context.GetUserPlaneInformation(), upfSelectionParams)
-			smContext.UseStaticIP = useStaticIp
-			selectedUPF = smf_context.GetUserPlaneInformation().UPFs[selectedUPFName]
-		}
-	} else {
-		selectedUPF, ip, useStaticIp = smf_context.GetUserPlaneInformation().SelectUPFAndAllocUEIP(upfSelectionParams)
-		smContext.UseStaticIP = useStaticIp
-		smContext.PDUAddress = ip
-		smContext.Log.Infof("Allocated PDUAdress[%s]", smContext.PDUAddress.String())
-	}
-
-	var httpResponse *httpwrapper.Response
-	if ip == nil && (selectedUPF == nil || selectedUPFName == "") {
-		smContext.Log.Error("fail allocate PDU address")
-
+	if !smContext.AllocUeIP(upfSelectionParams, createData.Supi) {
 		smContext.SetState(smf_context.InActive)
-		smContext.Log.Warnf("Data Path not found\n")
-		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
+		smContext.Log.Errorln("fail to allocate PDU address, Selection Parameter: ",
+			upfSelectionParams.String())
 
 		return makeErrorResponse(smContext, nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
 			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
 	}
-	smContext.PDUAddress = ip
-	smContext.SelectedUPF = selectedUPF
 
-	establishmentRequest := m.PDUSessionEstablishmentRequest
-	if err := HandlePDUSessionEstablishmentRequest(smContext, establishmentRequest); err != nil {
-		smContext.Log.Errorf("PDU Session Establishment fail by %s", err)
-		gsmError := &GSMError{}
-		if errors.As(err, &gsmError) {
-			httpResponse = makeErrorResponse(smContext, gsmError.GSMCause, &Nsmf_PDUSession.N1SmError)
-		} else {
-			httpResponse = makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
-				&Nsmf_PDUSession.N1SmError)
-		}
-		return httpResponse
-	}
-
-	if err := smContext.PCFSelection(); err != nil {
-		smContext.Log.Errorln("pcf selection error:", err)
-	}
-
-	var smPolicyDecision *models.SmPolicyDecision
-	if smPolicyID, smPolicyDecisionRsp, err := consumer.SendSMPolicyAssociationCreate(smContext); err != nil {
-		openapiError := err.(openapi.GenericOpenAPIError)
-		problemDetails := openapiError.Model().(models.ProblemDetails)
-		smContext.Log.Errorln("setup sm policy association failed:", err, problemDetails)
-		smContext.SetState(smf_context.InActive)
-
-		if problemDetails.Cause == "USER_UNKNOWN" {
-			return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
-				&Nsmf_PDUSession.SubscriptionDenied)
-		} else {
-			return makeErrorResponse(smContext, nasMessage.Cause5GSMNetworkFailure, &Nsmf_PDUSession.NetworkFailure)
-		}
-	} else {
-		smPolicyDecision = smPolicyDecisionRsp
-		smContext.SMPolicyID = smPolicyID
-	}
-
-	// dataPath selection
-	smContext.Tunnel = smf_context.NewUPTunnel()
-	if err := ApplySmPolicyFromDecision(smContext, smPolicyDecision); err != nil {
-		smContext.Log.Errorf("apply sm policy decision error: %+v", err)
-	}
-	var defaultPath *smf_context.DataPath
-
-	if smf_context.SMF_Self().ULCLSupport && smf_context.CheckUEHasPreConfig(createData.Supi) {
-		smContext.Log.Infof("Has pre-config route")
-		uePreConfigPaths := smf_context.GetUEPreConfigPaths(createData.Supi, selectedUPFName)
-		smContext.Tunnel.DataPathPool = uePreConfigPaths.DataPathPool
-		smContext.Tunnel.PathIDGenerator = uePreConfigPaths.PathIDGenerator
-		defaultPath = smContext.Tunnel.DataPathPool.GetDefaultPath()
+	defaultPath := smContext.SelectDefaultDataPath(upfSelectionParams, createData.Supi)
+	if defaultPath != nil {
 		defaultPath.ActivateTunnelAndPDR(smContext, 255)
-		smContext.BPManager = smf_context.NewBPManager(createData.Supi)
 	} else {
-		// UE has no pre-config path.
-		// Use default route
-		smContext.Log.Infof("Has no pre-config route")
-		defaultUPPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNNAndUPF(
-			upfSelectionParams, smContext.SelectedUPF)
-		defaultPath = smf_context.GenerateDataPath(defaultUPPath, smContext)
-		if defaultPath != nil {
-			defaultPath.IsDefaultPath = true
-			smContext.Tunnel.AddDataPath(defaultPath)
-			defaultPath.ActivateTunnelAndPDR(smContext, 255)
-		}
-	}
-
-	if defaultPath == nil {
 		smContext.SetState(smf_context.InActive)
-		smContext.Log.Warnf("Data Path not found\n")
-		smContext.Log.Warnln("Selection Parameter: ", upfSelectionParams.String())
-
-		return makeErrorResponse(smContext, nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
+		smContext.Log.Errorln("Data Path not found, Selection Parameter: ",
+			upfSelectionParams.String())
+		return makeErrorResponse(smContext,
+			nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
 			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
 	}
 
+	// Discover and new Namf_Comm client for use later
 	if problemDetails, err := consumer.SendNFDiscoveryServingAMF(smContext); err != nil {
 		smContext.Log.Warnf("Send NF Discovery Serving AMF Error[%v]", err)
 	} else if problemDetails != nil {
@@ -253,6 +206,10 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		}
 	}
 
+	if err := ApplyPccRuleFromDecision(smContext, smPolicyDecision, false); err != nil {
+		smContext.Log.Errorf("apply sm policy decision error: %+v", err)
+	}
+
 	// Add sm lock timer workaround, it Should be remove after PFCP trasaction function complete
 	smContext.SMLockTimer = time.AfterFunc(4*time.Second, func() {
 		smContext.SMLock.Unlock()
@@ -260,15 +217,13 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	SendPFCPRules(smContext)
 
 	response.JsonData = smContext.BuildCreatedData()
-	httpResponse = &httpwrapper.Response{
+	return &httpwrapper.Response{
 		Header: http.Header{
 			"Location": {smContext.Ref},
 		},
 		Status: http.StatusCreated,
 		Body:   response,
 	}
-
-	return httpResponse
 	// TODO: UECM registration
 }
 
@@ -470,7 +425,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		// Set FAR and An, N3 Release Info
 		// TODO: Deactivate all datapath in ANUPF
 		farList = []*smf_context.FAR{}
-		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range smContext.Tunnel.DataPathPool {
 			ANUPF := dataPath.FirstDPNode
 			DLPDR := ANUPF.DownLinkTunnel.PDR
@@ -499,7 +453,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		pdrList = []*smf_context.PDR{}
 		farList = []*smf_context.FAR{}
 
-		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range tunnel.DataPathPool {
 			if dataPath.Activated {
 				ANUPF := dataPath.FirstDPNode
@@ -591,7 +544,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			ContentId: "PATH_SWITCH_REQ_ACK",
 		}
 
-		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range tunnel.DataPathPool {
 			if dataPath.Activated {
 				ANUPF := dataPath.FirstDPNode
@@ -666,7 +618,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 		// request UPF establish indirect forwarding path for DL
 		if smContext.DLForwardingType == smf_context.IndirectForwarding {
-			smContext.PendingUPF = make(smf_context.PendingUPF)
 			ANUPF := smContext.IndirectForwardingTunnel.FirstDPNode
 			IndirectForwardingPDR := smContext.IndirectForwardingTunnel.FirstDPNode.UpLinkTunnel.PDR
 
@@ -703,7 +654,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		// Wait till the state becomes Active again
 		// TODO: implement sleep wait in concurrent architecture
 
-		smContext.PendingUPF = make(smf_context.PendingUPF)
 		for _, dataPath := range tunnel.DataPathPool {
 			if dataPath.Activated {
 				ANUPF := dataPath.FirstDPNode
@@ -1042,7 +992,6 @@ func HandlePDUSessionSMContextLocalRelease(smContext *smf_context.SMContext, cre
 
 func releaseTunnel(smContext *smf_context.SMContext) {
 	deletedPFCPNode := make(map[string]bool)
-	smContext.PendingUPF = make(smf_context.PendingUPF)
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
 		if !dataPath.Activated {
 			continue
