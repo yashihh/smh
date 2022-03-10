@@ -40,7 +40,7 @@ func SendSMPolicyAssociationCreate(smContext *smf_context.SMContext) (string, *m
 	smPolicyData.Ipv4Address = smContext.PDUAddress.To4().String()
 	smPolicyData.SubsSessAmbr = smContext.DnnConfiguration.SessionAmbr
 	smPolicyData.SubsDefQos = smContext.DnnConfiguration.Var5gQosProfile
-	smPolicyData.SliceInfo = smContext.Snssai
+	smPolicyData.SliceInfo = smContext.SNssai
 	smPolicyData.ServingNetwork = &models.NetworkId{
 		Mcc: smContext.ServingNetwork.Mcc,
 		Mnc: smContext.ServingNetwork.Mnc,

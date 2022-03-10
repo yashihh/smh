@@ -203,8 +203,8 @@ func applyPCCRule(smContext *smf_context.SMContext, srcPccRule, targetPccRule *s
 	}
 
 	// Create Data path for targetPccRule
-	createPccRuleDataPath(smContext, targetPccRule, tcData)
-	addQoSToDataPath(smContext, targetPccRule.Datapath, qos)
+	smContext.CreatePccRuleDataPath(targetPccRule, tcData)
+	targetPccRule.Datapath.AddQoS(qos)
 
 	if appID := targetPccRule.AppId; appID != "" {
 		var matchedPFD *factory.PfdDataForApp
@@ -326,7 +326,7 @@ func applyTrafficRoutingData(smContext *smf_context.SMContext, srcPccRule, targe
 
 		// Now our solution is to install new datapath first, and then remove old datapath
 		if srcPccRule != nil && srcPccRule.Datapath != nil {
-			removeDataPath(smContext, srcPccRule.Datapath)
+			srcPccRule.Datapath.RemovePDR()
 			if sendPFCP {
 				SendPFCPRule(smContext, srcPccRule.Datapath)
 			}

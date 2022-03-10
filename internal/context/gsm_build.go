@@ -79,7 +79,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 
 	var sd [3]uint8
 
-	if byteArray, err := hex.DecodeString(smContext.Snssai.Sd); err != nil {
+	if byteArray, err := hex.DecodeString(smContext.SNssai.Sd); err != nil {
 		return nil, err
 	} else {
 		copy(sd[:], byteArray)
@@ -87,7 +87,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 
 	pDUSessionEstablishmentAccept.SNSSAI = nasType.NewSNSSAI(nasMessage.ULNASTransportSNSSAIType)
 	pDUSessionEstablishmentAccept.SNSSAI.SetLen(4)
-	pDUSessionEstablishmentAccept.SNSSAI.SetSST(uint8(smContext.Snssai.Sst))
+	pDUSessionEstablishmentAccept.SNSSAI.SetSST(uint8(smContext.SNssai.Sst))
 	pDUSessionEstablishmentAccept.SNSSAI.SetSD(sd)
 
 	pDUSessionEstablishmentAccept.DNN = nasType.NewDNN(nasMessage.ULNASTransportDNNType)

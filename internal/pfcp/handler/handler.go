@@ -198,7 +198,7 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 							ContentId: "N2SmInformation",
 						},
 					},
-					SNssai: smContext.Snssai,
+					SNssai: smContext.SNssai,
 				},
 			},
 		}
@@ -374,7 +374,7 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 								ContentId: "N2SmInformation",
 							},
 						},
-						SNssai: smContext.Snssai,
+						SNssai: smContext.SNssai,
 					},
 				},
 			}

@@ -58,7 +58,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	smContext := smf_context.NewSMContext(createData.Supi, createData.PduSessionId)
 	smContext.SetState(smf_context.ActivePending)
-	smContext.SetCreateData(createData)
+	smContext.SmContextCreateData = createData
 	smContext.SmStatusNotifyUri = createData.SmContextStatusUri
 
 	// TODO: This lock should be unlock after PFPF Establishment,
@@ -66,13 +66,13 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SMLock.Lock()
 
 	// DNN Information from config
-	smContext.DNNInfo = smf_context.RetrieveDnnInformation(smContext.Snssai, smContext.Dnn)
+	smContext.DNNInfo = smf_context.RetrieveDnnInformation(smContext.SNssai, smContext.Dnn)
 	if smContext.DNNInfo == nil {
 		logger.PduSessLog.Errorf("S-NSSAI[sst: %d, sd: %s] DNN[%s] not matched DNN Config",
-			smContext.Snssai.Sst, smContext.Snssai.Sd, smContext.Dnn)
+			smContext.SNssai.Sst, smContext.SNssai.Sd, smContext.Dnn)
 	}
 	smContext.Log.Debugf("S-NSSAI[sst: %d, sd: %s] DNN[%s]",
-		smContext.Snssai.Sst, smContext.Snssai.Sd, smContext.Dnn)
+		smContext.SNssai.Sst, smContext.SNssai.Sd, smContext.Dnn)
 
 	// Query UDM
 	if problemDetails, err := consumer.SendNFDiscoveryUDM(); err != nil {
@@ -88,7 +88,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smDataParams := &Nudm_SubscriberDataManagement.GetSmDataParamOpts{
 		Dnn:         optional.NewString(createData.Dnn),
 		PlmnId:      optional.NewInterface(openapi.MarshToJsonString(smPlmnID)),
-		SingleNssai: optional.NewInterface(openapi.MarshToJsonString(smContext.Snssai)),
+		SingleNssai: optional.NewInterface(openapi.MarshToJsonString(smContext.SNssai)),
 	}
 
 	SubscriberDataManagementClient := smf_context.SMF_Self().SubscriberDataManagementClient
@@ -125,6 +125,23 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 			&Nsmf_PDUSession.N1SmError)
 	}
 
+	// Discover and new Namf_Comm client for use later
+	if problemDetails, err := consumer.SendNFDiscoveryServingAMF(smContext); err != nil {
+		smContext.Log.Warnf("Send NF Discovery Serving AMF Error[%v]", err)
+	} else if problemDetails != nil {
+		smContext.Log.Warnf("Send NF Discovery Serving AMF Problem[%+v]", problemDetails)
+	} else {
+		smContext.Log.Traceln("Send NF Discovery Serving AMF successfully")
+	}
+
+	for _, service := range *smContext.AMFProfile.NfServices {
+		if service.ServiceName == models.ServiceName_NAMF_COMM {
+			communicationConf := Namf_Communication.NewConfiguration()
+			communicationConf.SetBasePath(service.ApiPrefix)
+			smContext.CommunicationClient = Namf_Communication.NewAPIClient(communicationConf)
+		}
+	}
+
 	if err := smContext.PCFSelection(); err != nil {
 		smContext.Log.Errorln("pcf selection error:", err)
 	}
@@ -152,58 +169,12 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 			&Nsmf_PDUSession.SubscriptionDenied)
 	}
 
-	// IP Allocation
-	upfSelectionParams := &smf_context.UPFSelectionParams{
-		Dnn: smContext.Dnn,
-		SNssai: &smf_context.SNssai{
-			Sst: smContext.Snssai.Sst,
-			Sd:  smContext.Snssai.Sd,
-		},
-	}
-
-	if len(smContext.DnnConfiguration.StaticIpAddress) > 0 {
-		staticIPConfig := smContext.DnnConfiguration.StaticIpAddress[0]
-		if staticIPConfig.Ipv4Addr != "" {
-			upfSelectionParams.PDUAddress = net.ParseIP(staticIPConfig.Ipv4Addr).To4()
-		}
-	}
-
-	if !smContext.AllocUeIP(upfSelectionParams, createData.Supi) {
+	if err := smContext.SelectDefaultDataPath(); err != nil {
 		smContext.SetState(smf_context.InActive)
-		smContext.Log.Errorln("fail to allocate PDU address, Selection Parameter: ",
-			upfSelectionParams.String())
-
-		return makeErrorResponse(smContext, nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
-			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
-	}
-
-	defaultPath := smContext.SelectDefaultDataPath(upfSelectionParams, createData.Supi)
-	if defaultPath != nil {
-		defaultPath.ActivateTunnelAndPDR(smContext, 255)
-	} else {
-		smContext.SetState(smf_context.InActive)
-		smContext.Log.Errorln("Data Path not found, Selection Parameter: ",
-			upfSelectionParams.String())
+		smContext.Log.Errorf("PDUSessionSMContextCreate err: %v", err)
 		return makeErrorResponse(smContext,
 			nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
 			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
-	}
-
-	// Discover and new Namf_Comm client for use later
-	if problemDetails, err := consumer.SendNFDiscoveryServingAMF(smContext); err != nil {
-		smContext.Log.Warnf("Send NF Discovery Serving AMF Error[%v]", err)
-	} else if problemDetails != nil {
-		smContext.Log.Warnf("Send NF Discovery Serving AMF Problem[%+v]", problemDetails)
-	} else {
-		smContext.Log.Traceln("Send NF Discovery Serving AMF successfully")
-	}
-
-	for _, service := range *smContext.AMFProfile.NfServices {
-		if service.ServiceName == models.ServiceName_NAMF_COMM {
-			communicationConf := Namf_Communication.NewConfiguration()
-			communicationConf.SetBasePath(service.ApiPrefix)
-			smContext.CommunicationClient = Namf_Communication.NewAPIClient(communicationConf)
-		}
 	}
 
 	if err := ApplyPccRuleFromDecision(smContext, smPolicyDecision, false); err != nil {

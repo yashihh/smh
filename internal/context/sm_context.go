@@ -62,34 +62,22 @@ func GetSMContextCount() uint64 {
 }
 
 type SMContext struct {
+	*models.SmContextCreateData
+
 	Ref string
 
 	LocalSEID  uint64
 	RemoteSEID uint64
 
 	UnauthenticatedSupi bool
-	// SUPI or PEI
-	Supi           string
-	Pei            string
-	Identifier     string
-	Gpsi           string
-	PDUSessionID   int32
-	Dnn            string
-	Snssai         *models.Snssai
-	HplmnSnssai    *models.Snssai
-	ServingNetwork *models.PlmnId
-	ServingNfId    string
+
+	Pei          string
+	Identifier   string
+	PDUSessionID int32
 
 	UpCnxState models.UpCnxState
 
-	AnType          models.AccessType
-	RatType         models.RatType
-	PresenceInLadn  models.PresenceState
-	UeLocation      *models.UserLocation
-	UeTimeZone      string
-	AddUeLocation   *models.UserLocation
-	OldPduSessionId int32
-	HoState         models.HoState
+	HoState models.HoState
 
 	PDUAddress             net.IP
 	UseStaticIP            bool
@@ -274,24 +262,6 @@ func GetSMContextBySEID(SEID uint64) *SMContext {
 	return nil
 }
 
-//*** add unit test ***//
-func (smContext *SMContext) SetCreateData(createData *models.SmContextCreateData) {
-	smContext.Gpsi = createData.Gpsi
-	smContext.Supi = createData.Supi
-	smContext.Dnn = createData.Dnn
-	smContext.Snssai = createData.SNssai
-	smContext.HplmnSnssai = createData.HplmnSnssai
-	smContext.ServingNetwork = createData.ServingNetwork
-	smContext.AnType = createData.AnType
-	smContext.RatType = createData.RatType
-	smContext.PresenceInLadn = createData.PresenceInLadn
-	smContext.UeLocation = createData.UeLocation
-	smContext.UeTimeZone = createData.UeTimeZone
-	smContext.AddUeLocation = createData.AddUeLocation
-	smContext.OldPduSessionId = createData.OldPduSessionId
-	smContext.ServingNfId = createData.ServingNfId
-}
-
 func (smContext *SMContext) WaitPFCPCommunicationStatus() PFCPSessionResponseStatus {
 	var PFCPResponseStatus PFCPSessionResponseStatus
 	select {
@@ -308,7 +278,7 @@ func (smContext *SMContext) SendPFCPCommunicationStatus(status PFCPSessionRespon
 
 func (smContext *SMContext) BuildCreatedData() *models.SmContextCreatedData {
 	return &models.SmContextCreatedData{
-		SNssai: smContext.Snssai,
+		SNssai: smContext.SNssai,
 	}
 }
 
@@ -449,15 +419,15 @@ func (smContext *SMContext) PutPDRtoPFCPSession(nodeID pfcpType.NodeID, pdr *PDR
 	return nil
 }
 
-func (c *SMContext) AllocUeIP(param *UPFSelectionParams, supi string) bool {
-	c.Log.Traceln("AllocUeIP")
+func (c *SMContext) findPSAandAllocUeIP(param *UPFSelectionParams) error {
+	c.Log.Traceln("findPSAandAllocUeIP")
 	if param == nil {
-		return false
+		return fmt.Errorf("UPFSelectionParams is nil")
 	}
 
 	upInfo := GetUserPlaneInformation()
-	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(supi) {
-		groupName := GetULCLGroupNameFromSUPI(supi)
+	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(c.Supi) {
+		groupName := GetULCLGroupNameFromSUPI(c.Supi)
 		preConfigPathPool := GetUEDefaultPathPool(groupName)
 		if preConfigPathPool != nil {
 			selectedUPFName := ""
@@ -471,20 +441,37 @@ func (c *SMContext) AllocUeIP(param *UPFSelectionParams, supi string) bool {
 			GetUserPlaneInformation().SelectUPFAndAllocUEIP(param)
 		c.Log.Infof("Allocated PDUAdress[%s]", c.PDUAddress.String())
 	}
-	return c.PDUAddress != nil
+	if c.PDUAddress == nil {
+		return fmt.Errorf("fail to allocate PDU address, Selection Parameter: %s",
+			param.String())
+	}
+	return nil
 }
 
-func (c *SMContext) SelectDefaultDataPath(
-	param *UPFSelectionParams, supi string) *DataPath {
-	if c.SelectedUPF == nil {
-		c.Log.Warnln("SelectDefaultDataPath: No PSA-UPF is selected")
-		return nil
+func (c *SMContext) SelectDefaultDataPath() error {
+	param := &UPFSelectionParams{
+		Dnn: c.Dnn,
+		SNssai: &SNssai{
+			Sst: c.SNssai.Sst,
+			Sd:  c.SNssai.Sd,
+		},
+	}
+
+	if len(c.DnnConfiguration.StaticIpAddress) > 0 {
+		staticIPConfig := c.DnnConfiguration.StaticIpAddress[0]
+		if staticIPConfig.Ipv4Addr != "" {
+			param.PDUAddress = net.ParseIP(staticIPConfig.Ipv4Addr).To4()
+		}
+	}
+
+	if err := c.findPSAandAllocUeIP(param); err != nil {
+		return err
 	}
 
 	var defaultPath *DataPath
-	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(supi) {
+	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(c.Supi) {
 		c.Log.Infof("Has pre-config route")
-		uePreConfigPaths := GetUEPreConfigPaths(supi, c.SelectedUPF.Name)
+		uePreConfigPaths := GetUEPreConfigPaths(c.Supi, c.SelectedUPF.Name)
 		c.Tunnel.DataPathPool = uePreConfigPaths.DataPathPool
 		c.Tunnel.PathIDGenerator = uePreConfigPaths.PathIDGenerator
 		defaultPath = c.Tunnel.DataPathPool.GetDefaultPath()
@@ -500,7 +487,37 @@ func (c *SMContext) SelectDefaultDataPath(
 			c.Tunnel.AddDataPath(defaultPath)
 		}
 	}
-	return defaultPath
+
+	if defaultPath == nil {
+		return fmt.Errorf("Data Path not found, Selection Parameter: %s",
+			param.String())
+	}
+	defaultPath.ActivateTunnelAndPDR(c, 255)
+	return nil
+}
+
+func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
+	tcData *TrafficControlData) {
+	var targetDNAI string
+	if tcData != nil && len(tcData.RouteToLocs) > 0 {
+		targetDNAI = tcData.RouteToLocs[0].Dnai
+	}
+	param := &UPFSelectionParams{
+		Dnn: c.Dnn,
+		SNssai: &SNssai{
+			Sst: c.SNssai.Sst,
+			Sd:  c.SNssai.Sd,
+		},
+		Dnai: targetDNAI,
+	}
+	createdUpPath := GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(param)
+	createdDataPath := GenerateDataPath(createdUpPath)
+	if createdDataPath != nil {
+		createdDataPath.ActivateTunnelAndPDR(c, 255-uint32(pccRule.Precedence))
+		c.Tunnel.AddDataPath(createdDataPath)
+	}
+
+	pccRule.Datapath = createdDataPath
 }
 
 func (smContext *SMContext) RemovePDRfromPFCPSession(nodeID pfcpType.NodeID, pdr *PDR) {

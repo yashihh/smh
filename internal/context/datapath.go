@@ -568,6 +568,52 @@ func (dataPath *DataPath) DeactivateTunnelAndPDR(smContext *SMContext) {
 	dataPath.Activated = false
 }
 
+func (p *DataPath) RemovePDR() {
+	for curDPNode := p.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+		if curDPNode.DownLinkTunnel != nil && curDPNode.DownLinkTunnel.PDR != nil {
+			curDPNode.DownLinkTunnel.PDR.State = RULE_REMOVE
+			curDPNode.DownLinkTunnel.PDR.FAR.State = RULE_REMOVE
+		}
+		if curDPNode.UpLinkTunnel != nil && curDPNode.UpLinkTunnel.PDR != nil {
+			curDPNode.UpLinkTunnel.PDR.State = RULE_REMOVE
+			curDPNode.UpLinkTunnel.PDR.FAR.State = RULE_REMOVE
+		}
+	}
+}
+
+func (p *DataPath) AddQoS(qos *models.QosData) {
+	if qos == nil {
+		return
+	}
+	for curDataPathNode := p.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+		if newQER, err := curDataPathNode.UPF.AddQER(); err != nil {
+			logger.PduSessLog.Errorln("new QER failed")
+			return
+		} else {
+			newQER.QFI.QFI = uint8(qos.Var5qi)
+			newQER.GateStatus = &pfcpType.GateStatus{
+				ULGate: pfcpType.GateOpen,
+				DLGate: pfcpType.GateOpen,
+			}
+			newQER.MBR = &pfcpType.MBR{
+				ULMBR: util.BitRateTokbps(qos.MaxbrUl),
+				DLMBR: util.BitRateTokbps(qos.MaxbrDl),
+			}
+			newQER.GBR = &pfcpType.GBR{
+				ULGBR: util.BitRateTokbps(qos.GbrUl),
+				DLGBR: util.BitRateTokbps(qos.GbrDl),
+			}
+
+			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
+				curDataPathNode.UpLinkTunnel.PDR.QER = append(curDataPathNode.UpLinkTunnel.PDR.QER, newQER)
+			}
+			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
+				curDataPathNode.DownLinkTunnel.PDR.QER = append(curDataPathNode.DownLinkTunnel.PDR.QER, newQER)
+			}
+		}
+	}
+}
+
 func (dataPath *DataPath) CopyFirstDPNode() *DataPathNode {
 	if dataPath.FirstDPNode == nil {
 		return nil
