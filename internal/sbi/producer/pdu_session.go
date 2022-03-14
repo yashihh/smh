@@ -163,7 +163,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SMPolicyID = smPolicyID
 
 	// Update SessionRule from decision
-	if err := smContext.UpdateSessionRules(smPolicyDecision.SessRules); err != nil {
+	if err := smContext.ApplySessionRules(smPolicyDecision); err != nil {
 		smContext.Log.Errorf("PDUSessionSMContextCreate err: %v", err)
 		return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
 			&Nsmf_PDUSession.SubscriptionDenied)
@@ -177,15 +177,21 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
 	}
 
-	if err := ApplyPccRuleFromDecision(smContext, smPolicyDecision, false); err != nil {
+	if err := smContext.ApplyPccRules(smPolicyDecision); err != nil {
 		smContext.Log.Errorf("apply sm policy decision error: %+v", err)
 	}
+
+	smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
 
 	// Add sm lock timer workaround, it Should be remove after PFCP trasaction function complete
 	smContext.SMLockTimer = time.AfterFunc(4*time.Second, func() {
 		smContext.SMLock.Unlock()
 	})
 	SendPFCPRules(smContext)
+
+	smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)
+
+	smContext.PostRemoveDataPath()
 
 	response.JsonData = smContext.BuildCreatedData()
 	return &httpwrapper.Response{

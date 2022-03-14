@@ -37,6 +37,7 @@ type DataPathNode struct {
 }
 
 type DataPath struct {
+	PathID int64
 	// meta data
 	Activated         bool
 	IsDefaultPath     bool
@@ -610,6 +611,52 @@ func (p *DataPath) AddQoS(qos *models.QosData) {
 			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
 				curDataPathNode.DownLinkTunnel.PDR.QER = append(curDataPathNode.DownLinkTunnel.PDR.QER, newQER)
 			}
+		}
+	}
+}
+
+func (p *DataPath) UpdateFlowDescription(ulFlowDesc, dlFlowDesc string) {
+	for curDPNode := p.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+		curDPNode.DownLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
+			Bid:                     false,
+			Fl:                      false,
+			Spi:                     false,
+			Ttc:                     false,
+			Fd:                      true,
+			LengthOfFlowDescription: uint16(len(dlFlowDesc)),
+			FlowDescription:         []byte(dlFlowDesc),
+		}
+		curDPNode.UpLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
+			Bid:                     false,
+			Fl:                      false,
+			Spi:                     false,
+			Ttc:                     false,
+			Fd:                      true,
+			LengthOfFlowDescription: uint16(len(ulFlowDesc)),
+			FlowDescription:         []byte(ulFlowDesc),
+		}
+	}
+}
+
+func (p *DataPath) AddForwardingParameters(fwdPolicyID string, teid uint32) {
+	for curDPNode := p.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+		if curDPNode.IsAnchorUPF() {
+			curDPNode.UpLinkTunnel.PDR.FAR.ForwardingParameters.ForwardingPolicyID = fwdPolicyID
+			// TODO: Support the RouteInfo in targetTraRouting
+			// TODO: Check the message is only presents one of RouteInfo or RouteProfId and sends failure message to the PCF
+			// } else if routeInfo := targetTraRouting.RouteInfo; routeInfo != nil {
+			// 	locToRouteIP := net.ParseIP(routeInfo.Ipv4Addr)
+			// 	curDPNode.UpLinkTunnel.PDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
+			// 		OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationUdpIpv4,
+			// 		Ipv4Address:                    locToRouteIP,
+			// 		PortNumber:                     uint16(routeInfo.PortNumber),
+			// 	}
+			// }
+		}
+		// get old TEID
+		// TODO: remove this if RAN tunnel issue is fixed, because the AN tunnel is only one
+		if curDPNode.IsANUPF() {
+			curDPNode.UpLinkTunnel.PDR.PDI.LocalFTeid.Teid = teid
 		}
 	}
 }

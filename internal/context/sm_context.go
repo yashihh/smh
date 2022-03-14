@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -53,12 +54,20 @@ const (
 	PFCPModification
 )
 
+const DefaultPrecedence uint32 = 255
+
 func init() {
 }
 
 func GetSMContextCount() uint64 {
 	atomic.AddUint64(&smContextCount, 1)
 	return smContextCount
+}
+
+type EventExposureNotification struct {
+	*models.NsmfEventExposureNotification
+
+	Uri string
 }
 
 type SMContext struct {
@@ -122,6 +131,11 @@ type SMContext struct {
 	PCCRules            map[string]*PCCRule
 	SessionRules        map[string]*SessionRule
 	TrafficControlDatas map[string]*TrafficControlData
+	QosDatas            map[string]*models.QosData
+
+	UpPathChgEarlyNotification map[string]*EventExposureNotification // Key: Uri+NotifId
+	UpPathChgLateNotification  map[string]*EventExposureNotification // Key: Uri+NotifId
+	DataPathToBeRemoved        map[int64]*DataPath                   // Key: pathID
 
 	SelectedSessionRuleID string
 
@@ -190,6 +204,10 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 	smContext.PCCRules = make(map[string]*PCCRule)
 	smContext.SessionRules = make(map[string]*SessionRule)
 	smContext.TrafficControlDatas = make(map[string]*TrafficControlData)
+	smContext.QosDatas = make(map[string]*models.QosData)
+	smContext.UpPathChgEarlyNotification = make(map[string]*EventExposureNotification)
+	smContext.UpPathChgLateNotification = make(map[string]*EventExposureNotification)
+	smContext.DataPathToBeRemoved = make(map[int64]*DataPath)
 	smContext.sbiPFCPCommunicationChan = make(chan PFCPSessionResponseStatus, 1)
 
 	smContext.ProtocolConfigurationOptions = &ProtocolConfigurationOptions{}
@@ -492,15 +510,15 @@ func (c *SMContext) SelectDefaultDataPath() error {
 		return fmt.Errorf("Data Path not found, Selection Parameter: %s",
 			param.String())
 	}
-	defaultPath.ActivateTunnelAndPDR(c, 255)
+	defaultPath.ActivateTunnelAndPDR(c, DefaultPrecedence)
 	return nil
 }
 
 func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
-	tcData *TrafficControlData) {
-	var targetDNAI string
+	tcData *TrafficControlData, qosData *models.QosData) error {
+	var targetRoute models.RouteToLocation
 	if tcData != nil && len(tcData.RouteToLocs) > 0 {
-		targetDNAI = tcData.RouteToLocs[0].Dnai
+		targetRoute = tcData.RouteToLocs[0]
 	}
 	param := &UPFSelectionParams{
 		Dnn: c.Dnn,
@@ -508,16 +526,95 @@ func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
 			Sst: c.SNssai.Sst,
 			Sd:  c.SNssai.Sd,
 		},
-		Dnai: targetDNAI,
+		Dnai: targetRoute.Dnai,
 	}
 	createdUpPath := GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(param)
 	createdDataPath := GenerateDataPath(createdUpPath)
-	if createdDataPath != nil {
-		createdDataPath.ActivateTunnelAndPDR(c, 255-uint32(pccRule.Precedence))
-		c.Tunnel.AddDataPath(createdDataPath)
+	if createdDataPath == nil {
+		return fmt.Errorf("fail to create data path for pcc rule[%s]", pccRule.PccRuleId)
+	}
+	createdDataPath.ActivateTunnelAndPDR(c, uint32(pccRule.Precedence))
+	c.Tunnel.AddDataPath(createdDataPath)
+	pccRule.Datapath = createdDataPath
+	pccRule.AddDataPathForwardingParameters(c, &targetRoute)
+	pccRule.AddDataPathQoSData(qosData)
+	return nil
+}
+
+func (c *SMContext) BuildUpPathChgEventExposureNotification(
+	chgEvent *models.UpPathChgEvent,
+	srcRoute, tgtRoute *models.RouteToLocation) {
+	if chgEvent == nil {
+		return
+	}
+	if chgEvent.NotificationUri == "" {
+		c.Log.Warnf("No NotificationUri [%s]", chgEvent.NotificationUri)
+		return
 	}
 
-	pccRule.Datapath = createdDataPath
+	en := models.EventNotification{
+		Event:            models.SmfEvent_UP_PATH_CH,
+		SourceTraRouting: srcRoute,
+		TargetTraRouting: tgtRoute,
+	}
+	if srcRoute.Dnai != tgtRoute.Dnai {
+		en.SourceDnai = srcRoute.Dnai
+		en.TargetDnai = tgtRoute.Dnai
+	}
+	// TODO: sourceUeIpv4Addr, sourceUeIpv6Prefix, targetUeIpv4Addr, targetUeIpv6Prefix
+
+	k := chgEvent.NotificationUri + chgEvent.NotifCorreId
+	if strings.Contains(string(chgEvent.DnaiChgType), "EARLY") {
+		en.DnaiChgType = models.DnaiChangeType("EARLY")
+		v, ok := c.UpPathChgEarlyNotification[k]
+		if ok {
+			v.EventNotifs = append(v.EventNotifs, en)
+		} else {
+			c.UpPathChgEarlyNotification[k] = newEventExposureNotification(
+				chgEvent.NotificationUri, chgEvent.NotifCorreId, en)
+		}
+	}
+	if strings.Contains(string(chgEvent.DnaiChgType), "LATE") {
+		en.DnaiChgType = models.DnaiChangeType("LATE")
+		v, ok := c.UpPathChgLateNotification[k]
+		if ok {
+			v.EventNotifs = append(v.EventNotifs, en)
+		} else {
+			c.UpPathChgLateNotification[k] = newEventExposureNotification(
+				chgEvent.NotificationUri, chgEvent.NotifCorreId, en)
+		}
+	}
+}
+
+func newEventExposureNotification(
+	uri, id string,
+	en models.EventNotification) *EventExposureNotification {
+	return &EventExposureNotification{
+		NsmfEventExposureNotification: &models.NsmfEventExposureNotification{
+			NotifId:     id,
+			EventNotifs: []models.EventNotification{en},
+		},
+		Uri: uri,
+	}
+}
+
+type NotifCallback func(uri string,
+	notification *models.NsmfEventExposureNotification)
+
+func (c *SMContext) SendUpPathChgNotification(chgType string, notifCb NotifCallback) {
+	var notifications map[string]*EventExposureNotification
+	if chgType == "EARLY" {
+		notifications = c.UpPathChgEarlyNotification
+	} else if chgType == "LATE" {
+		notifications = c.UpPathChgLateNotification
+	} else {
+		return
+	}
+	for k, n := range notifications {
+		c.Log.Infof("Send UpPathChg Event Exposure Notification [%s][%s] to NEF/AF", chgType, n.NotifId)
+		go notifCb(n.Uri, n.NsmfEventExposureNotification)
+		delete(notifications, k)
+	}
 }
 
 func (smContext *SMContext) RemovePDRfromPFCPSession(nodeID pfcpType.NodeID, pdr *PDR) {
@@ -606,66 +703,6 @@ func (smContext *SMContext) IsAllowedPDUSessionType(requestedPDUSessionType uint
 		return fmt.Errorf("Requested PDU Sesstion type[%d] is not supported", requestedPDUSessionType)
 	}
 	return nil
-}
-
-// SM Policy related operation
-
-// SelectedSessionRule - return the SMF selected session rule for this SM Context
-func (c *SMContext) SelectedSessionRule() *SessionRule {
-	if c.SelectedSessionRuleID == "" {
-		return nil
-	}
-	return c.SessionRules[c.SelectedSessionRuleID]
-}
-
-func (c *SMContext) UpdateSessionRules(sessRules map[string]*models.SessionRule) error {
-	for id, r := range sessRules {
-		if r == nil {
-			c.Log.Debugf("Delete SessionRule[%s]", id)
-			delete(c.SessionRules, id)
-		} else {
-			if origRule, ok := c.SessionRules[id]; ok {
-				c.Log.Debugf("Modify SessionRule[%s]: %+v", id, r)
-				origRule.SessionRule = r
-			} else {
-				c.Log.Debugf("Install SessionRule[%s]: %+v", id, r)
-				c.SessionRules[id] = NewSessionRule(r)
-			}
-		}
-	}
-
-	if len(c.SessionRules) == 0 {
-		return fmt.Errorf("UpdateSessionRules: no session rule")
-	}
-
-	if c.SelectedSessionRuleID == "" ||
-		c.SessionRules[c.SelectedSessionRuleID] == nil {
-		// No active session rule, randomly choose a session rule to activate
-		for id := range c.SessionRules {
-			c.SelectedSessionRuleID = id
-			break
-		}
-	}
-	return nil
-
-	// TODO: need update default data path if SessionRule changed
-}
-
-func (c *SMContext) UpdateTrafficControlDatas(traffContDecs map[string]*models.TrafficControlData) {
-	for id, tc := range traffContDecs {
-		if tc == nil {
-			c.Log.Debugf("Delete TrafficControlData[%s]", id)
-			delete(c.TrafficControlDatas, id)
-		} else {
-			if origData, ok := c.TrafficControlDatas[id]; ok {
-				c.Log.Debugf("Modify TrafficControlData[%s]: %+v", id, tc)
-				origData.TrafficControlData = tc
-			} else {
-				c.Log.Debugf("Install TrafficControlData[%s]: %+v", id, tc)
-				c.TrafficControlDatas[id] = NewTrafficControlData(tc)
-			}
-		}
-	}
 }
 
 func (smContext *SMContext) StopT3591() {
