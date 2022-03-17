@@ -69,10 +69,10 @@ func (c *SMContext) ApplyPccRules(
 	// Handle PccRules in decision first
 	for id, pccModel := range decision.PccRules {
 		var srcTcData, tgtTcData *TrafficControlData
-		srcPcc, ok := c.PCCRules[id]
+		srcPcc := c.PCCRules[id]
 		if pccModel == nil {
 			c.Log.Infof("Remove PCCRule[%s]", id)
-			if !ok {
+			if srcPcc == nil {
 				c.Log.Warnf("PCCRule[%s] not exist", id)
 				continue
 			}
@@ -81,17 +81,18 @@ func (c *SMContext) ApplyPccRules(
 			c.PreRemoveDataPath(srcPcc.Datapath)
 		} else {
 			tgtPcc := NewPCCRule(pccModel)
+
 			tgtTcID := tgtPcc.RefTcDataID()
+			_, tgtTcData = c.getSrcTgtTcData(decision.TraffContDecs, tgtTcID)
+
 			tgtQosID := tgtPcc.RefQosDataID()
-			tgtTcData = NewTrafficControlData(
-				decision.TraffContDecs[tgtTcID])
-			tgtQosData := decision.QosDecs[tgtQosID]
+			_, tgtQosData := c.getSrcTgtQosData(decision.QosDecs, tgtQosID)
 
 			// Create Data path for targetPccRule
 			if err := c.CreatePccRuleDataPath(tgtPcc, tgtTcData, tgtQosData); err != nil {
 				return err
 			}
-			if ok {
+			if srcPcc != nil {
 				c.Log.Infof("Modify PCCRule[%s]", id)
 				srcTcData = c.TrafficControlDatas[srcPcc.RefTcDataID()]
 				c.PreRemoveDataPath(srcPcc.Datapath)
@@ -103,25 +104,28 @@ func (c *SMContext) ApplyPccRules(
 				return err
 			}
 			finalPccRules[id] = tgtPcc
-			finalTcDatas[tgtTcID] = tgtTcData
-			finalQosDatas[tgtQosID] = tgtQosData
+			if tgtTcID != "" {
+				finalTcDatas[tgtTcID] = tgtTcData
+			}
+			if tgtQosID != "" {
+				finalQosDatas[tgtQosID] = tgtQosData
+			}
 		}
 		if err := checkUpPathChgEvent(c, srcTcData, tgtTcData); err != nil {
 			c.Log.Warnf("Check UpPathChgEvent err: %v", err)
 		}
-		// Remove source pcc rule
+		// Remove handled pcc rule
 		delete(c.PCCRules, id)
 	}
 
 	// Handle PccRules not in decision
 	for id, pcc := range c.PCCRules {
-		tcDataID := pcc.RefTcDataID()
-		qosDataID := pcc.RefQosDataID()
-		srcTcData := c.TrafficControlDatas[tcDataID]
-		tgtTcData := NewTrafficControlData(
-			decision.TraffContDecs[tcDataID])
-		srcQosData := c.QosDatas[qosDataID]
-		tgtQosData := decision.QosDecs[qosDataID]
+		tcID := pcc.RefTcDataID()
+		srcTcData, tgtTcData := c.getSrcTgtTcData(decision.TraffContDecs, tcID)
+
+		qosID := pcc.RefQosDataID()
+		srcQosData, tgtQosData := c.getSrcTgtQosData(decision.QosDecs, qosID)
+
 		if !reflect.DeepEqual(srcTcData, tgtTcData) ||
 			!reflect.DeepEqual(srcQosData, tgtQosData) {
 			// Remove old Data path
@@ -135,14 +139,50 @@ func (c *SMContext) ApplyPccRules(
 			}
 		}
 		finalPccRules[id] = pcc
-		finalTcDatas[tcDataID] = tgtTcData
-		finalQosDatas[qosDataID] = tgtQosData
+		if tcID != "" {
+			finalTcDatas[tcID] = tgtTcData
+		}
+		if qosID != "" {
+			finalQosDatas[qosID] = tgtQosData
+		}
 	}
 
 	c.PCCRules = finalPccRules
 	c.TrafficControlDatas = finalTcDatas
 	c.QosDatas = finalQosDatas
 	return nil
+}
+
+func (c *SMContext) getSrcTgtTcData(
+	decisionTcDecs map[string]*models.TrafficControlData,
+	tcID string) (*TrafficControlData, *TrafficControlData) {
+	if tcID == "" {
+		return nil, nil
+	}
+
+	srcTcData := c.TrafficControlDatas[tcID]
+	tgtTcData := NewTrafficControlData(decisionTcDecs[tcID])
+	if tgtTcData == nil {
+		// no TcData in decision, use source TcData as target TcData
+		tgtTcData = srcTcData
+	}
+	return srcTcData, tgtTcData
+}
+
+func (c *SMContext) getSrcTgtQosData(
+	decisionQosDecs map[string]*models.QosData,
+	qosID string) (*models.QosData, *models.QosData) {
+	if qosID == "" {
+		return nil, nil
+	}
+
+	srcQosData := c.QosDatas[qosID]
+	tgtQosData := decisionQosDecs[qosID]
+	if tgtQosData == nil {
+		// no TcData in decision, use source TcData as target TcData
+		tgtQosData = srcQosData
+	}
+	return srcQosData, tgtQosData
 }
 
 // Set data path PDR to REMOVE beofre sending PFCP req

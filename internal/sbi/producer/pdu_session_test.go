@@ -1,11 +1,9 @@
 package producer_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
 
@@ -563,23 +561,16 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 		},
 	}
 
-	Convey("TestHandlePDUSessionSMContextCreate", t, func() {
-		for i, tc := range testCases {
+	for _, tc := range testCases {
+		t.Run(tc.paramStr, func(t *testing.T) {
 			for _, initFunc := range tc.initFuncs {
 				initFunc()
 			}
-			infoStr := fmt.Sprintf("testcase[%d]: ", i)
 
-			Convey(infoStr, func() {
-				Convey(tc.paramStr, func() {
-					httpResp := producer.HandlePDUSessionSMContextCreate(tc.request)
+			httpResp := producer.HandlePDUSessionSMContextCreate(tc.request)
 
-					Convey(tc.resultStr, func() {
-						So(httpResp.Status, ShouldResemble, tc.expectedHTTPRsp.Status)
-						So(httpResp.Body, ShouldResemble, tc.expectedHTTPRsp.Body)
-					})
-				})
-			})
+			require.Equal(t, tc.expectedHTTPRsp.Status, httpResp.Status)
+			require.Equal(t, tc.expectedHTTPRsp.Body, httpResp.Body)
 
 			createData := tc.request.JsonData
 			if createData != nil {
@@ -588,8 +579,8 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 					context.RemoveSMContext(ref)
 				}
 			}
-		}
-	})
+		})
+	}
 
 	err := udp.Server.Close()
 	require.NoError(t, err)
