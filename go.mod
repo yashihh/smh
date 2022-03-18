@@ -4,11 +4,11 @@ go 1.14
 
 require (
 	bitbucket.org/free5gc-team/aper v0.0.0-20210812055911-3c0f9b418266
-	bitbucket.org/free5gc-team/nas v0.0.0-20211116041141-def2de648f05
-	bitbucket.org/free5gc-team/ngap v0.0.0-20211014134938-795d0e95d472
-	bitbucket.org/free5gc-team/openapi v0.0.0-20211014134522-20e0d874611c
+	bitbucket.org/free5gc-team/nas v0.0.0-20220318005645-5d74f97c0c5b
+	bitbucket.org/free5gc-team/ngap v0.0.0-20220318005908-d05ca4df677d
+	bitbucket.org/free5gc-team/openapi v0.0.0-20220309072330-923e8c97eac7
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20210816081806-9177891133e3
-	bitbucket.org/free5gc-team/util v0.0.0-20210819050407-27603454f4e4
+	bitbucket.org/free5gc-team/util v0.0.0-20220318010554-04d4720b6e4b
 	github.com/antihax/optional v1.0.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d

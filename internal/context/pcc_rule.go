@@ -69,9 +69,7 @@ func (r *PCCRule) UpdateDataPathFlowDescription(dlFlowDesc string) error {
 }
 
 func getUplinkFlowDescription(dlFlowDesc string) string {
-	ulIPFilterRule := flowdesc.NewIPFilterRule()
-
-	err := flowdesc.Decode(dlFlowDesc, ulIPFilterRule)
+	ulIPFilterRule, err := flowdesc.Decode(dlFlowDesc)
 	if err != nil {
 		return ""
 	}

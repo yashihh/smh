@@ -332,8 +332,8 @@ func buildNASPacketFilterFromFlowInformation(pfInfo *models.FlowInformation) (*n
 	}
 
 	if pfInfo.FlowDescription != "" {
-		ipFilter := flowdesc.NewIPFilterRule()
-		if err := flowdesc.Decode(pfInfo.FlowDescription, ipFilter); err != nil {
+		ipFilter, err := flowdesc.Decode(pfInfo.FlowDescription)
+		if err != nil {
 			return nil, fmt.Errorf("parse packet filter content fail: %s", err)
 		}
 		pfComponents = append(pfComponents, buildPacketFilterComponentsFromIPFilterRule(ipFilter)...)
