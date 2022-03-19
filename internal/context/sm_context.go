@@ -88,6 +88,7 @@ type SMContext struct {
 
 	HoState models.HoState
 
+	SelectionParam         *UPFSelectionParams
 	PDUAddress             net.IP
 	UseStaticIP            bool
 	SelectedPDUSessionType uint8
@@ -466,8 +467,8 @@ func (c *SMContext) findPSAandAllocUeIP(param *UPFSelectionParams) error {
 	return nil
 }
 
-func (c *SMContext) SelectDefaultDataPath() error {
-	param := &UPFSelectionParams{
+func (c *SMContext) AllocUeIP() error {
+	c.SelectionParam = &UPFSelectionParams{
 		Dnn: c.Dnn,
 		SNssai: &SNssai{
 			Sst: c.SNssai.Sst,
@@ -478,12 +479,19 @@ func (c *SMContext) SelectDefaultDataPath() error {
 	if len(c.DnnConfiguration.StaticIpAddress) > 0 {
 		staticIPConfig := c.DnnConfiguration.StaticIpAddress[0]
 		if staticIPConfig.Ipv4Addr != "" {
-			param.PDUAddress = net.ParseIP(staticIPConfig.Ipv4Addr).To4()
+			c.SelectionParam.PDUAddress = net.ParseIP(staticIPConfig.Ipv4Addr).To4()
 		}
 	}
 
-	if err := c.findPSAandAllocUeIP(param); err != nil {
+	if err := c.findPSAandAllocUeIP(c.SelectionParam); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (c *SMContext) SelectDefaultDataPath() error {
+	if c.SelectionParam == nil || c.SelectedUPF == nil {
+		return fmt.Errorf("SelectDefaultDataPath err: SelectionParam or SelectedUPF is nil")
 	}
 
 	var defaultPath *DataPath
@@ -498,7 +506,7 @@ func (c *SMContext) SelectDefaultDataPath() error {
 		// Use default route
 		c.Log.Infof("Has no pre-config route")
 		defaultUPPath := GetUserPlaneInformation().GetDefaultUserPlanePathByDNNAndUPF(
-			param, c.SelectedUPF)
+			c.SelectionParam, c.SelectedUPF)
 		defaultPath = GenerateDataPath(defaultUPPath)
 		if defaultPath != nil {
 			defaultPath.IsDefaultPath = true
@@ -508,7 +516,7 @@ func (c *SMContext) SelectDefaultDataPath() error {
 
 	if defaultPath == nil {
 		return fmt.Errorf("Data Path not found, Selection Parameter: %s",
-			param.String())
+			c.SelectionParam.String())
 	}
 	defaultPath.ActivateTunnelAndPDR(c, DefaultPrecedence)
 	return nil

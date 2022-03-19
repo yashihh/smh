@@ -142,6 +142,14 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		}
 	}
 
+	if err := smContext.AllocUeIP(); err != nil {
+		smContext.SetState(smf_context.InActive)
+		smContext.Log.Errorf("PDUSessionSMContextCreate err: %v", err)
+		return makeErrorResponse(smContext,
+			nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
+			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
+	}
+
 	if err := smContext.PCFSelection(); err != nil {
 		smContext.Log.Errorln("pcf selection error:", err)
 	}

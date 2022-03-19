@@ -646,7 +646,9 @@ func TestApplyPccRules(t *testing.T) {
 		},
 	}
 	smctx.SelectedSessionRuleID = "SessRuleId-1"
-	err := smctx.SelectDefaultDataPath()
+	err := smctx.AllocUeIP()
+	require.NoError(t, err)
+	err = smctx.SelectDefaultDataPath()
 	require.NoError(t, err)
 
 	for _, tc := range testCases {
