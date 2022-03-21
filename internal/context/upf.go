@@ -199,14 +199,20 @@ func NewUPTunnel() (tunnel *UPTunnel) {
 }
 
 //*** add unit test ***//
-func (upTunnel *UPTunnel) AddDataPath(dataPath *DataPath) {
-	pathID, err := upTunnel.PathIDGenerator.Allocate()
+func (t *UPTunnel) AddDataPath(dataPath *DataPath) {
+	pathID, err := t.PathIDGenerator.Allocate()
 	if err != nil {
 		logger.CtxLog.Warnf("Allocate pathID error: %+v", err)
 		return
 	}
 
-	upTunnel.DataPathPool[pathID] = dataPath
+	dataPath.PathID = pathID
+	t.DataPathPool[pathID] = dataPath
+}
+
+func (t *UPTunnel) RemoveDataPath(pathID int64) {
+	delete(t.DataPathPool, pathID)
+	t.PathIDGenerator.FreeID(pathID)
 }
 
 //*** add unit test ***//

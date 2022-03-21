@@ -1,12 +1,9 @@
 package producer
 
 import (
-	"bitbucket.org/free5gc-team/openapi/models"
-	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	pfcp_message "bitbucket.org/free5gc-team/smf/internal/pfcp/message"
-	"bitbucket.org/free5gc-team/smf/internal/util"
 )
 
 type PFCPState struct {
@@ -100,84 +97,13 @@ func SendPFCPRules(smContext *smf_context.SMContext) {
 	}
 }
 
-func createPccRuleDataPath(smContext *smf_context.SMContext,
-	pccRule *smf_context.PCCRule,
-	tcData *smf_context.TrafficControlData) {
-	var targetDNAI string
-	if tcData != nil && len(tcData.RouteToLocs) > 0 {
-		targetDNAI = tcData.RouteToLocs[0].Dnai
-	}
-	upfSelectionParams := &smf_context.UPFSelectionParams{
-		Dnn: smContext.Dnn,
-		SNssai: &smf_context.SNssai{
-			Sst: smContext.Snssai.Sst,
-			Sd:  smContext.Snssai.Sd,
-		},
-		Dnai: targetDNAI,
-	}
-	createdUpPath := smf_context.GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(upfSelectionParams)
-	createdDataPath := smf_context.GenerateDataPath(createdUpPath, smContext)
-	if createdDataPath != nil {
-		createdDataPath.ActivateTunnelAndPDR(smContext, 255-uint32(pccRule.Precedence))
-		smContext.Tunnel.AddDataPath(createdDataPath)
-	}
-
-	pccRule.Datapath = createdDataPath
-}
-
-func addQoSToDataPath(smContext *smf_context.SMContext, datapath *smf_context.DataPath, qos *models.QosData) {
-	if qos == nil {
-		return
-	}
-	for curDataPathNode := datapath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-		if newQER, err := curDataPathNode.UPF.AddQER(); err != nil {
-			logger.PduSessLog.Errorln("new QER failed")
-			return
-		} else {
-			newQER.QFI.QFI = uint8(qos.Var5qi)
-			newQER.GateStatus = &pfcpType.GateStatus{
-				ULGate: pfcpType.GateOpen,
-				DLGate: pfcpType.GateOpen,
-			}
-			newQER.MBR = &pfcpType.MBR{
-				ULMBR: util.BitRateTokbps(qos.MaxbrUl),
-				DLMBR: util.BitRateTokbps(qos.MaxbrDl),
-			}
-			newQER.GBR = &pfcpType.GBR{
-				ULGBR: util.BitRateTokbps(qos.GbrUl),
-				DLGBR: util.BitRateTokbps(qos.GbrDl),
-			}
-
-			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
-				curDataPathNode.UpLinkTunnel.PDR.QER = append(curDataPathNode.UpLinkTunnel.PDR.QER, newQER)
-			}
-			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
-				curDataPathNode.DownLinkTunnel.PDR.QER = append(curDataPathNode.DownLinkTunnel.PDR.QER, newQER)
-			}
-		}
-	}
-}
-
-func removeDataPath(smContext *smf_context.SMContext, datapath *smf_context.DataPath) {
-	for curDPNode := datapath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
-		if curDPNode.DownLinkTunnel != nil && curDPNode.DownLinkTunnel.PDR != nil {
-			curDPNode.DownLinkTunnel.PDR.State = smf_context.RULE_REMOVE
-			curDPNode.DownLinkTunnel.PDR.FAR.State = smf_context.RULE_REMOVE
-		}
-		if curDPNode.UpLinkTunnel != nil && curDPNode.UpLinkTunnel.PDR != nil {
-			curDPNode.UpLinkTunnel.PDR.State = smf_context.RULE_REMOVE
-			curDPNode.UpLinkTunnel.PDR.FAR.State = smf_context.RULE_REMOVE
-		}
-	}
-}
-
 // UpdateDataPathToUPF update the datapath of the UPF
 func UpdateDataPathToUPF(smContext *smf_context.SMContext, oldDataPath, updateDataPath *smf_context.DataPath) {
 	if oldDataPath == nil {
 		SendPFCPRule(smContext, updateDataPath)
 		return
 	} else {
-		removeDataPath(smContext, oldDataPath)
+		oldDataPath.RemovePDR()
 		SendPFCPRule(smContext, updateDataPath)
 	}
 }

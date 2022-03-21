@@ -37,6 +37,7 @@ type DataPathNode struct {
 }
 
 type DataPath struct {
+	PathID int64
 	// meta data
 	Activated         bool
 	IsDefaultPath     bool
@@ -277,14 +278,13 @@ func (node *DataPathNode) GetUpLinkFAR() (far *FAR) {
 	return node.UpLinkTunnel.PDR.FAR
 }
 
-func (dataPathPool DataPathPool) GetDefaultPath() (dataPath *DataPath) {
+func (dataPathPool DataPathPool) GetDefaultPath() *DataPath {
 	for _, path := range dataPathPool {
 		if path.IsDefaultPath {
-			dataPath = path
-			return
+			return path
 		}
 	}
-	return
+	return nil
 }
 
 func (dataPath *DataPath) String() string {
@@ -567,6 +567,98 @@ func (dataPath *DataPath) DeactivateTunnelAndPDR(smContext *SMContext) {
 	}
 
 	dataPath.Activated = false
+}
+
+func (p *DataPath) RemovePDR() {
+	for curDPNode := p.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+		if curDPNode.DownLinkTunnel != nil && curDPNode.DownLinkTunnel.PDR != nil {
+			curDPNode.DownLinkTunnel.PDR.State = RULE_REMOVE
+			curDPNode.DownLinkTunnel.PDR.FAR.State = RULE_REMOVE
+		}
+		if curDPNode.UpLinkTunnel != nil && curDPNode.UpLinkTunnel.PDR != nil {
+			curDPNode.UpLinkTunnel.PDR.State = RULE_REMOVE
+			curDPNode.UpLinkTunnel.PDR.FAR.State = RULE_REMOVE
+		}
+	}
+}
+
+func (p *DataPath) AddQoS(qos *models.QosData) {
+	if qos == nil {
+		return
+	}
+	for curDataPathNode := p.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+		if newQER, err := curDataPathNode.UPF.AddQER(); err != nil {
+			logger.PduSessLog.Errorln("new QER failed")
+			return
+		} else {
+			newQER.QFI.QFI = uint8(qos.Var5qi)
+			newQER.GateStatus = &pfcpType.GateStatus{
+				ULGate: pfcpType.GateOpen,
+				DLGate: pfcpType.GateOpen,
+			}
+			newQER.MBR = &pfcpType.MBR{
+				ULMBR: util.BitRateTokbps(qos.MaxbrUl),
+				DLMBR: util.BitRateTokbps(qos.MaxbrDl),
+			}
+			newQER.GBR = &pfcpType.GBR{
+				ULGBR: util.BitRateTokbps(qos.GbrUl),
+				DLGBR: util.BitRateTokbps(qos.GbrDl),
+			}
+
+			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
+				curDataPathNode.UpLinkTunnel.PDR.QER = append(curDataPathNode.UpLinkTunnel.PDR.QER, newQER)
+			}
+			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
+				curDataPathNode.DownLinkTunnel.PDR.QER = append(curDataPathNode.DownLinkTunnel.PDR.QER, newQER)
+			}
+		}
+	}
+}
+
+func (p *DataPath) UpdateFlowDescription(ulFlowDesc, dlFlowDesc string) {
+	for curDPNode := p.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+		curDPNode.DownLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
+			Bid:                     false,
+			Fl:                      false,
+			Spi:                     false,
+			Ttc:                     false,
+			Fd:                      true,
+			LengthOfFlowDescription: uint16(len(dlFlowDesc)),
+			FlowDescription:         []byte(dlFlowDesc),
+		}
+		curDPNode.UpLinkTunnel.PDR.PDI.SDFFilter = &pfcpType.SDFFilter{
+			Bid:                     false,
+			Fl:                      false,
+			Spi:                     false,
+			Ttc:                     false,
+			Fd:                      true,
+			LengthOfFlowDescription: uint16(len(ulFlowDesc)),
+			FlowDescription:         []byte(ulFlowDesc),
+		}
+	}
+}
+
+func (p *DataPath) AddForwardingParameters(fwdPolicyID string, teid uint32) {
+	for curDPNode := p.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
+		if curDPNode.IsAnchorUPF() {
+			curDPNode.UpLinkTunnel.PDR.FAR.ForwardingParameters.ForwardingPolicyID = fwdPolicyID
+			// TODO: Support the RouteInfo in targetTraRouting
+			// TODO: Check the message is only presents one of RouteInfo or RouteProfId and sends failure message to the PCF
+			// } else if routeInfo := targetTraRouting.RouteInfo; routeInfo != nil {
+			// 	locToRouteIP := net.ParseIP(routeInfo.Ipv4Addr)
+			// 	curDPNode.UpLinkTunnel.PDR.FAR.ForwardingParameters.OuterHeaderCreation = &pfcpType.OuterHeaderCreation{
+			// 		OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationUdpIpv4,
+			// 		Ipv4Address:                    locToRouteIP,
+			// 		PortNumber:                     uint16(routeInfo.PortNumber),
+			// 	}
+			// }
+		}
+		// get old TEID
+		// TODO: remove this if RAN tunnel issue is fixed, because the AN tunnel is only one
+		if curDPNode.IsANUPF() {
+			curDPNode.UpLinkTunnel.PDR.PDI.LocalFTeid.Teid = teid
+		}
+	}
 }
 
 func (dataPath *DataPath) CopyFirstDPNode() *DataPathNode {

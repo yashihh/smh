@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -53,6 +54,8 @@ const (
 	PFCPModification
 )
 
+const DefaultPrecedence uint32 = 255
+
 func init() {
 }
 
@@ -61,36 +64,31 @@ func GetSMContextCount() uint64 {
 	return smContextCount
 }
 
+type EventExposureNotification struct {
+	*models.NsmfEventExposureNotification
+
+	Uri string
+}
+
 type SMContext struct {
+	*models.SmContextCreateData
+
 	Ref string
 
 	LocalSEID  uint64
 	RemoteSEID uint64
 
 	UnauthenticatedSupi bool
-	// SUPI or PEI
-	Supi           string
-	Pei            string
-	Identifier     string
-	Gpsi           string
-	PDUSessionID   int32
-	Dnn            string
-	Snssai         *models.Snssai
-	HplmnSnssai    *models.Snssai
-	ServingNetwork *models.PlmnId
-	ServingNfId    string
+
+	Pei          string
+	Identifier   string
+	PDUSessionID int32
 
 	UpCnxState models.UpCnxState
 
-	AnType          models.AccessType
-	RatType         models.RatType
-	PresenceInLadn  models.PresenceState
-	UeLocation      *models.UserLocation
-	UeTimeZone      string
-	AddUeLocation   *models.UserLocation
-	OldPduSessionId int32
-	HoState         models.HoState
+	HoState models.HoState
 
+	SelectionParam         *UPFSelectionParams
 	PDUAddress             net.IP
 	UseStaticIP            bool
 	SelectedPDUSessionType uint8
@@ -131,9 +129,16 @@ type SMContext struct {
 	DNNInfo *SnssaiSmfDnnInfo
 
 	// SM Policy related
-	PCCRules           map[string]*PCCRule
-	SessionRules       map[string]*SessionRule
-	TrafficControlPool map[string]*TrafficControlData
+	PCCRules            map[string]*PCCRule
+	SessionRules        map[string]*SessionRule
+	TrafficControlDatas map[string]*TrafficControlData
+	QosDatas            map[string]*models.QosData
+
+	UpPathChgEarlyNotification map[string]*EventExposureNotification // Key: Uri+NotifId
+	UpPathChgLateNotification  map[string]*EventExposureNotification // Key: Uri+NotifId
+	DataPathToBeRemoved        map[int64]*DataPath                   // Key: pathID
+
+	SelectedSessionRuleID string
 
 	// QoS
 	QoSRuleIDGenerator      *idgenerator.IDGenerator
@@ -199,10 +204,18 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 	// initialize SM Policy Data
 	smContext.PCCRules = make(map[string]*PCCRule)
 	smContext.SessionRules = make(map[string]*SessionRule)
-	smContext.TrafficControlPool = make(map[string]*TrafficControlData)
+	smContext.TrafficControlDatas = make(map[string]*TrafficControlData)
+	smContext.QosDatas = make(map[string]*models.QosData)
+	smContext.UpPathChgEarlyNotification = make(map[string]*EventExposureNotification)
+	smContext.UpPathChgLateNotification = make(map[string]*EventExposureNotification)
+	smContext.DataPathToBeRemoved = make(map[int64]*DataPath)
 	smContext.sbiPFCPCommunicationChan = make(chan PFCPSessionResponseStatus, 1)
 
 	smContext.ProtocolConfigurationOptions = &ProtocolConfigurationOptions{}
+
+	smContext.BPManager = NewBPManager(id)
+	smContext.Tunnel = NewUPTunnel()
+	smContext.PendingUPF = make(PendingUPF)
 
 	smContext.QoSRuleIDGenerator = idgenerator.NewGenerator(1, 255)
 	smContext.PacketFilterIDGenerator = idgenerator.NewGenerator(1, 255)
@@ -268,24 +281,6 @@ func GetSMContextBySEID(SEID uint64) *SMContext {
 	return nil
 }
 
-//*** add unit test ***//
-func (smContext *SMContext) SetCreateData(createData *models.SmContextCreateData) {
-	smContext.Gpsi = createData.Gpsi
-	smContext.Supi = createData.Supi
-	smContext.Dnn = createData.Dnn
-	smContext.Snssai = createData.SNssai
-	smContext.HplmnSnssai = createData.HplmnSnssai
-	smContext.ServingNetwork = createData.ServingNetwork
-	smContext.AnType = createData.AnType
-	smContext.RatType = createData.RatType
-	smContext.PresenceInLadn = createData.PresenceInLadn
-	smContext.UeLocation = createData.UeLocation
-	smContext.UeTimeZone = createData.UeTimeZone
-	smContext.AddUeLocation = createData.AddUeLocation
-	smContext.OldPduSessionId = createData.OldPduSessionId
-	smContext.ServingNfId = createData.ServingNfId
-}
-
 func (smContext *SMContext) WaitPFCPCommunicationStatus() PFCPSessionResponseStatus {
 	var PFCPResponseStatus PFCPSessionResponseStatus
 	select {
@@ -302,7 +297,7 @@ func (smContext *SMContext) SendPFCPCommunicationStatus(status PFCPSessionRespon
 
 func (smContext *SMContext) BuildCreatedData() *models.SmContextCreatedData {
 	return &models.SmContextCreatedData{
-		SNssai: smContext.Snssai,
+		SNssai: smContext.SNssai,
 	}
 }
 
@@ -443,6 +438,193 @@ func (smContext *SMContext) PutPDRtoPFCPSession(nodeID pfcpType.NodeID, pdr *PDR
 	return nil
 }
 
+func (c *SMContext) findPSAandAllocUeIP(param *UPFSelectionParams) error {
+	c.Log.Traceln("findPSAandAllocUeIP")
+	if param == nil {
+		return fmt.Errorf("UPFSelectionParams is nil")
+	}
+
+	upInfo := GetUserPlaneInformation()
+	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(c.Supi) {
+		groupName := GetULCLGroupNameFromSUPI(c.Supi)
+		preConfigPathPool := GetUEDefaultPathPool(groupName)
+		if preConfigPathPool != nil {
+			selectedUPFName := ""
+			selectedUPFName, c.PDUAddress, c.UseStaticIP =
+				preConfigPathPool.SelectUPFAndAllocUEIPForULCL(
+					upInfo, param)
+			c.SelectedUPF = GetUserPlaneInformation().UPFs[selectedUPFName]
+		}
+	} else {
+		c.SelectedUPF, c.PDUAddress, c.UseStaticIP =
+			GetUserPlaneInformation().SelectUPFAndAllocUEIP(param)
+		c.Log.Infof("Allocated PDUAdress[%s]", c.PDUAddress.String())
+	}
+	if c.PDUAddress == nil {
+		return fmt.Errorf("fail to allocate PDU address, Selection Parameter: %s",
+			param.String())
+	}
+	return nil
+}
+
+func (c *SMContext) AllocUeIP() error {
+	c.SelectionParam = &UPFSelectionParams{
+		Dnn: c.Dnn,
+		SNssai: &SNssai{
+			Sst: c.SNssai.Sst,
+			Sd:  c.SNssai.Sd,
+		},
+	}
+
+	if len(c.DnnConfiguration.StaticIpAddress) > 0 {
+		staticIPConfig := c.DnnConfiguration.StaticIpAddress[0]
+		if staticIPConfig.Ipv4Addr != "" {
+			c.SelectionParam.PDUAddress = net.ParseIP(staticIPConfig.Ipv4Addr).To4()
+		}
+	}
+
+	if err := c.findPSAandAllocUeIP(c.SelectionParam); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *SMContext) SelectDefaultDataPath() error {
+	if c.SelectionParam == nil || c.SelectedUPF == nil {
+		return fmt.Errorf("SelectDefaultDataPath err: SelectionParam or SelectedUPF is nil")
+	}
+
+	var defaultPath *DataPath
+	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(c.Supi) {
+		c.Log.Infof("Has pre-config route")
+		uePreConfigPaths := GetUEPreConfigPaths(c.Supi, c.SelectedUPF.Name)
+		c.Tunnel.DataPathPool = uePreConfigPaths.DataPathPool
+		c.Tunnel.PathIDGenerator = uePreConfigPaths.PathIDGenerator
+		defaultPath = c.Tunnel.DataPathPool.GetDefaultPath()
+	} else {
+		// UE has no pre-config path.
+		// Use default route
+		c.Log.Infof("Has no pre-config route")
+		defaultUPPath := GetUserPlaneInformation().GetDefaultUserPlanePathByDNNAndUPF(
+			c.SelectionParam, c.SelectedUPF)
+		defaultPath = GenerateDataPath(defaultUPPath)
+		if defaultPath != nil {
+			defaultPath.IsDefaultPath = true
+			c.Tunnel.AddDataPath(defaultPath)
+		}
+	}
+
+	if defaultPath == nil {
+		return fmt.Errorf("Data Path not found, Selection Parameter: %s",
+			c.SelectionParam.String())
+	}
+	defaultPath.ActivateTunnelAndPDR(c, DefaultPrecedence)
+	return nil
+}
+
+func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
+	tcData *TrafficControlData, qosData *models.QosData) error {
+	var targetRoute models.RouteToLocation
+	if tcData != nil && len(tcData.RouteToLocs) > 0 {
+		targetRoute = tcData.RouteToLocs[0]
+	}
+	param := &UPFSelectionParams{
+		Dnn: c.Dnn,
+		SNssai: &SNssai{
+			Sst: c.SNssai.Sst,
+			Sd:  c.SNssai.Sd,
+		},
+		Dnai: targetRoute.Dnai,
+	}
+	createdUpPath := GetUserPlaneInformation().GetDefaultUserPlanePathByDNN(param)
+	createdDataPath := GenerateDataPath(createdUpPath)
+	if createdDataPath == nil {
+		return fmt.Errorf("fail to create data path for pcc rule[%s]", pccRule.PccRuleId)
+	}
+	createdDataPath.ActivateTunnelAndPDR(c, uint32(pccRule.Precedence))
+	c.Tunnel.AddDataPath(createdDataPath)
+	pccRule.Datapath = createdDataPath
+	pccRule.AddDataPathForwardingParameters(c, &targetRoute)
+	pccRule.AddDataPathQoSData(qosData)
+	return nil
+}
+
+func (c *SMContext) BuildUpPathChgEventExposureNotification(
+	chgEvent *models.UpPathChgEvent,
+	srcRoute, tgtRoute *models.RouteToLocation) {
+	if chgEvent == nil {
+		return
+	}
+	if chgEvent.NotificationUri == "" {
+		c.Log.Warnf("No NotificationUri [%s]", chgEvent.NotificationUri)
+		return
+	}
+
+	en := models.EventNotification{
+		Event:            models.SmfEvent_UP_PATH_CH,
+		SourceTraRouting: srcRoute,
+		TargetTraRouting: tgtRoute,
+	}
+	if srcRoute.Dnai != tgtRoute.Dnai {
+		en.SourceDnai = srcRoute.Dnai
+		en.TargetDnai = tgtRoute.Dnai
+	}
+	// TODO: sourceUeIpv4Addr, sourceUeIpv6Prefix, targetUeIpv4Addr, targetUeIpv6Prefix
+
+	k := chgEvent.NotificationUri + chgEvent.NotifCorreId
+	if strings.Contains(string(chgEvent.DnaiChgType), "EARLY") {
+		en.DnaiChgType = models.DnaiChangeType("EARLY")
+		v, ok := c.UpPathChgEarlyNotification[k]
+		if ok {
+			v.EventNotifs = append(v.EventNotifs, en)
+		} else {
+			c.UpPathChgEarlyNotification[k] = newEventExposureNotification(
+				chgEvent.NotificationUri, chgEvent.NotifCorreId, en)
+		}
+	}
+	if strings.Contains(string(chgEvent.DnaiChgType), "LATE") {
+		en.DnaiChgType = models.DnaiChangeType("LATE")
+		v, ok := c.UpPathChgLateNotification[k]
+		if ok {
+			v.EventNotifs = append(v.EventNotifs, en)
+		} else {
+			c.UpPathChgLateNotification[k] = newEventExposureNotification(
+				chgEvent.NotificationUri, chgEvent.NotifCorreId, en)
+		}
+	}
+}
+
+func newEventExposureNotification(
+	uri, id string,
+	en models.EventNotification) *EventExposureNotification {
+	return &EventExposureNotification{
+		NsmfEventExposureNotification: &models.NsmfEventExposureNotification{
+			NotifId:     id,
+			EventNotifs: []models.EventNotification{en},
+		},
+		Uri: uri,
+	}
+}
+
+type NotifCallback func(uri string,
+	notification *models.NsmfEventExposureNotification)
+
+func (c *SMContext) SendUpPathChgNotification(chgType string, notifCb NotifCallback) {
+	var notifications map[string]*EventExposureNotification
+	if chgType == "EARLY" {
+		notifications = c.UpPathChgEarlyNotification
+	} else if chgType == "LATE" {
+		notifications = c.UpPathChgLateNotification
+	} else {
+		return
+	}
+	for k, n := range notifications {
+		c.Log.Infof("Send UpPathChg Event Exposure Notification [%s][%s] to NEF/AF", chgType, n.NotifId)
+		go notifCb(n.Uri, n.NsmfEventExposureNotification)
+		delete(notifications, k)
+	}
+}
+
 func (smContext *SMContext) RemovePDRfromPFCPSession(nodeID pfcpType.NodeID, pdr *PDR) {
 	NodeIDtoIP := nodeID.ResolveNodeIdToIp().String()
 	pfcpSessCtx := smContext.PFCPContext[NodeIDtoIP]
@@ -528,19 +710,6 @@ func (smContext *SMContext) IsAllowedPDUSessionType(requestedPDUSessionType uint
 	default:
 		return fmt.Errorf("Requested PDU Sesstion type[%d] is not supported", requestedPDUSessionType)
 	}
-	return nil
-}
-
-// SM Policy related operation
-
-// SelectedSessionRule - return the SMF selected session rule for this SM Context
-func (smContext *SMContext) SelectedSessionRule() *SessionRule {
-	for _, sessionRule := range smContext.SessionRules {
-		if sessionRule.isActivate {
-			return sessionRule
-		}
-	}
-
 	return nil
 }
 
