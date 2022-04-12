@@ -173,27 +173,13 @@ func EstablishULCL(smContext *context.SMContext) {
 			DownLinkPDR := curDPNode.DownLinkTunnel.PDR
 			UPLinkPDR.State = context.RULE_INITIAL
 
+			// new IPFilterRule with action:"permit" and diection:"out"
 			FlowDespcription := flowdesc.NewIPFilterRule()
-			err := FlowDespcription.SetAction(flowdesc.Permit) // permit
-			if err != nil {
-				logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
+			FlowDespcription.Dst = dest.DestinationIP
+			if dstPort, err := flowdesc.ParsePorts(dest.DestinationPort); err != nil {
+				FlowDespcription.DstPorts = dstPort
 			}
-			err = FlowDespcription.SetDirection(flowdesc.Out) // uplink
-			if err != nil {
-				logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
-			}
-			err = FlowDespcription.SetDestinationIP(dest.DestinationIP)
-			if err != nil {
-				logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
-			}
-			err = FlowDespcription.SetDestinationPorts(dest.DestinationPort)
-			if err != nil {
-				logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
-			}
-			err = FlowDespcription.SetSourceIP(smContext.PDUAddress.To4().String())
-			if err != nil {
-				logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
-			}
+			FlowDespcription.Src = smContext.PDUAddress.To4().String()
 
 			FlowDespcriptionStr, err := flowdesc.Encode(FlowDespcription)
 			if err != nil {
@@ -325,27 +311,13 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 
 			if _, exist := bpMGR.UpdatedBranchingPoint[curDPNode.UPF]; exist {
 				// add SDF Filter
+				// new IPFilterRule with action:"permit" and diection:"out"
 				FlowDespcription := flowdesc.NewIPFilterRule()
-				err := FlowDespcription.SetAction(flowdesc.Permit) // permit
-				if err != nil {
-					logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
+				FlowDespcription.Dst = dest.DestinationIP
+				if dstPort, err := flowdesc.ParsePorts(dest.DestinationPort); err != nil {
+					FlowDespcription.DstPorts = dstPort
 				}
-				err = FlowDespcription.SetDirection(flowdesc.Out) // uplink
-				if err != nil {
-					logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
-				}
-				err = FlowDespcription.SetDestinationIP(dest.DestinationIP)
-				if err != nil {
-					logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
-				}
-				err = FlowDespcription.SetDestinationPorts(dest.DestinationPort)
-				if err != nil {
-					logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
-				}
-				err = FlowDespcription.SetSourceIP(smContext.PDUAddress.To4().String())
-				if err != nil {
-					logger.PduSessLog.Errorf("Error occurs when setting flow despcription: %s\n", err)
-				}
+				FlowDespcription.Src = smContext.PDUAddress.To4().String()
 
 				FlowDespcriptionStr, err := flowdesc.Encode(FlowDespcription)
 				if err != nil {

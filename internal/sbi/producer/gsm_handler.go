@@ -2,9 +2,6 @@ package producer
 
 import (
 	"fmt"
-	"net"
-	"strconv"
-	"strings"
 
 	"bitbucket.org/free5gc-team/nas"
 	"bitbucket.org/free5gc-team/nas/nasConvert"
@@ -14,7 +11,6 @@ import (
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/internal/sbi/consumer"
-	"bitbucket.org/free5gc-team/util/flowdesc"
 )
 
 type GSMError struct {
@@ -227,39 +223,20 @@ func HandlePDUSessionModificationRequest(
 	authQoSFlowDesc := reqQoSFlowDescs
 
 	for _, pcc := range smPolicyDecision.PccRules {
-		rule := nasType.QoSRule{}
-		rule.Operation = reqQoSRules[0].Operation
-		rule.Precedence = uint8(pcc.Precedence)
-
-		if ruleID, err := smCtx.QoSRuleIDGenerator.Allocate(); err != nil {
-			return nil, err
-		} else {
-			rule.Identifier = uint8(ruleID)
-			smCtx.PCCRuleIDToQoSRuleID[pcc.PccRuleId] = uint8(ruleID)
-		}
-
-		pfList := make(nasType.PacketFilterList, 0)
-		for _, flowInfo := range pcc.FlowInfos {
-			if pf, err := buildNASPacketFilterFromFlowInformation(&flowInfo); err != nil {
-				smCtx.Log.Warning("Build packet filter fail:", err)
-				continue
-			} else {
-				if packetFilterID, err := smCtx.PacketFilterIDGenerator.Allocate(); err != nil {
-					return nil, err
-				} else {
-					pf.Identifier = uint8(packetFilterID)
-					smCtx.PacketFilterIDToNASPFID[flowInfo.PackFiltId] = uint8(packetFilterID)
-				}
-
-				pfList = append(pfList, *pf)
-			}
-		}
-		rule.PacketFilterList = pfList
 		qosRef := pcc.RefQosData[0]
 		qosDesc := smPolicyDecision.QosDecs[qosRef]
-		rule.QFI = uint8(qosDesc.Var5qi)
+		qfi := uint8(qosDesc.Var5qi)
+		// get op code from request
+		opCode := reqQoSRules[0].Operation
+		// build nas Qos Rule
+		pccRule := smf_context.NewPCCRule(pcc)
+		pccRule.QFI = qfi
+		rule, err := pccRule.BuildNasQoSRule(smCtx, opCode)
+		if err != nil {
+			return nil, err
+		}
 
-		authQoSRules = append(authQoSRules, rule)
+		authQoSRules = append(authQoSRules, *rule)
 	}
 
 	if len(authQoSRules) > 0 {
@@ -283,167 +260,4 @@ func HandlePDUSessionModificationRequest(
 	}
 
 	return rsp, nil
-}
-
-func buildNASPacketFilterFromFlowInformation(pfInfo *models.FlowInformation) (*nasType.PacketFilter, error) {
-	nasPacketFilter := new(nasType.PacketFilter)
-
-	// set flow direction
-	switch pfInfo.FlowDirection {
-	case models.FlowDirectionRm_BIDIRECTIONAL:
-		nasPacketFilter.Direction = nasType.PacketFilterDirectionBidirectional
-	case models.FlowDirectionRm_DOWNLINK:
-		nasPacketFilter.Direction = nasType.PacketFilterDirectionDownlink
-	case models.FlowDirectionRm_UPLINK:
-		nasPacketFilter.Direction = nasType.PacketFilterDirectionUplink
-	}
-
-	pfComponents := make(nasType.PacketFilterComponentList, 0)
-
-	if pfInfo.FlowLabel != "" {
-		if label, err := strconv.ParseInt(pfInfo.FlowLabel, 16, 32); err != nil {
-			return nil, fmt.Errorf("parse flow label fail: %s", err)
-		} else {
-			pfComponents = append(pfComponents, &nasType.PacketFilterFlowLabel{
-				Label: uint32(label),
-			})
-		}
-	}
-
-	if pfInfo.Spi != "" {
-		if spi, err := strconv.ParseInt(pfInfo.Spi, 16, 32); err != nil {
-			return nil, fmt.Errorf("parse security parameter index fail: %s", err)
-		} else {
-			pfComponents = append(pfComponents, &nasType.PacketFilterSecurityParameterIndex{
-				Index: uint32(spi),
-			})
-		}
-	}
-
-	if pfInfo.TosTrafficClass != "" {
-		if tos, err := strconv.ParseInt(pfInfo.TosTrafficClass, 16, 32); err != nil {
-			return nil, fmt.Errorf("parse security parameter index fail: %s", err)
-		} else {
-			pfComponents = append(pfComponents, &nasType.PacketFilterServiceClass{
-				Class: uint8(tos >> 8),
-				Mask:  uint8(tos & 0x00FF),
-			})
-		}
-	}
-
-	if pfInfo.FlowDescription != "" {
-		ipFilter, err := flowdesc.Decode(pfInfo.FlowDescription)
-		if err != nil {
-			return nil, fmt.Errorf("parse packet filter content fail: %s", err)
-		}
-		pfComponents = append(pfComponents, buildPacketFilterComponentsFromIPFilterRule(ipFilter)...)
-	}
-
-	if len(pfComponents) == 0 {
-		pfComponents = append(pfComponents, &nasType.PacketFilterMatchAll{})
-	}
-
-	nasPacketFilter.Components = pfComponents
-
-	return nasPacketFilter, nil
-}
-
-func buildPacketFilterComponentsFromIPFilterRule(filterRule *flowdesc.IPFilterRule) nasType.PacketFilterComponentList {
-	pfComponents := make(nasType.PacketFilterComponentList, 0)
-
-	srcIP := filterRule.GetSourceIP()
-	srcPorts := filterRule.GetSourcePorts()
-	dstIP := filterRule.GetDestinationIP()
-	dstPorts := filterRule.GetDestinationPorts()
-	proto := filterRule.GetProtocol()
-
-	if srcIP != "any" {
-		_, ipNet, err := net.ParseCIDR(srcIP)
-		if err != nil {
-			return nil
-		}
-		pfComponents = append(pfComponents, &nasType.PacketFilterIPv4RemoteAddress{
-			Address: ipNet.IP.To4(),
-			Mask:    ipNet.Mask,
-		})
-	}
-
-	if dstIP != "any" {
-		_, ipNet, err := net.ParseCIDR(dstIP)
-		if err != nil {
-			return nil
-		}
-		pfComponents = append(pfComponents, &nasType.PacketFilterIPv4LocalAddress{
-			Address: ipNet.IP.To4(),
-			Mask:    ipNet.Mask,
-		})
-	}
-
-	if dstPorts != "" {
-		ports := strings.Split(dstPorts, "-")
-		if len(ports) == 2 {
-			var low, high uint16
-			if ret, err := strconv.Atoi(ports[0]); err != nil {
-				return nil
-			} else {
-				low = uint16(ret)
-			}
-
-			if ret, err := strconv.Atoi(ports[1]); err != nil {
-				return nil
-			} else {
-				high = uint16(ret)
-			}
-			pfComponents = append(pfComponents, &nasType.PacketFilterLocalPortRange{
-				LowLimit:  low,
-				HighLimit: high,
-			})
-		} else {
-			if ret, err := strconv.Atoi(ports[0]); err != nil {
-				return nil
-			} else {
-				pfComponents = append(pfComponents, &nasType.PacketFilterSingleLocalPort{
-					Value: uint16(ret),
-				})
-			}
-		}
-	}
-
-	if srcPorts != "" {
-		ports := strings.Split(srcPorts, "-")
-		if len(ports) == 2 {
-			var low, high uint16
-			if ret, err := strconv.Atoi(ports[0]); err != nil {
-				return nil
-			} else {
-				low = uint16(ret)
-			}
-
-			if ret, err := strconv.Atoi(ports[1]); err != nil {
-				return nil
-			} else {
-				high = uint16(ret)
-			}
-			pfComponents = append(pfComponents, &nasType.PacketFilterRemotePortRange{
-				LowLimit:  low,
-				HighLimit: high,
-			})
-		} else {
-			if ret, err := strconv.Atoi(ports[0]); err != nil {
-				return nil
-			} else {
-				pfComponents = append(pfComponents, &nasType.PacketFilterSingleRemotePort{
-					Value: uint16(ret),
-				})
-			}
-		}
-	}
-
-	if proto != flowdesc.ProtocolNumberAny {
-		pfComponents = append(pfComponents, &nasType.PacketFilterProtocolIdentifier{
-			Value: proto,
-		})
-	}
-
-	return pfComponents
 }

@@ -122,7 +122,7 @@ func TestBuildPacketFilterInfoFromNASPacketFilter(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			packetFilter, err := buildPacketFilterInfoFromNASPacketFilter(tc.packetFilter)
+			packetFilter, err := buildPktFilterInfo(tc.packetFilter)
 			require.NoError(t, err)
 			require.Equal(t, tc.packetFilterInfo.FlowLabel, packetFilter.FlowLabel)
 			require.Equal(t, tc.packetFilterInfo.Spi, packetFilter.Spi)
