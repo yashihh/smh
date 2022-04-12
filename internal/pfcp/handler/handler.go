@@ -331,9 +331,8 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 
 	if smContext == nil {
 		logger.PfcpLog.Errorf("PFCP Session SEID[%d] not found", SEID)
-		cause.CauseValue = pfcpType.CauseRequestRejected
-		// TODO fix: SEID should be the value sent by UPF but now the SEID value is from sm context
-		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, SEID)
+		cause.CauseValue = pfcpType.CauseSessionContextNotFound
+		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, 0)
 		return
 	}
 
