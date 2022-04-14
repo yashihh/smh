@@ -128,7 +128,7 @@ func SendSMPolicyAssociationUpdateByUERequestModification(
 	updateSMPolicy.UeInitResReq = ueInitResReq
 
 	for _, pf := range rule.PacketFilterList {
-		if PackFiltInfo, err := buildPacketFilterInfoFromNASPacketFilter(pf); err != nil {
+		if PackFiltInfo, err := buildPktFilterInfo(pf); err != nil {
 			smContext.Log.Warning("Build PackFiltInfo failed", err)
 			continue
 		} else {
@@ -259,7 +259,7 @@ func StringToNasBitRate(str string) (uint16, nasType.QoSFlowBitRateUnit, error) 
 	}
 }
 
-func buildPacketFilterInfoFromNASPacketFilter(pf nasType.PacketFilter) (*models.PacketFilterInfo, error) {
+func buildPktFilterInfo(pf nasType.PacketFilter) (*models.PacketFilterInfo, error) {
 	pfInfo := &models.PacketFilterInfo{}
 
 	switch pf.Direction {
@@ -273,7 +273,12 @@ func buildPacketFilterInfoFromNASPacketFilter(pf nasType.PacketFilter) (*models.
 		pfInfo.FlowDirection = models.FlowDirection_UNSPECIFIED
 	}
 
-	fieldList := make(flowdesc.IPFilterRuleFieldList, 0)
+	const ProtocolNumberAny = 0xfc
+	packetFilter := &flowdesc.IPFilterRule{
+		Action: "permit",
+		Dir:    "out",
+		Proto:  ProtocolNumberAny,
+	}
 
 	for _, component := range pf.Components {
 		switch component.Type() {
@@ -283,42 +288,41 @@ func buildPacketFilterInfoFromNASPacketFilter(pf nasType.PacketFilter) (*models.
 				IP:   ipv4Remote.Address,
 				Mask: ipv4Remote.Mask,
 			}
-			fieldList = append(fieldList, &flowdesc.IPFilterSourceIP{
-				Src: remoteIPnet.String(),
-			})
+			packetFilter.Src = remoteIPnet.String()
 		case nasType.PacketFilterComponentTypeIPv4LocalAddress:
 			ipv4Local := component.(*nasType.PacketFilterIPv4LocalAddress)
 			localIPnet := net.IPNet{
 				IP:   ipv4Local.Address,
 				Mask: ipv4Local.Mask,
 			}
-			fieldList = append(fieldList, &flowdesc.IPFilterDestinationIP{
-				Src: localIPnet.String(),
-			})
+			packetFilter.Dst = localIPnet.String()
 		case nasType.PacketFilterComponentTypeProtocolIdentifierOrNextHeader:
 			protoNumber := component.(*nasType.PacketFilterProtocolIdentifier)
-			fieldList = append(fieldList, &flowdesc.IPFilterProto{
-				Proto: protoNumber.Value,
-			})
+			packetFilter.Proto = protoNumber.Value
+
 		case nasType.PacketFilterComponentTypeSingleLocalPort:
 			localPort := component.(*nasType.PacketFilterSingleLocalPort)
-			fieldList = append(fieldList, &flowdesc.IPFilterDestinationPorts{
-				Ports: fmt.Sprintf("%d", localPort.Value),
+			packetFilter.DstPorts = append(packetFilter.DstPorts, flowdesc.PortRange{
+				Start: localPort.Value,
+				End:   localPort.Value,
 			})
 		case nasType.PacketFilterComponentTypeLocalPortRange:
 			localPortRange := component.(*nasType.PacketFilterLocalPortRange)
-			fieldList = append(fieldList, &flowdesc.IPFilterDestinationPorts{
-				Ports: fmt.Sprintf("%d-%d", localPortRange.LowLimit, localPortRange.HighLimit),
+			packetFilter.DstPorts = append(packetFilter.DstPorts, flowdesc.PortRange{
+				Start: localPortRange.LowLimit,
+				End:   localPortRange.HighLimit,
 			})
 		case nasType.PacketFilterComponentTypeSingleRemotePort:
 			remotePort := component.(*nasType.PacketFilterSingleRemotePort)
-			fieldList = append(fieldList, &flowdesc.IPFilterSourcePorts{
-				Ports: fmt.Sprintf("%d", remotePort.Value),
+			packetFilter.SrcPorts = append(packetFilter.SrcPorts, flowdesc.PortRange{
+				Start: remotePort.Value,
+				End:   remotePort.Value,
 			})
 		case nasType.PacketFilterComponentTypeRemotePortRange:
 			remotePortRange := component.(*nasType.PacketFilterRemotePortRange)
-			fieldList = append(fieldList, &flowdesc.IPFilterSourcePorts{
-				Ports: fmt.Sprintf("%d-%d", remotePortRange.LowLimit, remotePortRange.HighLimit),
+			packetFilter.SrcPorts = append(packetFilter.SrcPorts, flowdesc.PortRange{
+				Start: remotePortRange.LowLimit,
+				End:   remotePortRange.HighLimit,
 			})
 		case nasType.PacketFilterComponentTypeSecurityParameterIndex:
 			securityParameter := component.(*nasType.PacketFilterSecurityParameterIndex)
@@ -332,20 +336,12 @@ func buildPacketFilterInfoFromNASPacketFilter(pf nasType.PacketFilter) (*models.
 		}
 	}
 
-	var packetFilter *flowdesc.IPFilterRule
-
-	if ret, err := flowdesc.BuildIPFilterRuleFromField(fieldList); err != nil {
-		return nil, err
-	} else {
-		packetFilter = ret
-	}
-
 	if desc, err := flowdesc.Encode(packetFilter); err != nil {
 		return nil, err
 	} else {
 		pfInfo.PackFiltCont = desc
 	}
-
+	// according TS 29.212 IPFilterRule cannot use [options]
 	return pfInfo, nil
 }
 

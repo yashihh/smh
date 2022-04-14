@@ -8,7 +8,7 @@ require (
 	bitbucket.org/free5gc-team/ngap v0.0.0-20220318005908-d05ca4df677d
 	bitbucket.org/free5gc-team/openapi v0.0.0-20220309072330-923e8c97eac7
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20210816081806-9177891133e3
-	bitbucket.org/free5gc-team/util v0.0.0-20220318010554-04d4720b6e4b
+	bitbucket.org/free5gc-team/util v0.0.0-20220328074131-cbe8ae3b0dd7
 	github.com/antihax/optional v1.0.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
