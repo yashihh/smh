@@ -156,14 +156,14 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 	smPolicyID, smPolicyDecision, err := consumer.SendSMPolicyAssociationCreate(smContext)
 	if err != nil {
-		openapiError := err.(openapi.GenericOpenAPIError)
-		problemDetails := openapiError.Model().(models.ProblemDetails)
-		smContext.Log.Errorln("setup sm policy association failed:", err, problemDetails)
-		smContext.SetState(smf_context.InActive)
-
-		if problemDetails.Cause == "USER_UNKNOWN" {
-			return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
-				&Nsmf_PDUSession.SubscriptionDenied)
+		if openapiError, ok := err.(openapi.GenericOpenAPIError); ok {
+			problemDetails := openapiError.Model().(models.ProblemDetails)
+			smContext.Log.Errorln("setup sm policy association failed:", err, problemDetails)
+			smContext.SetState(smf_context.InActive)
+			if problemDetails.Cause == "USER_UNKNOWN" {
+				return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+					&Nsmf_PDUSession.SubscriptionDenied)
+			}
 		}
 		return makeErrorResponse(smContext, nasMessage.Cause5GSMNetworkFailure,
 			&Nsmf_PDUSession.NetworkFailure)
