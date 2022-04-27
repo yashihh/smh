@@ -7,7 +7,7 @@ require (
 	bitbucket.org/free5gc-team/nas v0.0.0-20220321031018-649c3b9d4eef
 	bitbucket.org/free5gc-team/ngap v0.0.0-20220401150948-ee175234d5fb
 	bitbucket.org/free5gc-team/openapi v0.0.0-20220309072330-923e8c97eac7
-	bitbucket.org/free5gc-team/pfcp v0.0.0-20210816081806-9177891133e3
+	bitbucket.org/free5gc-team/pfcp v0.0.0-20220512093858-d8c9bc6ae248
 	bitbucket.org/free5gc-team/util v0.0.0-20220501150925-a07647243fa5
 	github.com/antihax/optional v1.0.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
@@ -21,6 +21,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.22.5
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	gopkg.in/h2non/gock.v1 v1.1.2
 	gopkg.in/yaml.v2 v2.4.0
 )

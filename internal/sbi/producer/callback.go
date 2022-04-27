@@ -50,7 +50,7 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 
 	smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
 
-	SendPFCPRules(smContext)
+	ActivateUPFSessionAndNotifyUE(smContext)
 
 	smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)
 

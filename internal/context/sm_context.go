@@ -122,7 +122,6 @@ type SMContext struct {
 	BPManager   *BPManager
 	// NodeID(string form) to PFCP Session Context
 	PFCPContext                         map[string]*PFCPSessionContext
-	sbiPFCPCommunicationChan            chan PFCPSessionResponseStatus
 	PendingUPF                          PendingUPF
 	PDUSessionRelease_DUE_TO_DUP_PDU_ID bool
 
@@ -209,7 +208,6 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 	smContext.UpPathChgEarlyNotification = make(map[string]*EventExposureNotification)
 	smContext.UpPathChgLateNotification = make(map[string]*EventExposureNotification)
 	smContext.DataPathToBeRemoved = make(map[int64]*DataPath)
-	smContext.sbiPFCPCommunicationChan = make(chan PFCPSessionResponseStatus, 1)
 
 	smContext.ProtocolConfigurationOptions = &ProtocolConfigurationOptions{}
 
@@ -279,20 +277,6 @@ func GetSMContextBySEID(SEID uint64) *SMContext {
 		return smContext
 	}
 	return nil
-}
-
-func (smContext *SMContext) WaitPFCPCommunicationStatus() PFCPSessionResponseStatus {
-	var PFCPResponseStatus PFCPSessionResponseStatus
-	select {
-	case <-time.After(time.Second * 4):
-		PFCPResponseStatus = SessionUpdateFailed
-	case PFCPResponseStatus = <-smContext.sbiPFCPCommunicationChan:
-	}
-	return PFCPResponseStatus
-}
-
-func (smContext *SMContext) SendPFCPCommunicationStatus(status PFCPSessionResponseStatus) {
-	smContext.sbiPFCPCommunicationChan <- status
 }
 
 func (smContext *SMContext) BuildCreatedData() *models.SmContextCreatedData {

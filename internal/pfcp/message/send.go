@@ -1,7 +1,9 @@
 package message
 
 import (
+	"fmt"
 	"net"
+	"sync/atomic"
 
 	"bitbucket.org/free5gc-team/pfcp"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
@@ -14,18 +16,16 @@ import (
 var seq uint32
 
 func getSeqNumber() uint32 {
-	seq++
-	return seq
+	return atomic.AddUint32(&seq, 1)
 }
 
-func SendPfcpAssociationSetupRequest(upN4Addr string) {
+func SendPfcpAssociationSetupRequest(upNodeID pfcpType.NodeID) (resMsg *pfcpUdp.Message, err error) {
 	pfcpMsg, err := BuildPfcpAssociationSetupRequest()
 	if err != nil {
-		logger.PfcpLog.Errorf("Build PFCP Association Setup Request failed: %v", err)
-		return
+		return nil, fmt.Errorf("Build PFCP Association Setup Request failed: %v", err)
 	}
 
-	message := pfcp.Message{
+	message := &pfcp.Message{
 		Header: pfcp.Header{
 			Version:        pfcp.PfcpVersion,
 			MP:             0,
@@ -37,11 +37,20 @@ func SendPfcpAssociationSetupRequest(upN4Addr string) {
 	}
 
 	addr := &net.UDPAddr{
-		IP:   context.ResolveIP(upN4Addr),
+		IP:   upNodeID.ResolveNodeIdToIp(),
 		Port: pfcpUdp.PFCP_PORT,
 	}
 
-	udp.SendPfcp(message, addr)
+	resMsg, err = udp.SendPfcpRequest(message, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if resMsg.MessageType() != pfcp.PFCP_ASSOCIATION_SETUP_RESPONSE {
+		return resMsg, fmt.Errorf("received unexpected response message")
+	}
+
+	return resMsg, nil
 }
 
 func SendPfcpAssociationSetupResponse(addr *net.UDPAddr, cause pfcpType.Cause) {
@@ -51,7 +60,7 @@ func SendPfcpAssociationSetupResponse(addr *net.UDPAddr, cause pfcpType.Cause) {
 		return
 	}
 
-	message := pfcp.Message{
+	message := &pfcp.Message{
 		Header: pfcp.Header{
 			Version:        pfcp.PfcpVersion,
 			MP:             0,
@@ -62,17 +71,17 @@ func SendPfcpAssociationSetupResponse(addr *net.UDPAddr, cause pfcpType.Cause) {
 		Body: pfcpMsg,
 	}
 
-	udp.SendPfcp(message, addr)
+	udp.SendPfcpResponse(message, addr)
 }
 
-func SendPfcpAssociationReleaseRequest(upN4Addr string) {
+func SendPfcpAssociationReleaseRequest(upNodeID pfcpType.NodeID) (resMsg *pfcpUdp.Message, err error) {
 	pfcpMsg, err := BuildPfcpAssociationReleaseRequest()
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Association Release Request failed: %v", err)
 		return
 	}
 
-	message := pfcp.Message{
+	message := &pfcp.Message{
 		Header: pfcp.Header{
 			Version:        pfcp.PfcpVersion,
 			MP:             0,
@@ -84,11 +93,20 @@ func SendPfcpAssociationReleaseRequest(upN4Addr string) {
 	}
 
 	addr := &net.UDPAddr{
-		IP:   context.ResolveIP(upN4Addr),
+		IP:   upNodeID.ResolveNodeIdToIp(),
 		Port: pfcpUdp.PFCP_PORT,
 	}
 
-	udp.SendPfcp(message, addr)
+	resMsg, err = udp.SendPfcpRequest(message, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if resMsg.MessageType() != pfcp.PFCP_ASSOCIATION_RELEASE_RESPONSE {
+		return resMsg, fmt.Errorf("received unexpected response message")
+	}
+
+	return resMsg, nil
 }
 
 func SendPfcpAssociationReleaseResponse(addr *net.UDPAddr, cause pfcpType.Cause) {
@@ -98,7 +116,7 @@ func SendPfcpAssociationReleaseResponse(addr *net.UDPAddr, cause pfcpType.Cause)
 		return
 	}
 
-	message := pfcp.Message{
+	message := &pfcp.Message{
 		Header: pfcp.Header{
 			Version:        pfcp.PfcpVersion,
 			MP:             0,
@@ -109,21 +127,28 @@ func SendPfcpAssociationReleaseResponse(addr *net.UDPAddr, cause pfcpType.Cause)
 		Body: pfcpMsg,
 	}
 
-	udp.SendPfcp(message, addr)
+	udp.SendPfcpResponse(message, addr)
 }
 
 func SendPfcpSessionEstablishmentRequest(
-	upNodeID pfcpType.NodeID,
-	upN4Addr string,
+	upf *context.UPF,
 	ctx *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR, qerList []*context.QER) {
-	pfcpMsg, err := BuildPfcpSessionEstablishmentRequest(upNodeID, upN4Addr, ctx, pdrList, farList, barList, qerList)
+	pdrList []*context.PDR, farList []*context.FAR,
+	barList []*context.BAR, qerList []*context.QER,
+) (resMsg *pfcpUdp.Message, err error) {
+	
+	nodeIDtoIP := upf.NodeID.ResolveNodeIdToIp()
+	if upf.UPFStatus != context.AssociatedSetUpSuccess {
+		return nil, fmt.Errorf("Not Associated with UPF[%s]", nodeIDtoIP.String())
+	}
+
+	pfcpMsg, err := BuildPfcpSessionEstablishmentRequest(upf.NodeID, nodeIDtoIP.String(), ctx, pdrList, farList, barList, qerList)
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Session Establishment Request failed: %v", err)
 		return
 	}
 
-	message := pfcp.Message{
+	message := &pfcp.Message{
 		Header: pfcp.Header{
 			Version:         pfcp.PfcpVersion,
 			MP:              1,
@@ -137,29 +162,73 @@ func SendPfcpSessionEstablishmentRequest(
 	}
 
 	upaddr := &net.UDPAddr{
-		IP:   context.ResolveIP(upN4Addr),
+		IP:   nodeIDtoIP,
 		Port: pfcpUdp.PFCP_PORT,
 	}
 	logger.PduSessLog.Traceln("[SMF] Send SendPfcpSessionEstablishmentRequest")
 	logger.PduSessLog.Traceln("Send to addr ", upaddr.String())
 
-	udp.SendPfcp(message, upaddr)
+	resMsg, err = udp.SendPfcpRequest(message, upaddr)
+	if err != nil {
+		return nil, err
+	}
+
+	if resMsg.MessageType() != pfcp.PFCP_SESSION_ESTABLISHMENT_RESPONSE {
+		return resMsg, fmt.Errorf("received unexpected type response message: %+v", resMsg.PfcpMessage.Header)
+	}
+
+	localSEID := ctx.PFCPContext[nodeIDtoIP.String()].LocalSEID
+	if resMsg.PfcpMessage.Header.SEID != localSEID {
+		return resMsg, fmt.Errorf("received unexpected SEID response message: %+v, exptcted: %d",
+			resMsg.PfcpMessage.Header, localSEID)
+	}
+
+	return resMsg, nil
 }
 
-func SendPfcpSessionModificationRequest(upNodeID pfcpType.NodeID,
-	upN4Addr string,
+// Deprecated: PFCP Session Establishment Procedure should be initiated by the CP function
+func SendPfcpSessionEstablishmentResponse(addr *net.UDPAddr) {
+	pfcpMsg, err := BuildPfcpSessionEstablishmentResponse()
+	if err != nil {
+		logger.PfcpLog.Errorf("Build PFCP Session Establishment Response failed: %v", err)
+		return
+	}
+
+	message := &pfcp.Message{
+		Header: pfcp.Header{
+			Version:         pfcp.PfcpVersion,
+			MP:              1,
+			S:               pfcp.SEID_PRESENT,
+			MessageType:     pfcp.PFCP_SESSION_ESTABLISHMENT_RESPONSE,
+			SEID:            123456789123456789,
+			SequenceNumber:  1,
+			MessagePriority: 12,
+		},
+		Body: pfcpMsg,
+	}
+
+	udp.SendPfcpResponse(message, addr)
+}
+
+func SendPfcpSessionModificationRequest(upf *context.UPF,
 	ctx *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR, barList []*context.BAR, qerList []*context.QER) (seqNum uint32) {
-	pfcpMsg, err := BuildPfcpSessionModificationRequest(upNodeID, upN4Addr, ctx, pdrList, farList, barList, qerList)
+	pdrList []*context.PDR, farList []*context.FAR,
+	barList []*context.BAR, qerList []*context.QER,
+) (resMsg *pfcpUdp.Message, err error) {
+	nodeIDtoIP := upf.NodeID.ResolveNodeIdToIp()
+	if upf.UPFStatus != context.AssociatedSetUpSuccess {
+		return nil, fmt.Errorf("Not Associated with UPF[%s]", nodeIDtoIP.String())
+	}
+
+	pfcpMsg, err := BuildPfcpSessionModificationRequest(upf.NodeID, nodeIDtoIP.String(), ctx, pdrList, farList, barList, qerList)
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Session Modification Request failed: %v", err)
 		return
 	}
 
-	seqNum = getSeqNumber()
-	nodeIDtoIP := upNodeID.ResolveNodeIdToIp().String()
-	remoteSEID := ctx.PFCPContext[nodeIDtoIP].RemoteSEID
-	message := pfcp.Message{
+	seqNum := getSeqNumber()
+	remoteSEID := ctx.PFCPContext[nodeIDtoIP.String()].RemoteSEID
+	message := &pfcp.Message{
 		Header: pfcp.Header{
 			Version:         pfcp.PfcpVersion,
 			MP:              1,
@@ -173,24 +242,66 @@ func SendPfcpSessionModificationRequest(upNodeID pfcpType.NodeID,
 	}
 
 	upaddr := &net.UDPAddr{
-		IP:   context.ResolveIP(upN4Addr),
+		IP:   nodeIDtoIP,
 		Port: pfcpUdp.PFCP_PORT,
 	}
 
-	udp.SendPfcp(message, upaddr)
-	return seqNum
+	resMsg, err = udp.SendPfcpRequest(message, upaddr)
+	if err != nil {
+		return nil, err
+	}
+
+	if resMsg.MessageType() != pfcp.PFCP_SESSION_MODIFICATION_RESPONSE {
+		return resMsg, fmt.Errorf("received unexpected type response message: %+v", resMsg.PfcpMessage.Header)
+	}
+
+	localSEID := ctx.PFCPContext[nodeIDtoIP.String()].LocalSEID
+	if resMsg.PfcpMessage.Header.SEID != localSEID {
+		return resMsg, fmt.Errorf("received unexpected SEID response message: %+v, exptcted: %d",
+			resMsg.PfcpMessage.Header, localSEID)
+	}
+
+	return resMsg, nil
 }
 
-func SendPfcpSessionDeletionRequest(upNodeID pfcpType.NodeID, upN4Addr string, ctx *context.SMContext) (seqNum uint32) {
+// Deprecated: PFCP Session Modification Procedure should be initiated by the CP function
+func SendPfcpSessionModificationResponse(addr *net.UDPAddr) {
+	pfcpMsg, err := BuildPfcpSessionModificationResponse()
+	if err != nil {
+		logger.PfcpLog.Errorf("Build PFCP Session Modification Response failed: %v", err)
+		return
+	}
+
+	message := &pfcp.Message{
+		Header: pfcp.Header{
+			Version:         pfcp.PfcpVersion,
+			MP:              1,
+			S:               pfcp.SEID_PRESENT,
+			MessageType:     pfcp.PFCP_SESSION_MODIFICATION_RESPONSE,
+			SEID:            123456789123456789,
+			SequenceNumber:  1,
+			MessagePriority: 12,
+		},
+		Body: pfcpMsg,
+	}
+
+	udp.SendPfcpResponse(message, addr)
+}
+
+func SendPfcpSessionDeletionRequest(upf *context.UPF, ctx *context.SMContext) (resMsg *pfcpUdp.Message, err error) {
+	nodeIDtoIP := upf.NodeID.ResolveNodeIdToIp()
+	if upf.UPFStatus != context.AssociatedSetUpSuccess {
+		return nil, fmt.Errorf("Not Associated with UPF[%s]", nodeIDtoIP.String())
+	}
+
 	pfcpMsg, err := BuildPfcpSessionDeletionRequest()
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Session Deletion Request failed: %v", err)
 		return
 	}
-	seqNum = getSeqNumber()
-	nodeIDtoIP := upNodeID.ResolveNodeIdToIp().String()
-	remoteSEID := ctx.PFCPContext[nodeIDtoIP].RemoteSEID
-	message := pfcp.Message{
+	seqNum := getSeqNumber()
+	remoteSEID := ctx.PFCPContext[nodeIDtoIP.String()].RemoteSEID
+	message := &pfcp.Message{
 		Header: pfcp.Header{
 			Version:         pfcp.PfcpVersion,
 			MP:              1,
@@ -204,13 +315,50 @@ func SendPfcpSessionDeletionRequest(upNodeID pfcpType.NodeID, upN4Addr string, c
 	}
 
 	upaddr := &net.UDPAddr{
-		IP:   context.ResolveIP(upN4Addr),
+		IP:   nodeIDtoIP,
 		Port: pfcpUdp.PFCP_PORT,
 	}
 
-	udp.SendPfcp(message, upaddr)
+	resMsg, err = udp.SendPfcpRequest(message, upaddr)
+	if err != nil {
+		return nil, err
+	}
 
-	return seqNum
+	if resMsg.MessageType() != pfcp.PFCP_SESSION_DELETION_RESPONSE {
+		return resMsg, fmt.Errorf("received unexpected type response message: %+v", resMsg.PfcpMessage.Header)
+	}
+
+	localSEID := ctx.PFCPContext[nodeIDtoIP.String()].LocalSEID
+	if resMsg.PfcpMessage.Header.SEID != localSEID {
+		return resMsg, fmt.Errorf("received unexpected SEID response message: %+v, exptcted: %d",
+			resMsg.PfcpMessage.Header, localSEID)
+	}
+
+	return resMsg, nil
+}
+
+// Deprecated: PFCP Session Deletion Procedure should be initiated by the CP function
+func SendPfcpSessionDeletionResponse(addr *net.UDPAddr) {
+	pfcpMsg, err := BuildPfcpSessionDeletionResponse()
+	if err != nil {
+		logger.PfcpLog.Errorf("Build PFCP Session Deletion Response failed: %v", err)
+		return
+	}
+
+	message := &pfcp.Message{
+		Header: pfcp.Header{
+			Version:         pfcp.PfcpVersion,
+			MP:              1,
+			S:               pfcp.SEID_PRESENT,
+			MessageType:     pfcp.PFCP_SESSION_DELETION_RESPONSE,
+			SEID:            123456789123456789,
+			SequenceNumber:  1,
+			MessagePriority: 12,
+		},
+		Body: pfcpMsg,
+	}
+
+	udp.SendPfcpResponse(message, addr)
 }
 
 func SendPfcpSessionReportResponse(addr *net.UDPAddr, cause pfcpType.Cause, seqFromUPF uint32, SEID uint64) {
@@ -220,7 +368,7 @@ func SendPfcpSessionReportResponse(addr *net.UDPAddr, cause pfcpType.Cause, seqF
 		return
 	}
 
-	message := pfcp.Message{
+	message := &pfcp.Message{
 		Header: pfcp.Header{
 			Version:        pfcp.PfcpVersion,
 			MP:             0,
@@ -232,7 +380,7 @@ func SendPfcpSessionReportResponse(addr *net.UDPAddr, cause pfcpType.Cause, seqF
 		Body: pfcpMsg,
 	}
 
-	udp.SendPfcp(message, addr)
+	udp.SendPfcpResponse(message, addr)
 }
 
 func SendHeartbeatResponse(addr *net.UDPAddr, seq uint32) {
@@ -242,7 +390,7 @@ func SendHeartbeatResponse(addr *net.UDPAddr, seq uint32) {
 		},
 	}
 
-	message := pfcp.Message{
+	message := &pfcp.Message{
 		Header: pfcp.Header{
 			Version:        pfcp.PfcpVersion,
 			MP:             0,
@@ -253,5 +401,5 @@ func SendHeartbeatResponse(addr *net.UDPAddr, seq uint32) {
 		Body: pfcpMsg,
 	}
 
-	udp.SendPfcp(message, addr)
+	udp.SendPfcpResponse(message, addr)
 }
