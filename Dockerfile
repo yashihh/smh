@@ -19,11 +19,5 @@ RUN mkdir -p config/TLS/ log/
 # Copy executable
 COPY build/bin/${F5GC_MODULE} ./
 
-# Config files volume
-VOLUME [ "/free5gc/config" ]
-
-# Certificates (if not using default) volume
-VOLUME [ "/free5gc/config/TLS" ]
-
 # Exposed ports
 EXPOSE 8000
