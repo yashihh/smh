@@ -11,6 +11,7 @@ import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
+	"bitbucket.org/free5gc-team/smf/internal/pfcp/handler"
 	pfcp_message "bitbucket.org/free5gc-team/smf/internal/pfcp/message"
 )
 
@@ -20,6 +21,7 @@ type PFCPState struct {
 	farList []*smf_context.FAR
 	barList []*smf_context.BAR
 	qerList []*smf_context.QER
+	urrList []*smf_context.URR
 }
 
 type SendPfcpResult struct {
@@ -45,12 +47,16 @@ func ActivateUPFSession(
 			pdrList := make([]*smf_context.PDR, 0, 2)
 			farList := make([]*smf_context.FAR, 0, 2)
 			qerList := make([]*smf_context.QER, 0, 2)
+			urrList := make([]*smf_context.URR, 0, 2)
 
 			if node.UpLinkTunnel != nil && node.UpLinkTunnel.PDR != nil {
 				pdrList = append(pdrList, node.UpLinkTunnel.PDR)
 				farList = append(farList, node.UpLinkTunnel.PDR.FAR)
 				if node.UpLinkTunnel.PDR.QER != nil {
 					qerList = append(qerList, node.UpLinkTunnel.PDR.QER...)
+				}
+				if node.UpLinkTunnel.PDR.URR != nil {
+					urrList = append(urrList, node.UpLinkTunnel.PDR.URR...)
 				}
 			}
 			if node.DownLinkTunnel != nil && node.DownLinkTunnel.PDR != nil {
@@ -66,11 +72,13 @@ func ActivateUPFSession(
 					pdrList: pdrList,
 					farList: farList,
 					qerList: qerList,
+					urrList: urrList,
 				}
 			} else {
 				pfcpState.pdrList = append(pfcpState.pdrList, pdrList...)
 				pfcpState.farList = append(pfcpState.farList, farList...)
 				pfcpState.qerList = append(pfcpState.qerList, qerList...)
+				pfcpState.urrList = append(pfcpState.urrList, urrList...)
 			}
 		}
 	}
@@ -97,7 +105,7 @@ func establishPfcpSession(smContext *smf_context.SMContext,
 	logger.PduSessLog.Infoln("Sending PFCP Session Establishment Request")
 
 	rcvMsg, err := pfcp_message.SendPfcpSessionEstablishmentRequest(
-		state.upf, smContext, state.pdrList, state.farList, state.barList, state.qerList)
+		state.upf, smContext, state.pdrList, state.farList, state.barList, state.qerList, state.urrList)
 	if err != nil {
 		logger.PduSessLog.Warnf("Sending PFCP Session Establishment Request error: %+v", err)
 		resCh <- SendPfcpResult{
@@ -137,7 +145,7 @@ func modifyExistingPfcpSession(
 	logger.PduSessLog.Infoln("Sending PFCP Session Modification Request")
 
 	rcvMsg, err := pfcp_message.SendPfcpSessionModificationRequest(
-		state.upf, smContext, state.pdrList, state.farList, state.barList, state.qerList)
+		state.upf, smContext, state.pdrList, state.farList, state.barList, state.qerList, state.urrList)
 	if err != nil {
 		logger.PduSessLog.Warnf("Sending PFCP Session Modification Request error: %+v", err)
 		resCh <- SendPfcpResult{
@@ -154,6 +162,11 @@ func modifyExistingPfcpSession(
 		resCh <- SendPfcpResult{
 			Status: smf_context.SessionUpdateSuccess,
 			RcvMsg: rcvMsg,
+		}
+		if rsp.UsageReport != nil {
+			SEID := rcvMsg.PfcpMessage.Header.SEID
+			upfNodeID := smContext.GetNodeIDByLocalSEID(SEID)
+			handler.HandleReports(nil, rsp.UsageReport, nil, smContext, upfNodeID)
 		}
 	} else {
 		resCh <- SendPfcpResult{
@@ -288,14 +301,17 @@ func sendPDUSessionEstablishmentAccept(
 	}
 }
 
-func updateAnUpfPfcpSession(smContext *smf_context.SMContext,
-	pdrList []*smf_context.PDR, farList []*smf_context.FAR,
-	barList []*smf_context.BAR, qerList []*smf_context.QER,
-) smf_context.PFCPSessionResponseStatus {
+func updateAnUpfPfcpSession(
+	smContext *smf_context.SMContext,
+	pdrList []*smf_context.PDR,
+	farList []*smf_context.FAR,
+	barList []*smf_context.BAR,
+	qerList []*smf_context.QER,
+	urrList []*smf_context.URR) smf_context.PFCPSessionResponseStatus {
 	defaultPath := smContext.Tunnel.DataPathPool.GetDefaultPath()
 	ANUPF := defaultPath.FirstDPNode
 	rcvMsg, err := pfcp_message.SendPfcpSessionModificationRequest(
-		ANUPF.UPF, smContext, pdrList, farList, barList, qerList)
+		ANUPF.UPF, smContext, pdrList, farList, barList, qerList, urrList)
 	if err != nil {
 		logger.PduSessLog.Warnf("Sending PFCP Session Modification Request to AN UPF error: %+v", err)
 		return smf_context.SessionUpdateFailed
@@ -371,6 +387,11 @@ func deletePfcpSession(upf *smf_context.UPF, ctx *smf_context.SMContext, resCh c
 		logger.PduSessLog.Info("Received PFCP Session Deletion Accepted Response")
 		resCh <- SendPfcpResult{
 			Status: smf_context.SessionReleaseSuccess,
+		}
+		if rsp.UsageReport != nil {
+			SEID := rcvMsg.PfcpMessage.Header.SEID
+			upfNodeID := ctx.GetNodeIDByLocalSEID(SEID)
+			handler.HandleReports(nil, nil, rsp.UsageReport, ctx, upfNodeID)
 		}
 	} else {
 		logger.PduSessLog.Warn("Received PFCP Session Deletion Not Accepted Response")

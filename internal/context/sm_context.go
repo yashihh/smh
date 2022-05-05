@@ -3,11 +3,13 @@ package context
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/antihax/optional"
 	"github.com/google/uuid"
@@ -23,6 +25,7 @@ import (
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
+	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	"bitbucket.org/free5gc-team/util/idgenerator"
 )
 
@@ -39,6 +42,33 @@ const (
 	DirectForwarding
 	NoForwarding
 )
+
+type UrrType int
+
+const (
+	N3N6_MBEQ_URR UrrType = iota
+	N3N6_MAEQ_URR
+	N3N9_MBEQ_URR
+	N3N9_MAEQ_URR
+	N9N6_MBEQ_URR
+	N9N6_MAEQ_URR
+	NOT_FOUND_URR
+)
+
+func (t UrrType) String() string {
+	urrTypeList := []string{"N3N6_MBEQ", "N3N6_MAEQ", "N3N9_MBEQ", "N3N9_MAEQ", "N9N6_MBEQ", "N9N6_MAEQ"}
+	return urrTypeList[t]
+}
+
+func (t UrrType) IsBeforeQos() bool {
+	urrTypeList := []bool{true, false, true, false, true, false}
+	return urrTypeList[t]
+}
+
+func (t UrrType) Direct() string {
+	urrTypeList := []string{"N3N6", "N3N6", "N3N9", "N3N9", "N9N6", "N9N6"}
+	return urrTypeList[t]
+}
 
 var smContextCount uint64
 
@@ -66,6 +96,20 @@ type EventExposureNotification struct {
 	*models.NsmfEventExposureNotification
 
 	Uri string
+}
+
+type UsageReport struct {
+	UrrId uint32
+
+	TotalVolume    uint64
+	UplinkVolume   uint64
+	DownlinkVolume uint64
+
+	TotalPktNum    uint64
+	UplinkPktNum   uint64
+	DownlinkPktNum uint64
+
+	ReportTpye models.TriggerType
 }
 
 type SMContext struct {
@@ -142,6 +186,14 @@ type SMContext struct {
 	PCCRuleIDToQoSRuleID    map[string]uint8
 	PacketFilterIDToNASPFID map[string]uint8
 
+	// URR
+	UrrIDGenerator     *idgenerator.IDGenerator
+	UrrIdMap           map[UrrType]uint32
+	UrrUpfMap          map[string]*URR
+	UrrReportTime      time.Duration
+	UrrReportThreshold uint64
+	UrrReports         []UsageReport
+
 	// NAS
 	Pti                     uint8
 	EstAcceptCause5gSMValue uint8
@@ -215,6 +267,18 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 	smContext.PCCRuleIDToQoSRuleID = make(map[string]uint8)
 	smContext.PacketFilterIDToNASPFID = make(map[string]uint8)
 
+	smContext.UrrIDGenerator = idgenerator.NewGenerator(1, math.MaxUint32)
+	smContext.UrrIdMap = make(map[UrrType]uint32)
+	smContext.GenerateUrrId()
+	smContext.UrrUpfMap = make(map[string]*URR)
+
+	if factory.SmfConfig.Configuration != nil {
+		smContext.UrrReportTime = time.Duration(factory.SmfConfig.Configuration.UrrPeriod) * time.Second
+		smContext.UrrReportThreshold = factory.SmfConfig.Configuration.UrrThreshold
+		logger.CtxLog.Infof("UrrPeriod: %v", smContext.UrrReportTime)
+		logger.CtxLog.Infof("UrrThreshold: %d", smContext.UrrReportThreshold)
+	}
+
 	return smContext
 }
 
@@ -272,6 +336,27 @@ func GetSMContextBySEID(SEID uint64) *SMContext {
 		return smContext
 	}
 	return nil
+}
+
+func (smContext *SMContext) GenerateUrrId() {
+	if id, err := smContext.UrrIDGenerator.Allocate(); err == nil {
+		smContext.UrrIdMap[N3N6_MBEQ_URR] = uint32(id)
+	}
+	if id, err := smContext.UrrIDGenerator.Allocate(); err == nil {
+		smContext.UrrIdMap[N3N6_MAEQ_URR] = uint32(id)
+	}
+	if id, err := smContext.UrrIDGenerator.Allocate(); err == nil {
+		smContext.UrrIdMap[N9N6_MBEQ_URR] = uint32(id)
+	}
+	if id, err := smContext.UrrIDGenerator.Allocate(); err == nil {
+		smContext.UrrIdMap[N9N6_MAEQ_URR] = uint32(id)
+	}
+	if id, err := smContext.UrrIDGenerator.Allocate(); err == nil {
+		smContext.UrrIdMap[N3N9_MBEQ_URR] = uint32(id)
+	}
+	if id, err := smContext.UrrIDGenerator.Allocate(); err == nil {
+		smContext.UrrIdMap[N3N9_MAEQ_URR] = uint32(id)
+	}
 }
 
 func (smContext *SMContext) BuildCreatedData() *models.SmContextCreatedData {
@@ -707,6 +792,15 @@ func (smContext *SMContext) IsAllowedPDUSessionType(requestedPDUSessionType uint
 		return fmt.Errorf("Requested PDU Sesstion type[%d] is not supported", requestedPDUSessionType)
 	}
 	return nil
+}
+
+func (smContext *SMContext) GetUrrTypeById(urrId uint32) (UrrType, error) {
+	for urrType, id := range smContext.UrrIdMap {
+		if id == urrId {
+			return urrType, nil
+		}
+	}
+	return NOT_FOUND_URR, fmt.Errorf("Urr type not found ")
 }
 
 func (smContext *SMContext) StopT3591() {

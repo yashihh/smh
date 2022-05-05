@@ -101,6 +101,14 @@ func pdrToCreatePDR(pdr *context.PDR) *pfcp.CreatePDR {
 		}
 	}
 
+	for _, urr := range pdr.URR {
+		if urr != nil {
+			createPDR.URRID = append(createPDR.URRID, &pfcpType.URRID{
+				UrrIdValue: urr.URRID,
+			})
+		}
+	}
+
 	return createPDR
 }
 
@@ -170,6 +178,38 @@ func qerToCreateQER(qer *context.QER) *pfcp.CreateQER {
 	createQER.GuaranteedBitrate = qer.GBR
 
 	return createQER
+}
+
+func urrToCreateURR(urr *context.URR) *pfcp.CreateURR {
+	createURR := new(pfcp.CreateURR)
+
+	createURR.URRID = &pfcpType.URRID{
+		UrrIdValue: urr.URRID,
+	}
+	createURR.MeasurementMethod = &pfcpType.MeasurementMethod{}
+	switch urr.MeasureMethod {
+	case context.MesureMethodVol:
+		createURR.MeasurementMethod.Volum = true
+	case context.MesureMethodTime:
+		createURR.MeasurementMethod.Durat = true
+	}
+	createURR.ReportingTriggers = &urr.ReportingTrigger
+	if urr.MeasurementPeriod != 0 {
+		createURR.MeasurementPeriod = &pfcpType.MeasurementPeriod{
+			MeasurementPeriod: uint32(urr.MeasurementPeriod),
+		}
+	}
+	if urr.VolumeThreshold != 0 {
+		createURR.VolumeThreshold = &pfcpType.VolumeThreshold{
+			Dlvol:          true,
+			Ulvol:          true,
+			DownlinkVolume: urr.VolumeThreshold,
+			UplinkVolume:   urr.VolumeThreshold,
+		}
+	}
+	createURR.MeasurementInformation = &urr.MeasurementInformation
+
+	return createURR
 }
 
 func pdrToUpdatePDR(pdr *context.PDR) *pfcp.UpdatePDR {
@@ -257,6 +297,7 @@ func BuildPfcpSessionEstablishmentRequest(
 	farList []*context.FAR,
 	barList []*context.BAR,
 	qerList []*context.QER,
+	urrList []*context.URR,
 ) (pfcp.PFCPSessionEstablishmentRequest, error) {
 	msg := pfcp.PFCPSessionEstablishmentRequest{}
 
@@ -309,6 +350,17 @@ func BuildPfcpSessionEstablishmentRequest(
 			msg.CreateQER = append(msg.CreateQER, qerToCreateQER(filteredQER))
 		}
 		filteredQER.State = context.RULE_CREATE
+	}
+
+	urrMap := make(map[uint32]*context.URR)
+	for _, urr := range urrList {
+		urrMap[urr.URRID] = urr
+	}
+	for _, filteredURR := range urrMap {
+		if filteredURR.State == context.RULE_INITIAL {
+			msg.CreateURR = append(msg.CreateURR, urrToCreateURR(filteredURR))
+		}
+		filteredURR.State = context.RULE_CREATE
 	}
 
 	msg.PDNType = &pfcpType.PDNType{
@@ -368,6 +420,7 @@ func BuildPfcpSessionModificationRequest(
 	farList []*context.FAR,
 	barList []*context.BAR,
 	qerList []*context.QER,
+	urrList []*context.URR,
 ) (pfcp.PFCPSessionModificationRequest, error) {
 	msg := pfcp.PFCPSessionModificationRequest{}
 
@@ -430,6 +483,14 @@ func BuildPfcpSessionModificationRequest(
 			msg.CreateQER = append(msg.CreateQER, qerToCreateQER(qer))
 		}
 		qer.State = context.RULE_CREATE
+	}
+
+	for _, urr := range urrList {
+		switch urr.State {
+		case context.RULE_INITIAL:
+			msg.CreateURR = append(msg.CreateURR, urrToCreateURR(urr))
+		}
+		urr.State = context.RULE_CREATE
 	}
 
 	return msg, nil
