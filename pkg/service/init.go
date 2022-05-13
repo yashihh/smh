@@ -279,7 +279,9 @@ func (smf *SMF) Start() {
 		if err = setupPfcpAssociation(upf.UPF, upfStr); err != nil {
 			logger.AppLog.Errorf("Failed to setup an association with UPF%s, error:%+v", upfStr, err)
 		}
-		message.SendPfcpAssociationSetupRequest(upf.NodeID)
+		if _, err = message.SendPfcpAssociationSetupRequest(upf.NodeID); err != nil {
+			logger.AppLog.Errorf("Send PFCP Association Setup Request failed: %v", err)
+		}
 	}
 
 	time.Sleep(1000 * time.Millisecond)
