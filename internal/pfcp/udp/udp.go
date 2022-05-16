@@ -44,10 +44,9 @@ func Run(Dispatch func(*pfcpUdp.Message)) {
 		}()
 
 		for {
-			var pfcpMessage pfcp.Message
-			remoteAddr, err := p.ReadFrom(&pfcpMessage)
+			msg, err := p.ReadFrom()
 			if err != nil {
-				if err.Error() == "Receive resend PFCP request" {
+				if err == pfcpUdp.ErrReceivedResentRequest {
 					logger.PfcpLog.Infoln(err)
 				} else {
 					logger.PfcpLog.Warnf("Read PFCP error: %v", err)
@@ -56,17 +55,19 @@ func Run(Dispatch func(*pfcpUdp.Message)) {
 				continue
 			}
 
-			msg := pfcpUdp.NewMessage(remoteAddr, &pfcpMessage)
-			go Dispatch(&msg)
+			if msg.PfcpMessage.IsRequest() {
+				go Dispatch(msg)
+			}
 		}
 	}(Server)
 
 	ServerStartTime = time.Now()
 }
 
-func SendPfcp(msg pfcp.Message, addr *net.UDPAddr) {
-	err := Server.WriteTo(msg, addr)
-	if err != nil {
-		logger.PfcpLog.Errorf("Failed to send PFCP message: %v", err)
-	}
+func SendPfcpResponse(sndMsg *pfcp.Message, addr *net.UDPAddr) {
+	Server.WriteResponseTo(sndMsg, addr)
+}
+
+func SendPfcpRequest(sndMsg *pfcp.Message, addr *net.UDPAddr) (rsvMsg *pfcpUdp.Message, err error) {
+	return Server.WriteRequestTo(sndMsg, addr)
 }

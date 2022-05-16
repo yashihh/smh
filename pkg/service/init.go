@@ -270,13 +270,18 @@ func (smf *SMF) Start() {
 	udp.Run(pfcp.Dispatch)
 
 	for _, upf := range context.SMF_Self().UserPlaneInformation.UPFs {
+		var upfStr string
 		if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
-			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s](%s)\n", upf.NodeID.FQDN,
-				upf.NodeID.ResolveNodeIdToIp().String())
+			upfStr = fmt.Sprintf("[%s](%s)", upf.NodeID.FQDN, upf.NodeID.ResolveNodeIdToIp().String())
 		} else {
-			logger.AppLog.Infof("Send PFCP Association Request to UPF[%s]\n", upf.NodeID.IP)
+			upfStr = fmt.Sprintf("[%s]", upf.NodeID.IP.String())
 		}
-		message.SendPfcpAssociationSetupRequest(upf.UPF.Addr)
+		if err = setupPfcpAssociation(upf.UPF, upfStr); err != nil {
+			logger.AppLog.Errorf("Failed to setup an association with UPF%s, error:%+v", upfStr, err)
+		}
+		if _, err = message.SendPfcpAssociationSetupRequest(upf.NodeID); err != nil {
+			logger.AppLog.Errorf("Send PFCP Association Setup Request failed: %v", err)
+		}
 	}
 
 	time.Sleep(1000 * time.Millisecond)

@@ -19,16 +19,8 @@ func HandlePfcpHeartbeatRequest(msg *pfcpUdp.Message) {
 	pfcp_message.SendHeartbeatResponse(msg.RemoteAddr, h.SequenceNumber)
 }
 
-func HandlePfcpHeartbeatResponse(msg *pfcpUdp.Message) {
-	logger.PfcpLog.Warnf("PFCP Heartbeat Response handling is not implemented")
-}
-
 func HandlePfcpPfdManagementRequest(msg *pfcpUdp.Message) {
 	logger.PfcpLog.Warnf("PFCP PFD Management Request handling is not implemented")
-}
-
-func HandlePfcpPfdManagementResponse(msg *pfcpUdp.Message) {
-	logger.PfcpLog.Warnf("PFCP PFD Management Response handling is not implemented")
 }
 
 func HandlePfcpAssociationSetupRequest(msg *pfcpUdp.Message) {
@@ -95,10 +87,6 @@ func HandlePfcpAssociationUpdateRequest(msg *pfcpUdp.Message) {
 	logger.PfcpLog.Warnf("PFCP Association Update Request handling is not implemented")
 }
 
-func HandlePfcpAssociationUpdateResponse(msg *pfcpUdp.Message) {
-	logger.PfcpLog.Warnf("PFCP Association Update Response handling is not implemented")
-}
-
 func HandlePfcpAssociationReleaseRequest(msg *pfcpUdp.Message) {
 	pfcpMsg := msg.PfcpMessage.Body.(pfcp.PFCPAssociationReleaseRequest)
 
@@ -115,24 +103,8 @@ func HandlePfcpAssociationReleaseRequest(msg *pfcpUdp.Message) {
 	pfcp_message.SendPfcpAssociationReleaseResponse(msg.RemoteAddr, cause)
 }
 
-func HandlePfcpAssociationReleaseResponse(msg *pfcpUdp.Message) {
-	pfcpMsg := msg.PfcpMessage.Body.(pfcp.PFCPAssociationReleaseResponse)
-
-	if pfcpMsg.Cause.CauseValue == pfcpType.CauseRequestAccepted {
-		smf_context.RemoveUPFNodeByNodeID(*pfcpMsg.NodeID)
-	}
-}
-
-func HandlePfcpVersionNotSupportedResponse(msg *pfcpUdp.Message) {
-	logger.PfcpLog.Warnf("PFCP Version Not Support Response handling is not implemented")
-}
-
 func HandlePfcpNodeReportRequest(msg *pfcpUdp.Message) {
 	logger.PfcpLog.Warnf("PFCP Node Report Request handling is not implemented")
-}
-
-func HandlePfcpNodeReportResponse(msg *pfcpUdp.Message) {
-	logger.PfcpLog.Warnf("PFCP Node Report Response handling is not implemented")
 }
 
 func HandlePfcpSessionSetDeletionRequest(msg *pfcpUdp.Message) {
@@ -219,104 +191,9 @@ func HandlePfcpSessionEstablishmentResponse(msg *pfcpUdp.Message) {
 	if smf_context.SMF_Self().ULCLSupport && smContext.BPManager != nil {
 		if smContext.BPManager.BPStatus == smf_context.AddingPSA {
 			logger.PfcpLog.Infoln("Keep Adding PSAndULCL")
-			producer.AddPDUSessionAnchorAndULCL(smContext, *rsp.NodeID)
+			producer.AddPDUSessionAnchorAndULCL(smContext)
 			smContext.BPManager.BPStatus = smf_context.AddingPSA
 		}
-	}
-}
-
-func HandlePfcpSessionModificationResponse(msg *pfcpUdp.Message) {
-	pfcpRsp := msg.PfcpMessage.Body.(pfcp.PFCPSessionModificationResponse)
-
-	SEID := msg.PfcpMessage.Header.SEID
-	smContext := smf_context.GetSMContextBySEID(SEID)
-
-	if smContext == nil {
-		logger.PfcpLog.Errorf("PFCP Session SEID[%d] not found", SEID)
-		return
-	}
-
-	logger.PfcpLog.Infoln("In HandlePfcpSessionModificationResponse")
-
-	if smf_context.SMF_Self().ULCLSupport && smContext.BPManager != nil {
-		if smContext.BPManager.BPStatus == smf_context.AddingPSA {
-			logger.PfcpLog.Infoln("Keep Adding PSAAndULCL")
-
-			upfNodeID := smContext.GetNodeIDByLocalSEID(SEID)
-			producer.AddPDUSessionAnchorAndULCL(smContext, upfNodeID)
-		}
-	}
-
-	if pfcpRsp.Cause.CauseValue == pfcpType.CauseRequestAccepted {
-		logger.PduSessLog.Infoln("[SMF] PFCP Modification Resonse Accept")
-		if smContext.CheckState(smf_context.PFCPModification) {
-			upfNodeID := smContext.GetNodeIDByLocalSEID(SEID)
-			upfIP := upfNodeID.ResolveNodeIdToIp().String()
-			delete(smContext.PendingUPF, upfIP)
-			logger.PduSessLog.Tracef("Delete pending pfcp response: UPF IP [%s]\n", upfIP)
-
-			if smContext.PendingUPF.IsEmpty() {
-				smContext.SendPFCPCommunicationStatus(smf_context.SessionUpdateSuccess)
-			}
-
-			if smf_context.SMF_Self().ULCLSupport && smContext.BPManager != nil {
-				if smContext.BPManager.BPStatus == smf_context.UnInitialized {
-					logger.PfcpLog.Infoln("Add PSAAndULCL")
-					upfNodeID := smContext.GetNodeIDByLocalSEID(SEID)
-					producer.AddPDUSessionAnchorAndULCL(smContext, upfNodeID)
-					smContext.BPManager.BPStatus = smf_context.AddingPSA
-				}
-			}
-		} else {
-			logger.PfcpLog.Warnf("SMContext in State[%s]", smContext.State())
-		}
-
-		logger.PfcpLog.Infof("PFCP Session Modification Success[%d]\n", SEID)
-	} else {
-		logger.PfcpLog.Infof("PFCP Session Modification Failed[%d]\n", SEID)
-		if smContext.CheckState(smf_context.PFCPModification) {
-			smContext.SendPFCPCommunicationStatus(smf_context.SessionUpdateFailed)
-		} else {
-			smContext.SendPFCPCommunicationStatus(smf_context.SessionUpdateFailed)
-		}
-	}
-
-	logger.CtxLog.Traceln("PFCP Session Context")
-	for _, ctx := range smContext.PFCPContext {
-		logger.CtxLog.Traceln(ctx.String())
-	}
-}
-
-func HandlePfcpSessionDeletionResponse(msg *pfcpUdp.Message) {
-	logger.PfcpLog.Infof("Handle PFCP Session Deletion Response")
-	pfcpRsp := msg.PfcpMessage.Body.(pfcp.PFCPSessionDeletionResponse)
-	SEID := msg.PfcpMessage.Header.SEID
-
-	smContext := smf_context.GetSMContextBySEID(SEID)
-
-	if smContext == nil {
-		logger.PfcpLog.Errorf("PFCP Session SEID[%d] not found", SEID)
-		return
-		// TODO fix: SEID should be the value sent by UPF but now the SEID value is from sm context
-	}
-
-	if pfcpRsp.Cause.CauseValue == pfcpType.CauseRequestAccepted {
-		if smContext.CheckState(smf_context.PFCPModification) {
-			upfNodeID := smContext.GetNodeIDByLocalSEID(SEID)
-			upfIP := upfNodeID.ResolveNodeIdToIp().String()
-			delete(smContext.PendingUPF, upfIP)
-			logger.PduSessLog.Tracef("Delete pending pfcp response: UPF IP [%s]\n", upfIP)
-
-			if smContext.PendingUPF.IsEmpty() {
-				smContext.SendPFCPCommunicationStatus(smf_context.SessionReleaseSuccess)
-			}
-		}
-		logger.PfcpLog.Infof("PFCP Session Deletion Success[%d]\n", SEID)
-	} else {
-		if smContext.CheckState(smf_context.PFCPModification) {
-			smContext.SendPFCPCommunicationStatus(smf_context.SessionReleaseFailed)
-		}
-		logger.PfcpLog.Infof("PFCP Session Deletion Failed[%d]\n", SEID)
 	}
 }
 
@@ -398,8 +275,4 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 	cause.CauseValue = pfcpType.CauseRequestAccepted
 	// TODO fix: SEID should be the value sent by UPF but now the SEID value is from sm context
 	pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, SEID)
-}
-
-func HandlePfcpSessionReportResponse(msg *pfcpUdp.Message) {
-	logger.PfcpLog.Warnf("PFCP Session Report Response handling is not implemented")
 }

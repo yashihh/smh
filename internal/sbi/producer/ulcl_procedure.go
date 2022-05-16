@@ -8,101 +8,45 @@ import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
-	"bitbucket.org/free5gc-team/smf/internal/pfcp/message"
 	"bitbucket.org/free5gc-team/util/flowdesc"
 )
 
-func AddPDUSessionAnchorAndULCL(smContext *context.SMContext, nodeID pfcpType.NodeID) {
+func AddPDUSessionAnchorAndULCL(smContext *context.SMContext) {
 	bpMGR := smContext.BPManager
-	pendingUPF := bpMGR.PendingUPF
 
 	switch bpMGR.AddingPSAState {
 	case context.ActivatingDataPath:
-		// select PSA2
-		bpMGR.SelectPSA2(smContext)
-		smContext.AllocateLocalSEIDForDataPath(bpMGR.ActivatingPath)
-		// select an upf as ULCL
-		err := bpMGR.FindULCL(smContext)
-		if err != nil {
-			logger.PduSessLog.Errorln(err)
-			return
-		}
+		for {
+			// select PSA2
+			bpMGR.SelectPSA2(smContext)
+			if len(bpMGR.ActivatedPaths) == len(smContext.Tunnel.DataPathPool) {
+				break
+			}
+			smContext.AllocateLocalSEIDForDataPath(bpMGR.ActivatingPath)
+			// select an upf as ULCL
+			err := bpMGR.FindULCL(smContext)
+			if err != nil {
+				logger.PduSessLog.Errorln(err)
+				return
+			}
 
-		// Allocate Path PDR and TEID
-		bpMGR.ActivatingPath.ActivateTunnelAndPDR(smContext, 255)
-		// N1N2MessageTransfer Here
+			// Allocate Path PDR and TEID
+			bpMGR.ActivatingPath.ActivateTunnelAndPDR(smContext, 255)
+			// N1N2MessageTransfer Here
 
-		// Establish PSA2
-		EstablishPSA2(smContext)
-	case context.EstablishingNewPSA:
+			// Establish PSA2
+			EstablishPSA2(smContext)
 
-		trggierUPFIP := nodeID.ResolveNodeIdToIp().String()
-		_, exist := pendingUPF[trggierUPFIP]
-
-		if exist {
-			delete(pendingUPF, trggierUPFIP)
-		} else {
-			logger.CtxLog.Warnln("In AddPDUSessionAnchorAndULCL case EstablishingNewPSA")
-			logger.CtxLog.Warnln("UPF IP ", trggierUPFIP, " doesn't exist in pending UPF!")
-			return
-		}
-
-		if pendingUPF.IsEmpty() {
 			EstablishRANTunnelInfo(smContext)
 			// Establish ULCL
 			EstablishULCL(smContext)
-		}
 
-	case context.EstablishingULCL:
-
-		trggierUPFIP := nodeID.ResolveNodeIdToIp().String()
-		_, exist := pendingUPF[trggierUPFIP]
-
-		if exist {
-			delete(pendingUPF, trggierUPFIP)
-		} else {
-			logger.CtxLog.Warnln("In AddPDUSessionAnchorAndULCL case EstablishingULCL")
-			logger.CtxLog.Warnln("UPF IP ", trggierUPFIP, " doesn't exist in pending UPF!")
-			return
-		}
-
-		if pendingUPF.IsEmpty() {
 			UpdatePSA2DownLink(smContext)
-		}
 
-	case context.UpdatingPSA2DownLink:
-
-		trggierUPFIP := nodeID.ResolveNodeIdToIp().String()
-		_, exist := pendingUPF[trggierUPFIP]
-
-		if exist {
-			delete(pendingUPF, trggierUPFIP)
-		} else {
-			logger.CtxLog.Warnln("In AddPDUSessionAnchorAndULCL case EstablishingULCL")
-			logger.CtxLog.Warnln("UPF IP ", trggierUPFIP, " doesn't exist in pending UPF!")
-			return
-		}
-
-		if pendingUPF.IsEmpty() {
 			UpdateRANAndIUPFUpLink(smContext)
 		}
-	case context.UpdatingRANAndIUPFUpLink:
-		trggierUPFIP := nodeID.ResolveNodeIdToIp().String()
-		_, exist := pendingUPF[trggierUPFIP]
-
-		if exist {
-			delete(pendingUPF, trggierUPFIP)
-		} else {
-			logger.CtxLog.Warnln("In AddPDUSessionAnchorAndULCL case UpdatingRANAndIUPFUpLink")
-			logger.CtxLog.Warnln("UPF IP ", trggierUPFIP, " doesn't exist in pending UPF!")
-			return
-		}
-
-		if pendingUPF.IsEmpty() {
-			bpMGR.AddingPSAState = context.Finished
-			bpMGR.BPStatus = context.AddPSASuccess
-			logger.CtxLog.Infoln("[SMF] Add PSA success")
-		}
+	default:
+		logger.CtxLog.Warnln("unexpected status")
 	}
 }
 
@@ -112,6 +56,8 @@ func EstablishPSA2(smContext *context.SMContext) {
 	activatingPath := bpMGR.ActivatingPath
 	ulcl := bpMGR.ULCL
 	nodeAfterULCL := false
+	resChan := make(chan SendPfcpResult)
+
 	for curDataPathNode := activatingPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		if nodeAfterULCL {
 			addr := net.UDPAddr{
@@ -135,17 +81,22 @@ func EstablishPSA2(smContext *context.SMContext) {
 				pdrList = append(pdrList, downLinkPDR)
 				farList = append(farList, downLinkPDR.FAR)
 			}
+			pfcpState := &PFCPState{
+				upf:     curDataPathNode.UPF,
+				pdrList: pdrList,
+				farList: farList,
+				barList: barList,
+				qerList: qerList,
+			}
 
 			curDPNodeIP := curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true
 
 			sessionContext, exist := smContext.PFCPContext[curDataPathNode.GetNodeIP()]
 			if !exist || sessionContext.RemoteSEID == 0 {
-				message.SendPfcpSessionEstablishmentRequest(
-					curDataPathNode.UPF.NodeID, curDataPathNode.UPF.Addr, smContext, pdrList, farList, barList, qerList)
+				go establishPfcpSession(smContext, pfcpState, resChan)
 			} else {
-				message.SendPfcpSessionModificationRequest(
-					curDataPathNode.UPF.NodeID, curDataPathNode.UPF.Addr, smContext, pdrList, farList, barList, qerList)
+				go modifyExistingPfcpSession(smContext, pfcpState, resChan)
 			}
 		} else {
 			if reflect.DeepEqual(curDataPathNode.UPF.NodeID, ulcl.NodeID) {
@@ -155,6 +106,10 @@ func EstablishPSA2(smContext *context.SMContext) {
 	}
 
 	bpMGR.AddingPSAState = context.EstablishingNewPSA
+	// collect all responses
+	for i := 0; i < len(bpMGR.PendingUPF); i++ {
+		<-resChan
+	}
 	logger.PduSessLog.Traceln("End of EstablishPSA2")
 }
 
@@ -165,6 +120,7 @@ func EstablishULCL(smContext *context.SMContext) {
 	activatingPath := bpMGR.ActivatingPath
 	dest := activatingPath.Destination
 	ulcl := bpMGR.ULCL
+	resChan := make(chan SendPfcpResult)
 
 	// find updatedUPF in activatingPath
 	for curDPNode := activatingPath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
@@ -198,21 +154,28 @@ func EstablishULCL(smContext *context.SMContext) {
 
 			UPLinkPDR.Precedence = 30
 
-			pdrList := []*context.PDR{UPLinkPDR, DownLinkPDR}
-			farList := []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR}
-			barList := []*context.BAR{}
-			qerList := UPLinkPDR.QER
+			pfcpState := &PFCPState{
+				upf:     ulcl,
+				pdrList: []*context.PDR{UPLinkPDR, DownLinkPDR},
+				farList: []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR},
+				barList: []*context.BAR{},
+				qerList: UPLinkPDR.QER,
+			}
 
 			curDPNodeIP := ulcl.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true
-			message.SendPfcpSessionModificationRequest(ulcl.NodeID, ulcl.Addr,
-				smContext, pdrList, farList, barList, qerList)
+			go modifyExistingPfcpSession(smContext, pfcpState, resChan)
 			break
 		}
 	}
 
 	bpMGR.AddingPSAState = context.EstablishingULCL
 	logger.PfcpLog.Info("[SMF] Establish ULCL msg has been send")
+
+	// collect all responses
+	for i := 0; i < len(bpMGR.PendingUPF); i++ {
+		<-resChan
+	}
 }
 
 func UpdatePSA2DownLink(smContext *context.SMContext) {
@@ -221,11 +184,7 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 	bpMGR := smContext.BPManager
 	ulcl := bpMGR.ULCL
 	activatingPath := bpMGR.ActivatingPath
-
-	farList := []*context.FAR{}
-	pdrList := []*context.PDR{}
-	barList := []*context.BAR{}
-	qerList := []*context.QER{}
+	resChan := make(chan SendPfcpResult)
 
 	for curDataPathNode := activatingPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
 		lastNode := curDataPathNode.Prev()
@@ -236,14 +195,19 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 				downLinkPDR.State = context.RULE_INITIAL
 				downLinkPDR.FAR.State = context.RULE_INITIAL
 
-				pdrList = append(pdrList, downLinkPDR)
-				farList = append(farList, downLinkPDR.FAR)
+				qerList := []*context.QER{}
 				qerList = append(qerList, downLinkPDR.QER...)
+				pfcpState := &PFCPState{
+					upf:     curDataPathNode.UPF,
+					pdrList: []*context.PDR{downLinkPDR},
+					farList: []*context.FAR{downLinkPDR.FAR},
+					barList: []*context.BAR{},
+					qerList: qerList,
+				}
 
 				curDPNodeIP := curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String()
 				bpMGR.PendingUPF[curDPNodeIP] = true
-				message.SendPfcpSessionModificationRequest(
-					curDataPathNode.UPF.NodeID, curDataPathNode.UPF.Addr, smContext, pdrList, farList, barList, qerList)
+				go modifyExistingPfcpSession(smContext, pfcpState, resChan)
 				logger.PfcpLog.Info("[SMF] Update PSA2 downlink msg has been send")
 				break
 			}
@@ -251,10 +215,15 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 	}
 
 	bpMGR.AddingPSAState = context.UpdatingPSA2DownLink
+
+	// collect all responses
+	for i := 0; i < len(bpMGR.PendingUPF); i++ {
+		<-resChan
+	}
 }
 
 func EstablishRANTunnelInfo(smContext *context.SMContext) {
-	logger.PduSessLog.Traceln("In UpdatePSA2DownLink")
+	logger.PduSessLog.Traceln("In EstablishRANTunnelInfo")
 
 	bpMGR := smContext.BPManager
 	activatingPath := bpMGR.ActivatingPath
@@ -295,10 +264,12 @@ func EstablishRANTunnelInfo(smContext *context.SMContext) {
 }
 
 func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
+	logger.PduSessLog.Traceln("In UpdateRANAndIUPFUpLink")
 	bpMGR := smContext.BPManager
 	activatingPath := bpMGR.ActivatingPath
 	dest := activatingPath.Destination
 	ulcl := bpMGR.ULCL
+	resChan := make(chan SendPfcpResult)
 
 	for curDPNode := activatingPath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
 		if reflect.DeepEqual(ulcl.NodeID, curDPNode.UPF.NodeID) {
@@ -335,23 +306,28 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 				}
 			}
 
-			pdrList := []*context.PDR{UPLinkPDR, DownLinkPDR}
-			farList := []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR}
-			barList := []*context.BAR{}
-			qerList := UPLinkPDR.QER
+			pfcpState := &PFCPState{
+				upf:     curDPNode.UPF,
+				pdrList: []*context.PDR{UPLinkPDR, DownLinkPDR},
+				farList: []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR},
+				barList: []*context.BAR{},
+				qerList: UPLinkPDR.QER,
+			}
 
 			curDPNodeIP := curDPNode.UPF.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true
-			message.SendPfcpSessionModificationRequest(curDPNode.UPF.NodeID, curDPNode.UPF.Addr,
-				smContext, pdrList, farList, barList, qerList)
+			go modifyExistingPfcpSession(smContext, pfcpState, resChan)
 		}
 	}
 
-	if bpMGR.PendingUPF.IsEmpty() {
-		bpMGR.AddingPSAState = context.Finished
-		bpMGR.BPStatus = context.AddPSASuccess
-		logger.CtxLog.Infoln("[SMF] Add PSA success")
-	} else {
+	if !bpMGR.PendingUPF.IsEmpty() {
 		bpMGR.AddingPSAState = context.UpdatingRANAndIUPFUpLink
+		// collect all responses
+		for i := 0; i < len(bpMGR.PendingUPF); i++ {
+			<-resChan
+		}
 	}
+	bpMGR.AddingPSAState = context.Finished
+	bpMGR.BPStatus = context.AddPSASuccess
+	logger.CtxLog.Infoln("[SMF] Add PSA success")
 }
