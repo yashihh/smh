@@ -170,6 +170,23 @@ func TestBuildNASPacketFilterFromPacketFilterInfo(t *testing.T) {
 							LowLimit:  6000,
 							HighLimit: 7000,
 						},
+						&nasType.PacketFilterIPv4RemoteAddress{
+							Address: net.ParseIP("10.160.20.0").To4(),
+							Mask:    net.IPv4Mask(255, 255, 255, 0),
+						},
+						&nasType.PacketFilterRemotePortRange{
+							LowLimit:  3000,
+							HighLimit: 4000,
+						},
+					},
+				},
+				{
+					Direction: nasType.PacketFilterDirectionDownlink,
+					Components: nasType.PacketFilterComponentList{
+						&nasType.PacketFilterIPv4LocalAddress{
+							Address: net.ParseIP("192.168.0.0").To4(),
+							Mask:    net.IPv4Mask(255, 255, 0, 0),
+						},
 						&nasType.PacketFilterSingleLocalPort{
 							Value: 8000,
 						},
@@ -186,7 +203,7 @@ func TestBuildNASPacketFilterFromPacketFilterInfo(t *testing.T) {
 			},
 			flowInfo: models.FlowInformation{
 				FlowDirection:   models.FlowDirectionRm_DOWNLINK,
-				FlowDescription: "permit out ip from 10.160.20.0/24 3000-4000 to 192.168.0.0/16 6000-7000, 8000",
+				FlowDescription: "permit out ip from 10.160.20.0/24 3000-4000 to 192.168.0.0/16 6000-7000,8000",
 			},
 		},
 		{
@@ -211,7 +228,24 @@ func TestBuildNASPacketFilterFromPacketFilterInfo(t *testing.T) {
 							LowLimit:  3000,
 							HighLimit: 4000,
 						},
-						&nasType.PacketFilterSingleLocalPort{
+					},
+				},
+				{
+					Direction: nasType.PacketFilterDirectionDownlink,
+					Components: nasType.PacketFilterComponentList{
+						&nasType.PacketFilterIPv4LocalAddress{
+							Address: net.ParseIP("192.168.0.0").To4(),
+							Mask:    net.IPv4Mask(255, 255, 0, 0),
+						},
+						&nasType.PacketFilterLocalPortRange{
+							LowLimit:  6000,
+							HighLimit: 7000,
+						},
+						&nasType.PacketFilterIPv4RemoteAddress{
+							Address: net.ParseIP("10.160.20.0").To4(),
+							Mask:    net.IPv4Mask(255, 255, 255, 0),
+						},
+						&nasType.PacketFilterSingleRemotePort{
 							Value: 5000,
 						},
 					},

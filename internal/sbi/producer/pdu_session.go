@@ -215,7 +215,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	// GSM State
 	// PDU Session Modification Reject(Cause Value == 43 || Cause Value != 43)/Complete
 	// PDU Session Release Command/Complete
-	logger.PduSessLog.Infoln("In HandlePDUSessionSMContextUpdate")
 	smContext := smf_context.GetSMContextByRef(smContextRef)
 
 	if smContext == nil {
