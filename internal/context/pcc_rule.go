@@ -5,6 +5,8 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/pkg/errors"
+
 	"bitbucket.org/free5gc-team/nas/nasType"
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
@@ -138,6 +140,123 @@ func (r *PCCRule) BuildNasQoSRule(smCtx *SMContext,
 	return &rule, nil
 }
 
+func createNasPacketFilter(
+	pfInfo *models.FlowInformation,
+	smCtx *SMContext,
+	ipFilterRule *flowdesc.IPFilterRule,
+	srcP *flowdesc.PortRange,
+	dstP *flowdesc.PortRange,
+) (*nasType.PacketFilter, error) {
+	pf := new(nasType.PacketFilter)
+
+	pfId, err := smCtx.PacketFilterIDGenerator.Allocate()
+	if err != nil {
+		return nil, err
+	}
+	pf.Identifier = uint8(pfId)
+	smCtx.PacketFilterIDToNASPFID[pfInfo.PackFiltId] = uint8(pfId)
+
+	switch pfInfo.FlowDirection {
+	case models.FlowDirectionRm_DOWNLINK:
+		pf.Direction = nasType.PacketFilterDirectionDownlink
+	case models.FlowDirectionRm_UPLINK:
+		pf.Direction = nasType.PacketFilterDirectionUplink
+	case models.FlowDirectionRm_BIDIRECTIONAL:
+		pf.Direction = nasType.PacketFilterDirectionBidirectional
+	}
+
+	pfComponents := make(nasType.PacketFilterComponentList, 0)
+	if pfInfo.FlowLabel != "" {
+		if label, parseErr := strconv.ParseInt(pfInfo.FlowLabel, 16, 32); parseErr != nil {
+			return nil, fmt.Errorf("parse flow label fail: %s", parseErr)
+		} else {
+			pfComponents = append(pfComponents, &nasType.PacketFilterFlowLabel{
+				Label: uint32(label),
+			})
+		}
+	}
+
+	if pfInfo.Spi != "" {
+		if spi, parseErr := strconv.ParseInt(pfInfo.Spi, 16, 32); parseErr != nil {
+			return nil, fmt.Errorf("parse security parameter index fail: %s", parseErr)
+		} else {
+			pfComponents = append(pfComponents, &nasType.PacketFilterSecurityParameterIndex{
+				Index: uint32(spi),
+			})
+		}
+	}
+
+	if pfInfo.TosTrafficClass != "" {
+		if tos, parseErr := strconv.ParseInt(pfInfo.TosTrafficClass, 16, 32); parseErr != nil {
+			return nil, fmt.Errorf("parse security parameter index fail: %s", parseErr)
+		} else {
+			pfComponents = append(pfComponents, &nasType.PacketFilterServiceClass{
+				Class: uint8(tos >> 8),
+				Mask:  uint8(tos & 0x00FF),
+			})
+		}
+	}
+
+	if ipFilterRule.Dst != "any" {
+		_, ipNet, err := net.ParseCIDR(ipFilterRule.Dst)
+		if err != nil {
+			return nil, fmt.Errorf("parse IP fail: %s", err)
+		}
+		pfComponents = append(pfComponents, &nasType.PacketFilterIPv4LocalAddress{
+			Address: ipNet.IP.To4(),
+			Mask:    ipNet.Mask,
+		})
+	}
+	if dstP != nil {
+		if dstP.Start != dstP.End {
+			pfComponents = append(pfComponents, &nasType.PacketFilterLocalPortRange{
+				LowLimit:  dstP.Start,
+				HighLimit: dstP.End,
+			})
+		} else if dstP.Start != 0 && dstP.End != 0 {
+			pfComponents = append(pfComponents, &nasType.PacketFilterSingleLocalPort{
+				Value: dstP.Start,
+			})
+		}
+	}
+
+	if ipFilterRule.Src != "any" {
+		_, ipNet, err := net.ParseCIDR(ipFilterRule.Src)
+		if err != nil {
+			return nil, fmt.Errorf("parse IP fail: %s", err)
+		}
+		pfComponents = append(pfComponents, &nasType.PacketFilterIPv4RemoteAddress{
+			Address: ipNet.IP.To4(),
+			Mask:    ipNet.Mask,
+		})
+	}
+	if srcP != nil {
+		if srcP.Start != srcP.End {
+			pfComponents = append(pfComponents, &nasType.PacketFilterRemotePortRange{
+				LowLimit:  srcP.Start,
+				HighLimit: srcP.End,
+			})
+		} else if srcP.Start != 0 && srcP.End != 0 {
+			pfComponents = append(pfComponents, &nasType.PacketFilterSingleRemotePort{
+				Value: srcP.Start,
+			})
+		}
+	}
+
+	if ipFilterRule.Proto != flowdesc.ProtocolNumberAny {
+		pfComponents = append(pfComponents, &nasType.PacketFilterProtocolIdentifier{
+			Value: ipFilterRule.Proto,
+		})
+	}
+
+	if len(pfComponents) == 0 {
+		pfComponents = append(pfComponents, &nasType.PacketFilterMatchAll{})
+	}
+
+	pf.Components = pfComponents
+	return pf, nil
+}
+
 func BuildNASPacketFiltersFromFlowInformation(pfInfo *models.FlowInformation,
 	smCtx *SMContext) ([]nasType.PacketFilter, error) {
 	var pfList []nasType.PacketFilter
@@ -151,129 +270,44 @@ func BuildNASPacketFiltersFromFlowInformation(pfInfo *models.FlowInformation,
 		}
 	}
 
-	srcPorts := ipFilterRule.SrcPorts
-	dstPorts := ipFilterRule.DstPorts
-	// append an port range to avoid ipFilterRule.SrcPorts/ipFilterRule.DstPorts length is 0
-	// if length is 0 for loop will not be executed
-	if len(ipFilterRule.SrcPorts) == 0 {
-		ipFilterRule.SrcPorts = append(ipFilterRule.SrcPorts, flowdesc.PortRange{
-			Start: 0,
-			End:   0,
-		})
-	}
-	if len(ipFilterRule.DstPorts) == 0 {
-		ipFilterRule.DstPorts = append(ipFilterRule.DstPorts, flowdesc.PortRange{
-			Start: 0,
-			End:   0,
-		})
-	}
-	for _, srcP := range srcPorts {
-		for _, dstP := range dstPorts {
-			pf := new(nasType.PacketFilter)
-
-			if packetFilterID, err := smCtx.PacketFilterIDGenerator.Allocate(); err != nil {
-				return nil, err
-			} else {
-				pf.Identifier = uint8(packetFilterID)
-				smCtx.PacketFilterIDToNASPFID[pfInfo.PackFiltId] = uint8(packetFilterID)
-			}
-
-			switch pfInfo.FlowDirection {
-			case models.FlowDirectionRm_DOWNLINK:
-				pf.Direction = nasType.PacketFilterDirectionDownlink
-			case models.FlowDirectionRm_UPLINK:
-				pf.Direction = nasType.PacketFilterDirectionUplink
-			case models.FlowDirectionRm_BIDIRECTIONAL:
-				pf.Direction = nasType.PacketFilterDirectionBidirectional
-			}
-
-			pfComponents := make(nasType.PacketFilterComponentList, 0)
-			if pfInfo.FlowLabel != "" {
-				if label, err := strconv.ParseInt(pfInfo.FlowLabel, 16, 32); err != nil {
-					return nil, fmt.Errorf("parse flow label fail: %s", err)
-				} else {
-					pfComponents = append(pfComponents, &nasType.PacketFilterFlowLabel{
-						Label: uint32(label),
-					})
-				}
-			}
-
-			if pfInfo.Spi != "" {
-				if spi, err := strconv.ParseInt(pfInfo.Spi, 16, 32); err != nil {
-					return nil, fmt.Errorf("parse security parameter index fail: %s", err)
-				} else {
-					pfComponents = append(pfComponents, &nasType.PacketFilterSecurityParameterIndex{
-						Index: uint32(spi),
-					})
-				}
-			}
-
-			if pfInfo.TosTrafficClass != "" {
-				if tos, err := strconv.ParseInt(pfInfo.TosTrafficClass, 16, 32); err != nil {
-					return nil, fmt.Errorf("parse security parameter index fail: %s", err)
-				} else {
-					pfComponents = append(pfComponents, &nasType.PacketFilterServiceClass{
-						Class: uint8(tos >> 8),
-						Mask:  uint8(tos & 0x00FF),
-					})
-				}
-			}
-			if ipFilterRule.Src != "any" {
-				_, ipNet, err := net.ParseCIDR(ipFilterRule.Src)
+	// TS 24.501 9.11.4.13.4
+	srcPLen := len(ipFilterRule.SrcPorts)
+	dstPLen := len(ipFilterRule.DstPorts)
+	switch {
+	case srcPLen > 0 && dstPLen > 0:
+		for _, srcP := range ipFilterRule.SrcPorts {
+			for _, dstP := range ipFilterRule.DstPorts {
+				pf, err := createNasPacketFilter(pfInfo, smCtx, ipFilterRule, &srcP, &dstP)
 				if err != nil {
-					return nil, fmt.Errorf("parse IP fail: %s", err)
+					return nil, errors.Wrap(err, "create packet filter fail")
 				}
-				pfComponents = append(pfComponents, &nasType.PacketFilterIPv4RemoteAddress{
-					Address: ipNet.IP.To4(),
-					Mask:    ipNet.Mask,
-				})
+				pfList = append(pfList, *pf)
 			}
-
-			if ipFilterRule.Dst != "any" {
-				_, ipNet, err := net.ParseCIDR(ipFilterRule.Dst)
-				if err != nil {
-					return nil, fmt.Errorf("parse IP fail: %s", err)
-				}
-				pfComponents = append(pfComponents, &nasType.PacketFilterIPv4LocalAddress{
-					Address: ipNet.IP.To4(),
-					Mask:    ipNet.Mask,
-				})
-			}
-
-			if dstP.Start != dstP.End {
-				pfComponents = append(pfComponents, &nasType.PacketFilterLocalPortRange{
-					LowLimit:  dstP.Start,
-					HighLimit: dstP.End,
-				})
-			} else if dstP.Start != 0 && dstP.End != 0 {
-				pfComponents = append(pfComponents, &nasType.PacketFilterSingleLocalPort{
-					Value: dstP.Start,
-				})
-			}
-
-			if srcP.Start != srcP.End {
-				pfComponents = append(pfComponents, &nasType.PacketFilterRemotePortRange{
-					LowLimit:  srcP.Start,
-					HighLimit: srcP.End,
-				})
-			} else if srcP.Start != 0 && dstP.End != 0 {
-				pfComponents = append(pfComponents, &nasType.PacketFilterSingleRemotePort{
-					Value: srcP.Start,
-				})
-			}
-
-			if ipFilterRule.Proto != flowdesc.ProtocolNumberAny {
-				pfComponents = append(pfComponents, &nasType.PacketFilterProtocolIdentifier{
-					Value: ipFilterRule.Proto,
-				})
-			}
-
-			if len(pfComponents) == 0 {
-				pfComponents = append(pfComponents, &nasType.PacketFilterMatchAll{})
-			}
-
-			pf.Components = pfComponents
 		}
+	case srcPLen == 0 && dstPLen > 0:
+		for _, dstP := range ipFilterRule.DstPorts {
+			pf, err := createNasPacketFilter(pfInfo, smCtx, ipFilterRule, nil, &dstP)
+			if err != nil {
+				return nil, errors.Wrap(err, "create packet filter fail")
+			}
+			pfList = append(pfList, *pf)
+		}
+	case srcPLen > 0 && dstPLen == 0:
+		for _, srcP := range ipFilterRule.SrcPorts {
+			pf, err := createNasPacketFilter(pfInfo, smCtx, ipFilterRule, &srcP, nil)
+			if err != nil {
+				return nil, errors.Wrap(err, "create packet filter fail")
+			}
+			pfList = append(pfList, *pf)
+		}
+	case srcPLen == 0 && dstPLen == 0:
+		pf, err := createNasPacketFilter(pfInfo, smCtx, ipFilterRule, nil, nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "create packet filter fail")
+		}
+		pfList = append(pfList, *pf)
+	default:
+		return nil, errors.Errorf("invalid srcPLen(%d) or dstPLen(%d)", srcPLen, dstPLen)
 	}
 
 	return pfList, nil

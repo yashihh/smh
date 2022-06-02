@@ -55,6 +55,21 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 		},
 	}
 
+	for _, pccRule := range smContext.PCCRules {
+		if qosRule, err := pccRule.BuildNasQoSRule(smContext,
+			nasType.OperationCodeCreateNewQoSRule); err != nil {
+			logger.GsmLog.Warnln("Create QoS rule from pcc error ", err)
+		} else {
+			if ruleID, err := smContext.QoSRuleIDGenerator.Allocate(); err != nil {
+				return nil, err
+			} else {
+				qosRule.Identifier = uint8(ruleID)
+				smContext.PCCRuleIDToQoSRuleID[pccRule.PccRuleId] = uint8(ruleID)
+			}
+			qoSRules = append(qoSRules, *qosRule)
+		}
+	}
+
 	qosRulesBytes, err := qoSRules.MarshalBinary()
 	if err != nil {
 		return nil, err

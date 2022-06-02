@@ -249,8 +249,6 @@ func updateAnUpfPfcpSession(smContext *smf_context.SMContext,
 	pdrList []*smf_context.PDR, farList []*smf_context.FAR,
 	barList []*smf_context.BAR, qerList []*smf_context.QER,
 ) smf_context.PFCPSessionResponseStatus {
-	logger.PduSessLog.Infoln("Sending PFCP Session Modification Request to AN UPF")
-
 	defaultPath := smContext.Tunnel.DataPathPool.GetDefaultPath()
 	ANUPF := defaultPath.FirstDPNode
 	rcvMsg, err := pfcp_message.SendPfcpSessionModificationRequest(
