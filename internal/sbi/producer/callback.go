@@ -60,7 +60,8 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 }
 
 func SendUpPathChgEventExposureNotification(
-	uri string, notification *models.NsmfEventExposureNotification) {
+	uri string, notification *models.NsmfEventExposureNotification,
+) {
 	configuration := Nsmf_EventExposure.NewConfiguration()
 	client := Nsmf_EventExposure.NewAPIClient(configuration)
 	_, httpResponse, err := client.

@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/pfcp"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
+	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	pfcp_message "bitbucket.org/free5gc-team/smf/internal/pfcp/message"
@@ -23,51 +24,50 @@ type PFCPState struct {
 
 type SendPfcpResult struct {
 	Status smf_context.PFCPSessionResponseStatus
+	RcvMsg *pfcpUdp.Message
 	Err    error
 }
 
 // ActivateUPFSessionAndNotifyUE send all datapaths to UPFs and send result to UE
 // It returns after all PFCP response have been returned or timed out,
 // and before sending N1N2MessageTransfer request if it is needed.
-func ActivateUPFSessionAndNotifyUE(smContext *smf_context.SMContext) []SendPfcpResult {
-	smContext.SMLock.Lock()
-	defer smContext.SMLock.Unlock()
-
+func ActivateUPFSessionAndNotifyUE(smContext *smf_context.SMContext) {
 	pfcpPool := make(map[string]*PFCPState)
 
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
-		if dataPath.Activated {
-			for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-				pdrList := make([]*smf_context.PDR, 0, 2)
-				farList := make([]*smf_context.FAR, 0, 2)
-				qerList := make([]*smf_context.QER, 0, 2)
+		if !dataPath.Activated {
+			continue
+		}
+		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+			pdrList := make([]*smf_context.PDR, 0, 2)
+			farList := make([]*smf_context.FAR, 0, 2)
+			qerList := make([]*smf_context.QER, 0, 2)
 
-				if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
-					pdrList = append(pdrList, curDataPathNode.UpLinkTunnel.PDR)
-					farList = append(farList, curDataPathNode.UpLinkTunnel.PDR.FAR)
-					if curDataPathNode.UpLinkTunnel.PDR.QER != nil {
-						qerList = append(qerList, curDataPathNode.UpLinkTunnel.PDR.QER...)
-					}
+			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
+				pdrList = append(pdrList, curDataPathNode.UpLinkTunnel.PDR)
+				farList = append(farList, curDataPathNode.UpLinkTunnel.PDR.FAR)
+				if curDataPathNode.UpLinkTunnel.PDR.QER != nil {
+					qerList = append(qerList, curDataPathNode.UpLinkTunnel.PDR.QER...)
 				}
-				if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
-					pdrList = append(pdrList, curDataPathNode.DownLinkTunnel.PDR)
-					farList = append(farList, curDataPathNode.DownLinkTunnel.PDR.FAR)
-					// skip send QER because uplink and downlink shared one QER
-				}
+			}
+			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
+				pdrList = append(pdrList, curDataPathNode.DownLinkTunnel.PDR)
+				farList = append(farList, curDataPathNode.DownLinkTunnel.PDR.FAR)
+				// skip send QER because uplink and downlink shared one QER
+			}
 
-				pfcpState := pfcpPool[curDataPathNode.GetNodeIP()]
-				if pfcpState == nil {
-					pfcpPool[curDataPathNode.GetNodeIP()] = &PFCPState{
-						upf:     curDataPathNode.UPF,
-						pdrList: pdrList,
-						farList: farList,
-						qerList: qerList,
-					}
-				} else {
-					pfcpState.pdrList = append(pfcpState.pdrList, pdrList...)
-					pfcpState.farList = append(pfcpState.farList, farList...)
-					pfcpState.qerList = append(pfcpState.qerList, qerList...)
+			pfcpState := pfcpPool[curDataPathNode.GetNodeIP()]
+			if pfcpState == nil {
+				pfcpPool[curDataPathNode.GetNodeIP()] = &PFCPState{
+					upf:     curDataPathNode.UPF,
+					pdrList: pdrList,
+					farList: farList,
+					qerList: qerList,
 				}
+			} else {
+				pfcpState.pdrList = append(pfcpState.pdrList, pdrList...)
+				pfcpState.farList = append(pfcpState.farList, farList...)
+				pfcpState.qerList = append(pfcpState.qerList, qerList...)
 			}
 		}
 	}
@@ -84,15 +84,19 @@ func ActivateUPFSessionAndNotifyUE(smContext *smf_context.SMContext) []SendPfcpR
 	}
 
 	// collect all responses
-	resList := make([]SendPfcpResult, 0, len(pfcpPool))
 	for i := 0; i < len(pfcpPool); i++ {
-		resList = append(resList, <-resChan)
+		res := <-resChan
+		rsp, ok := res.RcvMsg.PfcpMessage.Body.(pfcp.PFCPSessionEstablishmentResponse)
+		if ok {
+			notifyUE(smContext, rsp)
+		}
 	}
-
-	return resList
 }
 
-func establishPfcpSession(smContext *smf_context.SMContext, state *PFCPState, resCh chan SendPfcpResult) {
+func establishPfcpSession(smContext *smf_context.SMContext,
+	state *PFCPState,
+	resCh chan<- SendPfcpResult,
+) {
 	logger.PduSessLog.Infoln("Sending PFCP Session Establishment Request")
 
 	rcvMsg, err := pfcp_message.SendPfcpSessionEstablishmentRequest(
@@ -118,6 +122,7 @@ func establishPfcpSession(smContext *smf_context.SMContext, state *PFCPState, re
 		logger.PduSessLog.Infoln("Received PFCP Session Establishment Accepted Response")
 		resCh <- SendPfcpResult{
 			Status: smf_context.SessionEstablishSuccess,
+			RcvMsg: rcvMsg,
 		}
 	} else {
 		logger.PduSessLog.Infoln("Received PFCP Session Establishment Not Accepted Response")
@@ -127,16 +132,75 @@ func establishPfcpSession(smContext *smf_context.SMContext, state *PFCPState, re
 		}
 		// TODO: set appropriate 5GSM cause according to PFCP cause value
 		sendPDUSessionEstablishmentReject(smContext, nasMessage.Cause5GSMNetworkFailure)
+	}
+}
+
+func sendPDUSessionEstablishmentReject(
+	smContext *smf_context.SMContext,
+	nasErrorCause uint8,
+) {
+	n1n2Request := models.N1N2MessageTransferRequest{}
+	if smNasBuf, err := smf_context.BuildGSMPDUSessionEstablishmentReject(
+		smContext, nasMessage.Cause5GSMNetworkFailure); err != nil {
+		logger.PduSessLog.Errorf("Build GSM PDUSessionEstablishmentReject failed: %s", err)
+	} else {
+		n1n2Request.BinaryDataN1Message = smNasBuf
+	}
+	n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
+		PduSessionId: smContext.PDUSessionID,
+		N1MessageContainer: &models.N1MessageContainer{
+			N1MessageClass:   "SM",
+			N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
+		},
+	}
+	rspData, _, err := smContext.
+		CommunicationClient.
+		N1N2MessageCollectionDocumentApi.
+		N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+	smContext.SetState(smf_context.InActive)
+	if err != nil {
+		logger.PfcpLog.Warnf("Send N1N2Transfer failed")
+	}
+	if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+		logger.PfcpLog.Warnf("%v", rspData.Cause)
+	}
+}
+
+func modifyExistingPfcpSession(
+	smContext *smf_context.SMContext,
+	state *PFCPState,
+	resCh chan<- SendPfcpResult,
+) {
+	logger.PduSessLog.Infoln("Sending PFCP Session Modification Request")
+
+	rcvMsg, err := pfcp_message.SendPfcpSessionModificationRequest(
+		state.upf, smContext, state.pdrList, state.farList, state.barList, state.qerList)
+	if err != nil {
+		logger.PduSessLog.Warnf("Sending PFCP Session Modification Request error: %+v", err)
+		resCh <- SendPfcpResult{
+			Status: smf_context.SessionEstablishFailed,
+			Err:    err,
+		}
 		return
 	}
 
-	// The following is the process after receiving a successful pfcp response
+	logger.PduSessLog.Infoln("Received PFCP Session Modification Response")
 
-	// This lock is acuired when all PFCP results has been send to resCh
-	// and ActivateUPFSessionAndNotifyUE has processed them.
-	smContext.SMLock.Lock()
-	defer smContext.SMLock.Unlock()
+	rsp := rcvMsg.PfcpMessage.Body.(pfcp.PFCPSessionModificationResponse)
+	if rsp.Cause != nil && rsp.Cause.CauseValue == pfcpType.CauseRequestAccepted {
+		resCh <- SendPfcpResult{
+			Status: smf_context.SessionUpdateSuccess,
+			RcvMsg: rcvMsg,
+		}
+	} else {
+		resCh <- SendPfcpResult{
+			Status: smf_context.SessionUpdateFailed,
+			Err:    fmt.Errorf("cause[%d] if not request accepted", rsp.Cause.CauseValue),
+		}
+	}
+}
 
+func notifyUE(smContext *smf_context.SMContext, rsp pfcp.PFCPSessionEstablishmentResponse) {
 	ANUPF := smContext.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
 	if rsp.Cause != nil && rsp.Cause.CauseValue == pfcpType.CauseRequestAccepted &&
 		ANUPF.UPF.NodeID.ResolveNodeIdToIp().Equal(rsp.NodeID.ResolveNodeIdToIp()) {
@@ -184,63 +248,6 @@ func establishPfcpSession(smContext *smf_context.SMContext, state *PFCPState, re
 		}
 		if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
 			logger.PfcpLog.Warnf("%v", rspData.Cause)
-		}
-	}
-}
-
-func sendPDUSessionEstablishmentReject(smContext *smf_context.SMContext, nasErrorCause uint8) {
-	n1n2Request := models.N1N2MessageTransferRequest{}
-	if smNasBuf, err := smf_context.BuildGSMPDUSessionEstablishmentReject(
-		smContext, nasMessage.Cause5GSMNetworkFailure); err != nil {
-		logger.PduSessLog.Errorf("Build GSM PDUSessionEstablishmentReject failed: %s", err)
-	} else {
-		n1n2Request.BinaryDataN1Message = smNasBuf
-	}
-	n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
-		PduSessionId: smContext.PDUSessionID,
-		N1MessageContainer: &models.N1MessageContainer{
-			N1MessageClass:   "SM",
-			N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
-		},
-	}
-	rspData, _, err := smContext.
-		CommunicationClient.
-		N1N2MessageCollectionDocumentApi.
-		N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
-	smContext.SetState(smf_context.InActive)
-	if err != nil {
-		logger.PfcpLog.Warnf("Send N1N2Transfer failed")
-	}
-	if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
-		logger.PfcpLog.Warnf("%v", rspData.Cause)
-	}
-}
-
-func modifyExistingPfcpSession(smContext *smf_context.SMContext, state *PFCPState, resCh chan SendPfcpResult) {
-	logger.PduSessLog.Infoln("Sending PFCP Session Modification Request")
-
-	rcvMsg, err := pfcp_message.SendPfcpSessionModificationRequest(
-		state.upf, smContext, state.pdrList, state.farList, state.barList, state.qerList)
-	if err != nil {
-		logger.PduSessLog.Warnf("Sending PFCP Session Modification Request error: %+v", err)
-		resCh <- SendPfcpResult{
-			Status: smf_context.SessionEstablishFailed,
-			Err:    err,
-		}
-		return
-	}
-
-	logger.PduSessLog.Infoln("Received PFCP Session Modification Response")
-
-	rsp := rcvMsg.PfcpMessage.Body.(pfcp.PFCPSessionModificationResponse)
-	if rsp.Cause != nil && rsp.Cause.CauseValue == pfcpType.CauseRequestAccepted {
-		resCh <- SendPfcpResult{
-			Status: smf_context.SessionUpdateSuccess,
-		}
-	} else {
-		resCh <- SendPfcpResult{
-			Status: smf_context.SessionUpdateFailed,
-			Err:    fmt.Errorf("cause[%d] if not request accepted", rsp.Cause.CauseValue),
 		}
 	}
 }

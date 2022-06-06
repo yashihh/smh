@@ -110,6 +110,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 	for i := 0; i < len(bpMGR.PendingUPF); i++ {
 		<-resChan
 	}
+	// TODO: remove failed PSA2 path
 	logger.PduSessLog.Traceln("End of EstablishPSA2")
 }
 

@@ -186,13 +186,19 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Errorf("apply sm policy decision error: %+v", err)
 	}
 
-	smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
+	// not block PDUSessionSMContextCreate rsp when waiting PFCP rsp
+	go func() {
+		smContext.SMLock.Lock()
+		defer smContext.SMLock.Unlock()
 
-	go ActivateUPFSessionAndNotifyUE(smContext)
+		smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
 
-	smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)
+		ActivateUPFSessionAndNotifyUE(smContext)
 
-	smContext.PostRemoveDataPath()
+		smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)
+
+		smContext.PostRemoveDataPath()
+	}()
 
 	response.JsonData = smContext.BuildCreatedData()
 	return &httpwrapper.Response{
