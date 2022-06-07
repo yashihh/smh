@@ -193,7 +193,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 		smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
 
-		ActivateUPFSessionAndNotifyUE(smContext)
+		ActivateUPFSession(smContext, EstHandler)
 
 		smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)
 

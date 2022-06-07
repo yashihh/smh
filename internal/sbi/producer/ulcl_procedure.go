@@ -106,10 +106,9 @@ func EstablishPSA2(smContext *context.SMContext) {
 	}
 
 	bpMGR.AddingPSAState = context.EstablishingNewPSA
-	// collect all responses
-	for i := 0; i < len(bpMGR.PendingUPF); i++ {
-		<-resChan
-	}
+
+	waitAllPfcpRsp(smContext, len(bpMGR.PendingUPF), resChan, nil)
+	close(resChan)
 	// TODO: remove failed PSA2 path
 	logger.PduSessLog.Traceln("End of EstablishPSA2")
 }

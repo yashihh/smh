@@ -28,10 +28,13 @@ type SendPfcpResult struct {
 	Err    error
 }
 
-// ActivateUPFSessionAndNotifyUE send all datapaths to UPFs and send result to UE
+// ActivateUPFSession send all datapaths to UPFs and send result to UE
 // It returns after all PFCP response have been returned or timed out,
 // and before sending N1N2MessageTransfer request if it is needed.
-func ActivateUPFSessionAndNotifyUE(smContext *smf_context.SMContext) {
+func ActivateUPFSession(
+	smContext *smf_context.SMContext,
+	notifyUeHander func(*smf_context.SMContext, bool),
+) {
 	pfcpPool := make(map[string]*PFCPState)
 
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
@@ -83,14 +86,8 @@ func ActivateUPFSessionAndNotifyUE(smContext *smf_context.SMContext) {
 		}
 	}
 
-	// collect all responses
-	for i := 0; i < len(pfcpPool); i++ {
-		res := <-resChan
-		rsp, ok := res.RcvMsg.PfcpMessage.Body.(pfcp.PFCPSessionEstablishmentResponse)
-		if ok {
-			notifyUE(smContext, rsp)
-		}
-	}
+	waitAllPfcpRsp(smContext, len(pfcpPool), resChan, notifyUeHander)
+	close(resChan)
 }
 
 func establishPfcpSession(smContext *smf_context.SMContext,
@@ -107,7 +104,6 @@ func establishPfcpSession(smContext *smf_context.SMContext,
 			Status: smf_context.SessionEstablishFailed,
 			Err:    err,
 		}
-		sendPDUSessionEstablishmentReject(smContext, nasMessage.Cause5GSMNetworkFailure)
 		return
 	}
 
@@ -130,39 +126,6 @@ func establishPfcpSession(smContext *smf_context.SMContext,
 			Status: smf_context.SessionEstablishFailed,
 			Err:    fmt.Errorf("cause[%d] if not request accepted", rsp.Cause.CauseValue),
 		}
-		// TODO: set appropriate 5GSM cause according to PFCP cause value
-		sendPDUSessionEstablishmentReject(smContext, nasMessage.Cause5GSMNetworkFailure)
-	}
-}
-
-func sendPDUSessionEstablishmentReject(
-	smContext *smf_context.SMContext,
-	nasErrorCause uint8,
-) {
-	n1n2Request := models.N1N2MessageTransferRequest{}
-	if smNasBuf, err := smf_context.BuildGSMPDUSessionEstablishmentReject(
-		smContext, nasMessage.Cause5GSMNetworkFailure); err != nil {
-		logger.PduSessLog.Errorf("Build GSM PDUSessionEstablishmentReject failed: %s", err)
-	} else {
-		n1n2Request.BinaryDataN1Message = smNasBuf
-	}
-	n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
-		PduSessionId: smContext.PDUSessionID,
-		N1MessageContainer: &models.N1MessageContainer{
-			N1MessageClass:   "SM",
-			N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
-		},
-	}
-	rspData, _, err := smContext.
-		CommunicationClient.
-		N1N2MessageCollectionDocumentApi.
-		N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
-	smContext.SetState(smf_context.InActive)
-	if err != nil {
-		logger.PfcpLog.Warnf("Send N1N2Transfer failed")
-	}
-	if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
-		logger.PfcpLog.Warnf("%v", rspData.Cause)
 	}
 }
 
@@ -178,7 +141,7 @@ func modifyExistingPfcpSession(
 	if err != nil {
 		logger.PduSessLog.Warnf("Sending PFCP Session Modification Request error: %+v", err)
 		resCh <- SendPfcpResult{
-			Status: smf_context.SessionEstablishFailed,
+			Status: smf_context.SessionUpdateFailed,
 			Err:    err,
 		}
 		return
@@ -200,24 +163,96 @@ func modifyExistingPfcpSession(
 	}
 }
 
-func notifyUE(smContext *smf_context.SMContext, rsp pfcp.PFCPSessionEstablishmentResponse) {
-	ANUPF := smContext.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode
-	if rsp.Cause != nil && rsp.Cause.CauseValue == pfcpType.CauseRequestAccepted &&
-		ANUPF.UPF.NodeID.ResolveNodeIdToIp().Equal(rsp.NodeID.ResolveNodeIdToIp()) {
-		n1n2Request := models.N1N2MessageTransferRequest{}
-
-		if smNasBuf, err := smf_context.BuildGSMPDUSessionEstablishmentAccept(smContext); err != nil {
-			logger.PduSessLog.Errorf("Build GSM PDUSessionEstablishmentAccept failed: %s", err)
-		} else {
-			n1n2Request.BinaryDataN1Message = smNasBuf
-		}
-		if n2Pdu, err := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext); err != nil {
-			logger.PduSessLog.Errorf("Build PDUSessionResourceSetupRequestTransfer failed: %s", err)
-		} else {
-			n1n2Request.BinaryDataN2Information = n2Pdu
+func waitAllPfcpRsp(
+	smContext *smf_context.SMContext,
+	pfcpPoolLen int,
+	resChan <-chan SendPfcpResult,
+	notifyUeHander func(*smf_context.SMContext, bool),
+) {
+	success := true
+	for i := 0; i < pfcpPoolLen; i++ {
+		res := <-resChan
+		if notifyUeHander == nil {
+			continue
 		}
 
-		n1n2Request.JsonData = &models.N1N2MessageTransferReqData{
+		if res.Status == smf_context.SessionEstablishFailed ||
+			res.Status == smf_context.SessionUpdateFailed {
+			success = false
+		}
+	}
+	if notifyUeHander != nil {
+		notifyUeHander(smContext, success)
+	}
+}
+
+func EstHandler(smContext *smf_context.SMContext, success bool) {
+	if success {
+		sendPDUSessionEstablishmentAccept(smContext)
+	} else {
+		// TODO: set appropriate 5GSM cause according to PFCP cause value
+		sendPDUSessionEstablishmentReject(smContext, nasMessage.Cause5GSMNetworkFailure)
+	}
+}
+
+func ModHandler(smContext *smf_context.SMContext, success bool) {
+}
+
+func sendPDUSessionEstablishmentReject(
+	smContext *smf_context.SMContext,
+	nasErrorCause uint8,
+) {
+	smNasBuf, err := smf_context.BuildGSMPDUSessionEstablishmentReject(
+		smContext, nasMessage.Cause5GSMNetworkFailure)
+	if err != nil {
+		logger.PduSessLog.Errorf("Build GSM PDUSessionEstablishmentReject failed: %s", err)
+		return
+	}
+
+	n1n2Request := models.N1N2MessageTransferRequest{
+		BinaryDataN1Message: smNasBuf,
+		JsonData: &models.N1N2MessageTransferReqData{
+			PduSessionId: smContext.PDUSessionID,
+			N1MessageContainer: &models.N1MessageContainer{
+				N1MessageClass:   "SM",
+				N1MessageContent: &models.RefToBinaryData{ContentId: "GSM_NAS"},
+			},
+		},
+	}
+
+	rspData, _, err := smContext.
+		CommunicationClient.
+		N1N2MessageCollectionDocumentApi.
+		N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+	smContext.SetState(smf_context.InActive)
+	if err != nil {
+		logger.PfcpLog.Warnf("Send N1N2Transfer failed")
+		return
+	}
+	if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+		logger.PfcpLog.Warnf("%v", rspData.Cause)
+	}
+}
+
+func sendPDUSessionEstablishmentAccept(
+	smContext *smf_context.SMContext,
+) {
+	smNasBuf, err := smf_context.BuildGSMPDUSessionEstablishmentAccept(smContext)
+	if err != nil {
+		logger.PduSessLog.Errorf("Build GSM PDUSessionEstablishmentAccept failed: %s", err)
+		return
+	}
+
+	n2Pdu, err := smf_context.BuildPDUSessionResourceSetupRequestTransfer(smContext)
+	if err != nil {
+		logger.PduSessLog.Errorf("Build PDUSessionResourceSetupRequestTransfer failed: %s", err)
+		return
+	}
+
+	n1n2Request := models.N1N2MessageTransferRequest{
+		BinaryDataN1Message:     smNasBuf,
+		BinaryDataN2Information: n2Pdu,
+		JsonData: &models.N1N2MessageTransferReqData{
 			PduSessionId: smContext.PDUSessionID,
 			N1MessageContainer: &models.N1MessageContainer{
 				N1MessageClass:   "SM",
@@ -236,19 +271,20 @@ func notifyUE(smContext *smf_context.SMContext, rsp pfcp.PFCPSessionEstablishmen
 					SNssai: smContext.SNssai,
 				},
 			},
-		}
+		},
+	}
 
-		rspData, _, err := smContext.
-			CommunicationClient.
-			N1N2MessageCollectionDocumentApi.
-			N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
-		smContext.SetState(smf_context.Active)
-		if err != nil {
-			logger.PfcpLog.Warnf("Send N1N2Transfer failed")
-		}
-		if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
-			logger.PfcpLog.Warnf("%v", rspData.Cause)
-		}
+	rspData, _, err := smContext.
+		CommunicationClient.
+		N1N2MessageCollectionDocumentApi.
+		N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+	smContext.SetState(smf_context.Active)
+	if err != nil {
+		logger.PfcpLog.Warnf("Send N1N2Transfer failed")
+		return
+	}
+	if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
+		logger.PfcpLog.Warnf("%v", rspData.Cause)
 	}
 }
 
