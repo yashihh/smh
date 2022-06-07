@@ -59,8 +59,7 @@ func init() {
 }
 
 func GetSMContextCount() uint64 {
-	atomic.AddUint64(&smContextCount, 1)
-	return smContextCount
+	return atomic.AddUint64(&smContextCount, 1)
 }
 
 type EventExposureNotification struct {
@@ -642,19 +641,35 @@ func (smContext *SMContext) IsAllowedPDUSessionType(requestedPDUSessionType uint
 	switch supportedPDUSessionType {
 	case "IPv4":
 		if !allowIPv4 {
-			return fmt.Errorf("No SupportedPDUSessionType[%q] in DNN[%s] configuration", supportedPDUSessionType, smContext.Dnn)
+			return fmt.Errorf(
+				"No SupportedPDUSessionType[%q] in DNN[%s] configuration",
+				supportedPDUSessionType,
+				smContext.Dnn,
+			)
 		}
 	case "IPv6":
 		if !allowIPv6 {
-			return fmt.Errorf("No SupportedPDUSessionType[%q] in DNN[%s] configuration", supportedPDUSessionType, smContext.Dnn)
+			return fmt.Errorf(
+				"No SupportedPDUSessionType[%q] in DNN[%s] configuration",
+				supportedPDUSessionType,
+				smContext.Dnn,
+			)
 		}
 	case "IPv4v6":
 		if !allowIPv4 && !allowIPv6 {
-			return fmt.Errorf("No SupportedPDUSessionType[%q] in DNN[%s] configuration", supportedPDUSessionType, smContext.Dnn)
+			return fmt.Errorf(
+				"No SupportedPDUSessionType[%q] in DNN[%s] configuration",
+				supportedPDUSessionType,
+				smContext.Dnn,
+			)
 		}
 	case "Ethernet":
 		if !allowEthernet {
-			return fmt.Errorf("No SupportedPDUSessionType[%q] in DNN[%s] configuration", supportedPDUSessionType, smContext.Dnn)
+			return fmt.Errorf(
+				"No SupportedPDUSessionType[%q] in DNN[%s] configuration",
+				supportedPDUSessionType,
+				smContext.Dnn,
+			)
 		}
 	}
 
