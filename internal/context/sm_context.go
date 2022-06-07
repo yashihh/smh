@@ -394,14 +394,14 @@ func (smContext *SMContext) AllocateLocalSEIDForUPPath(path UPPath) {
 
 func (smContext *SMContext) AllocateLocalSEIDForDataPath(dataPath *DataPath) {
 	logger.PduSessLog.Traceln("In AllocateLocalSEIDForDataPath")
-	for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-		NodeIDtoIP := curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String()
+	for node := dataPath.FirstDPNode; node != nil; node = node.Next() {
+		NodeIDtoIP := node.UPF.NodeID.ResolveNodeIdToIp().String()
 		logger.PduSessLog.Traceln("NodeIDtoIP: ", NodeIDtoIP)
 		if _, exist := smContext.PFCPContext[NodeIDtoIP]; !exist {
 			allocatedSEID := AllocateLocalSEID()
 			smContext.PFCPContext[NodeIDtoIP] = &PFCPSessionContext{
 				PDRs:      make(map[uint16]*PDR),
-				NodeID:    curDataPathNode.UPF.NodeID,
+				NodeID:    node.UPF.NodeID,
 				LocalSEID: allocatedSEID,
 			}
 

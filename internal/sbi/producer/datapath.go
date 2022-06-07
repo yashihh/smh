@@ -41,28 +41,28 @@ func ActivateUPFSession(
 		if !dataPath.Activated {
 			continue
 		}
-		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+		for node := dataPath.FirstDPNode; node != nil; node = node.Next() {
 			pdrList := make([]*smf_context.PDR, 0, 2)
 			farList := make([]*smf_context.FAR, 0, 2)
 			qerList := make([]*smf_context.QER, 0, 2)
 
-			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
-				pdrList = append(pdrList, curDataPathNode.UpLinkTunnel.PDR)
-				farList = append(farList, curDataPathNode.UpLinkTunnel.PDR.FAR)
-				if curDataPathNode.UpLinkTunnel.PDR.QER != nil {
-					qerList = append(qerList, curDataPathNode.UpLinkTunnel.PDR.QER...)
+			if node.UpLinkTunnel != nil && node.UpLinkTunnel.PDR != nil {
+				pdrList = append(pdrList, node.UpLinkTunnel.PDR)
+				farList = append(farList, node.UpLinkTunnel.PDR.FAR)
+				if node.UpLinkTunnel.PDR.QER != nil {
+					qerList = append(qerList, node.UpLinkTunnel.PDR.QER...)
 				}
 			}
-			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
-				pdrList = append(pdrList, curDataPathNode.DownLinkTunnel.PDR)
-				farList = append(farList, curDataPathNode.DownLinkTunnel.PDR.FAR)
+			if node.DownLinkTunnel != nil && node.DownLinkTunnel.PDR != nil {
+				pdrList = append(pdrList, node.DownLinkTunnel.PDR)
+				farList = append(farList, node.DownLinkTunnel.PDR.FAR)
 				// skip send QER because uplink and downlink shared one QER
 			}
 
-			pfcpState := pfcpPool[curDataPathNode.GetNodeIP()]
+			pfcpState := pfcpPool[node.GetNodeIP()]
 			if pfcpState == nil {
-				pfcpPool[curDataPathNode.GetNodeIP()] = &PFCPState{
-					upf:     curDataPathNode.UPF,
+				pfcpPool[node.GetNodeIP()] = &PFCPState{
+					upf:     node.UPF,
 					pdrList: pdrList,
 					farList: farList,
 					qerList: qerList,
@@ -327,18 +327,18 @@ func ReleaseTunnel(smContext *smf_context.SMContext) []SendPfcpResult {
 	deletedPFCPNode := make(map[string]bool)
 	for _, dataPath := range smContext.Tunnel.DataPathPool {
 		var targetNodes []*smf_context.DataPathNode
-		for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-			targetNodes = append(targetNodes, curDataPathNode)
+		for node := dataPath.FirstDPNode; node != nil; node = node.Next() {
+			targetNodes = append(targetNodes, node)
 		}
 		dataPath.DeactivateTunnelAndPDR(smContext)
-		for _, curDataPathNode := range targetNodes {
-			curUPFID, err := curDataPathNode.GetUPFID()
+		for _, node := range targetNodes {
+			curUPFID, err := node.GetUPFID()
 			if err != nil {
 				logger.PduSessLog.Error(err)
 				continue
 			}
 			if _, exist := deletedPFCPNode[curUPFID]; !exist {
-				go deletePfcpSession(curDataPathNode.UPF, smContext, resChan)
+				go deletePfcpSession(node.UPF, smContext, resChan)
 				deletedPFCPNode[curUPFID] = true
 			}
 		}

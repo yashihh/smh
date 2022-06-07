@@ -58,48 +58,48 @@ func EstablishPSA2(smContext *context.SMContext) {
 	nodeAfterULCL := false
 	resChan := make(chan SendPfcpResult)
 
-	for curDataPathNode := activatingPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+	for node := activatingPath.FirstDPNode; node != nil; node = node.Next() {
 		if nodeAfterULCL {
 			addr := net.UDPAddr{
-				IP:   context.ResolveIP(curDataPathNode.UPF.Addr),
+				IP:   context.ResolveIP(node.UPF.Addr),
 				Port: pfcpUdp.PFCP_PORT,
 			}
 
 			logger.PduSessLog.Traceln("Send to upf addr: ", addr.String())
 
-			upLinkPDR := curDataPathNode.UpLinkTunnel.PDR
+			upLinkPDR := node.UpLinkTunnel.PDR
 
 			pdrList := []*context.PDR{upLinkPDR}
 			farList := []*context.FAR{upLinkPDR.FAR}
 			barList := []*context.BAR{}
 			qerList := upLinkPDR.QER
 
-			lastNode := curDataPathNode.Prev()
+			lastNode := node.Prev()
 
 			if lastNode != nil && !reflect.DeepEqual(lastNode.UPF.NodeID, ulcl.NodeID) {
-				downLinkPDR := curDataPathNode.DownLinkTunnel.PDR
+				downLinkPDR := node.DownLinkTunnel.PDR
 				pdrList = append(pdrList, downLinkPDR)
 				farList = append(farList, downLinkPDR.FAR)
 			}
 			pfcpState := &PFCPState{
-				upf:     curDataPathNode.UPF,
+				upf:     node.UPF,
 				pdrList: pdrList,
 				farList: farList,
 				barList: barList,
 				qerList: qerList,
 			}
 
-			curDPNodeIP := curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String()
+			curDPNodeIP := node.UPF.NodeID.ResolveNodeIdToIp().String()
 			bpMGR.PendingUPF[curDPNodeIP] = true
 
-			sessionContext, exist := smContext.PFCPContext[curDataPathNode.GetNodeIP()]
+			sessionContext, exist := smContext.PFCPContext[node.GetNodeIP()]
 			if !exist || sessionContext.RemoteSEID == 0 {
 				go establishPfcpSession(smContext, pfcpState, resChan)
 			} else {
 				go modifyExistingPfcpSession(smContext, pfcpState, resChan)
 			}
 		} else {
-			if reflect.DeepEqual(curDataPathNode.UPF.NodeID, ulcl.NodeID) {
+			if reflect.DeepEqual(node.UPF.NodeID, ulcl.NodeID) {
 				nodeAfterULCL = true
 			}
 		}
@@ -186,26 +186,26 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 	activatingPath := bpMGR.ActivatingPath
 	resChan := make(chan SendPfcpResult)
 
-	for curDataPathNode := activatingPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-		lastNode := curDataPathNode.Prev()
+	for node := activatingPath.FirstDPNode; node != nil; node = node.Next() {
+		lastNode := node.Prev()
 
 		if lastNode != nil {
 			if reflect.DeepEqual(lastNode.UPF.NodeID, ulcl.NodeID) {
-				downLinkPDR := curDataPathNode.DownLinkTunnel.PDR
+				downLinkPDR := node.DownLinkTunnel.PDR
 				downLinkPDR.State = context.RULE_INITIAL
 				downLinkPDR.FAR.State = context.RULE_INITIAL
 
 				qerList := []*context.QER{}
 				qerList = append(qerList, downLinkPDR.QER...)
 				pfcpState := &PFCPState{
-					upf:     curDataPathNode.UPF,
+					upf:     node.UPF,
 					pdrList: []*context.PDR{downLinkPDR},
 					farList: []*context.FAR{downLinkPDR.FAR},
 					barList: []*context.BAR{},
 					qerList: qerList,
 				}
 
-				curDPNodeIP := curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String()
+				curDPNodeIP := node.UPF.NodeID.ResolveNodeIdToIp().String()
 				bpMGR.PendingUPF[curDPNodeIP] = true
 				go modifyExistingPfcpSession(smContext, pfcpState, resChan)
 				logger.PfcpLog.Info("[SMF] Update PSA2 downlink msg has been send")
