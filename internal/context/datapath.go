@@ -327,13 +327,13 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 	logger.PduSessLog.Traceln("In ActivateTunnelAndPDR")
 	logger.PduSessLog.Traceln(dataPath.String())
 	// Activate Tunnels
-	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-		logger.PduSessLog.Traceln("Current DP Node IP: ", curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String())
-		if err := curDataPathNode.ActivateUpLinkTunnel(smContext); err != nil {
+	for node := firstDPNode; node != nil; node = node.Next() {
+		logger.PduSessLog.Traceln("Current DP Node IP: ", node.UPF.NodeID.ResolveNodeIdToIp().String())
+		if err := node.ActivateUpLinkTunnel(smContext); err != nil {
 			logger.CtxLog.Warnln(err)
 			return
 		}
-		if err := curDataPathNode.ActivateDownLinkTunnel(smContext); err != nil {
+		if err := node.ActivateDownLinkTunnel(smContext); err != nil {
 			logger.CtxLog.Warnln(err)
 			return
 		}
@@ -343,14 +343,14 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 	AuthDefQos := sessionRule.AuthDefQos
 
 	// Activate PDR
-	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+	for node := firstDPNode; node != nil; node = node.Next() {
 		var flowQER *QER
 
 		// if has the sess QoS (QER == 1), this value **SHOULD BE** uint32
-		if oldQER, ok := curDataPathNode.UPF.qerPool.Load(uint32(1)); ok {
+		if oldQER, ok := node.UPF.qerPool.Load(uint32(1)); ok {
 			flowQER = oldQER.(*QER)
 		} else {
-			if newQER, err := curDataPathNode.UPF.AddQER(); err != nil {
+			if newQER, err := node.UPF.AddQER(); err != nil {
 				logger.PduSessLog.Errorln("new QER failed")
 				return
 			} else {
@@ -368,9 +368,9 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 			}
 		}
 
-		logger.CtxLog.Traceln("Calculate ", curDataPathNode.UPF.PFCPAddr().String())
-		curULTunnel := curDataPathNode.UpLinkTunnel
-		curDLTunnel := curDataPathNode.DownLinkTunnel
+		logger.CtxLog.Traceln("Calculate ", node.UPF.PFCPAddr().String())
+		curULTunnel := node.UpLinkTunnel
+		curDLTunnel := node.DownLinkTunnel
 
 		// Setup UpLink PDR
 		if curULTunnel != nil {
@@ -381,7 +381,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 			ULPDR.Precedence = precedence
 
 			var iface *UPFInterfaceInfo
-			if curDataPathNode.IsANUPF() {
+			if node.IsANUPF() {
 				iface = ULDestUPF.GetInterface(models.UpInterfaceType_N3, smContext.Dnn)
 			} else {
 				iface = ULDestUPF.GetInterface(models.UpInterfaceType_N9, smContext.Dnn)
@@ -425,12 +425,12 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
 			}
 
-			if curDataPathNode.IsAnchorUPF() {
+			if node.IsAnchorUPF() {
 				ULFAR.ForwardingParameters.
 					DestinationInterface.InterfaceValue = pfcpType.DestinationInterfaceSgiLanN6Lan
 			}
 
-			if nextULDest := curDataPathNode.Next(); nextULDest != nil {
+			if nextULDest := node.Next(); nextULDest != nil {
 				nextULTunnel := nextULDest.UpLinkTunnel
 				iface = nextULTunnel.DestEndPoint.UPF.GetInterface(models.UpInterfaceType_N9, smContext.Dnn)
 
@@ -457,7 +457,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 			DLPDR.Precedence = precedence
 
 			// TODO: Should delete this after FR5GC-1029 is solved
-			if curDataPathNode.IsAnchorUPF() {
+			if node.IsAnchorUPF() {
 				DLPDR.PDI = PDI{
 					SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceSgiLanN6Lan},
 					NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
@@ -496,9 +496,9 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 
 			DLFAR := DLPDR.FAR
 
-			logger.PduSessLog.Traceln("Current DP Node IP: ", curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String())
+			logger.PduSessLog.Traceln("Current DP Node IP: ", node.UPF.NodeID.ResolveNodeIdToIp().String())
 			logger.PduSessLog.Traceln("Before DLPDR OuterHeaderCreation")
-			if nextDLDest := curDataPathNode.Prev(); nextDLDest != nil {
+			if nextDLDest := node.Prev(); nextDLDest != nil {
 				logger.PduSessLog.Traceln("In DLPDR OuterHeaderCreation")
 				nextDLTunnel := nextDLDest.DownLinkTunnel
 
@@ -551,13 +551,13 @@ func (dataPath *DataPath) DeactivateTunnelAndPDR(smContext *SMContext) {
 	firstDPNode := dataPath.FirstDPNode
 
 	var targetNodes []*DataPathNode
-	for curDataPathNode := firstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-		targetNodes = append(targetNodes, curDataPathNode)
+	for node := firstDPNode; node != nil; node = node.Next() {
+		targetNodes = append(targetNodes, node)
 	}
 	// Deactivate Tunnels
-	for _, curDataPathNode := range targetNodes {
-		curDataPathNode.DeactivateUpLinkTunnel(smContext)
-		curDataPathNode.DeactivateDownLinkTunnel(smContext)
+	for _, node := range targetNodes {
+		node.DeactivateUpLinkTunnel(smContext)
+		node.DeactivateDownLinkTunnel(smContext)
 	}
 
 	dataPath.Activated = false
@@ -580,8 +580,8 @@ func (p *DataPath) AddQoS(qos *models.QosData) {
 	if qos == nil {
 		return
 	}
-	for curDataPathNode := p.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-		if newQER, err := curDataPathNode.UPF.AddQER(); err != nil {
+	for node := p.FirstDPNode; node != nil; node = node.Next() {
+		if newQER, err := node.UPF.AddQER(); err != nil {
 			logger.PduSessLog.Errorln("new QER failed")
 			return
 		} else {
@@ -599,11 +599,11 @@ func (p *DataPath) AddQoS(qos *models.QosData) {
 				DLGBR: util.BitRateTokbps(qos.GbrDl),
 			}
 
-			if curDataPathNode.UpLinkTunnel != nil && curDataPathNode.UpLinkTunnel.PDR != nil {
-				curDataPathNode.UpLinkTunnel.PDR.QER = append(curDataPathNode.UpLinkTunnel.PDR.QER, newQER)
+			if node.UpLinkTunnel != nil && node.UpLinkTunnel.PDR != nil {
+				node.UpLinkTunnel.PDR.QER = append(node.UpLinkTunnel.PDR.QER, newQER)
 			}
-			if curDataPathNode.DownLinkTunnel != nil && curDataPathNode.DownLinkTunnel.PDR != nil {
-				curDataPathNode.DownLinkTunnel.PDR.QER = append(curDataPathNode.DownLinkTunnel.PDR.QER, newQER)
+			if node.DownLinkTunnel != nil && node.DownLinkTunnel.PDR != nil {
+				node.DownLinkTunnel.PDR.QER = append(node.DownLinkTunnel.PDR.QER, newQER)
 			}
 		}
 	}
@@ -661,12 +661,12 @@ func (dataPath *DataPath) CopyFirstDPNode() *DataPathNode {
 	}
 	var firstNode *DataPathNode = nil
 	var parentNode *DataPathNode = nil
-	for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+	for node := dataPath.FirstDPNode; node != nil; node = node.Next() {
 		newNode := NewDataPathNode()
 		if firstNode == nil {
 			firstNode = newNode
 		}
-		newNode.UPF = curDataPathNode.UPF
+		newNode.UPF = node.UPF
 		if parentNode != nil {
 			newNode.AddPrev(parentNode)
 			parentNode.AddNext(newNode)

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/antihax/optional"
 
@@ -60,9 +59,13 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SmContextCreateData = createData
 	smContext.SmStatusNotifyUri = createData.SmContextStatusUri
 
-	// TODO: This lock should be unlock after PFPF Establishment,
-	//       but this is workaround we must handle the pfcp timeout case to prevent SM lock allways lock
 	smContext.SMLock.Lock()
+	needUnlock := true
+	defer func() {
+		if needUnlock {
+			smContext.SMLock.Unlock()
+		}
+	}()
 
 	// DNN Information from config
 	smContext.DNNInfo = smf_context.RetrieveDnnInformation(smContext.SNssai, smContext.Dnn)
@@ -188,17 +191,20 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Errorf("apply sm policy decision error: %+v", err)
 	}
 
-	smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
+	// generate goroutine to handle PFCP and
+	// reply PDUSessionSMContextCreate rsp immediately
+	needUnlock = false
+	go func() {
+		defer smContext.SMLock.Unlock()
 
-	// Add sm lock timer workaround, it Should be remove after PFCP trasaction function complete
-	smContext.SMLockTimer = time.AfterFunc(4*time.Second, func() {
-		smContext.SMLock.Unlock()
-	})
-	go ActivateUPFSessionAndNotifyUE(smContext)
+		smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
 
-	smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)
+		ActivateUPFSession(smContext, EstHandler)
 
-	smContext.PostRemoveDataPath()
+		smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)
+
+		smContext.PostRemoveDataPath()
+	}()
 
 	response.JsonData = smContext.BuildCreatedData()
 	return &httpwrapper.Response{
@@ -547,8 +553,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		// TODO: implement sleep wait in concurrent architecture
 
 		smContext.SetState(smf_context.ModificationPending)
-		if err :=
-			smf_context.HandlePathSwitchRequestSetupFailedTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+		err := smf_context.HandlePathSwitchRequestSetupFailedTransfer(
+			body.BinaryDataN2SmInformation, smContext)
+		if err != nil {
 			smContext.Log.Errorf("HandlePathSwitchRequestSetupFailedTransfer failed: %v", err)
 		}
 	case models.N2SmInfoType_HANDOVER_REQUIRED:
@@ -568,7 +575,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 		smContext.SetState(smf_context.ModificationPending)
 		smContext.HoState = models.HoState_PREPARING
-		if err := smf_context.HandleHandoverRequiredTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+		err := smf_context.HandleHandoverRequiredTransfer(
+			body.BinaryDataN2SmInformation, smContext)
+		if err != nil {
 			smContext.Log.Errorf("Handle HandoverRequiredTransfer failed: %+v", err)
 		}
 		response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_SETUP_REQ
@@ -592,8 +601,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		smContext.SetState(smf_context.ModificationPending)
 		smContext.HoState = models.HoState_PREPARED
 		response.JsonData.HoState = models.HoState_PREPARED
-		if err :=
-			smf_context.HandleHandoverRequestAcknowledgeTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+		err := smf_context.HandleHandoverRequestAcknowledgeTransfer(
+			body.BinaryDataN2SmInformation, smContext)
+		if err != nil {
 			smContext.Log.Errorf("Handle HandoverRequestAcknowledgeTransfer failed: %+v", err)
 		}
 

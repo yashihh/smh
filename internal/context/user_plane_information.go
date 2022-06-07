@@ -274,25 +274,25 @@ func GenerateDataPath(upPath UPPath) *DataPath {
 	lowerBound := 0
 	upperBound := len(upPath) - 1
 	var root *DataPathNode
-	var curDataPathNode *DataPathNode
+	var node *DataPathNode
 	var prevDataPathNode *DataPathNode
 
 	for idx, upNode := range upPath {
-		curDataPathNode = NewDataPathNode()
-		curDataPathNode.UPF = upNode.UPF
+		node = NewDataPathNode()
+		node.UPF = upNode.UPF
 
 		if idx == lowerBound {
-			root = curDataPathNode
+			root = node
 			root.AddPrev(nil)
 		}
 		if idx == upperBound {
-			curDataPathNode.AddNext(nil)
+			node.AddNext(nil)
 		}
 		if prevDataPathNode != nil {
-			prevDataPathNode.AddNext(curDataPathNode)
-			curDataPathNode.AddPrev(prevDataPathNode)
+			prevDataPathNode.AddNext(node)
+			node.AddPrev(prevDataPathNode)
 		}
-		prevDataPathNode = curDataPathNode
+		prevDataPathNode = node
 	}
 
 	dataPath := NewDataPath()

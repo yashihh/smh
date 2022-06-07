@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/antihax/optional"
 	"github.com/google/uuid"
@@ -165,8 +164,7 @@ type SMContext struct {
 	T3592 *Timer
 
 	// lock
-	SMLock      sync.Mutex
-	SMLockTimer *time.Timer
+	SMLock sync.Mutex
 }
 
 func canonicalName(id string, pduSessID int32) string {
@@ -396,14 +394,14 @@ func (smContext *SMContext) AllocateLocalSEIDForUPPath(path UPPath) {
 
 func (smContext *SMContext) AllocateLocalSEIDForDataPath(dataPath *DataPath) {
 	logger.PduSessLog.Traceln("In AllocateLocalSEIDForDataPath")
-	for curDataPathNode := dataPath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
-		NodeIDtoIP := curDataPathNode.UPF.NodeID.ResolveNodeIdToIp().String()
+	for node := dataPath.FirstDPNode; node != nil; node = node.Next() {
+		NodeIDtoIP := node.UPF.NodeID.ResolveNodeIdToIp().String()
 		logger.PduSessLog.Traceln("NodeIDtoIP: ", NodeIDtoIP)
 		if _, exist := smContext.PFCPContext[NodeIDtoIP]; !exist {
 			allocatedSEID := AllocateLocalSEID()
 			smContext.PFCPContext[NodeIDtoIP] = &PFCPSessionContext{
 				PDRs:      make(map[uint16]*PDR),
-				NodeID:    curDataPathNode.UPF.NodeID,
+				NodeID:    node.UPF.NodeID,
 				LocalSEID: allocatedSEID,
 			}
 
@@ -434,14 +432,12 @@ func (c *SMContext) findPSAandAllocUeIP(param *UPFSelectionParams) error {
 		preConfigPathPool := GetUEDefaultPathPool(groupName)
 		if preConfigPathPool != nil {
 			selectedUPFName := ""
-			selectedUPFName, c.PDUAddress, c.UseStaticIP =
-				preConfigPathPool.SelectUPFAndAllocUEIPForULCL(
-					upInfo, param)
+			selectedUPFName, c.PDUAddress, c.UseStaticIP = preConfigPathPool.SelectUPFAndAllocUEIPForULCL(
+				upInfo, param)
 			c.SelectedUPF = GetUserPlaneInformation().UPFs[selectedUPFName]
 		}
 	} else {
-		c.SelectedUPF, c.PDUAddress, c.UseStaticIP =
-			GetUserPlaneInformation().SelectUPFAndAllocUEIP(param)
+		c.SelectedUPF, c.PDUAddress, c.UseStaticIP = GetUserPlaneInformation().SelectUPFAndAllocUEIP(param)
 		c.Log.Infof("Allocated PDUAdress[%s]", c.PDUAddress.String())
 	}
 	if c.PDUAddress == nil {
@@ -507,7 +503,8 @@ func (c *SMContext) SelectDefaultDataPath() error {
 }
 
 func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
-	tcData *TrafficControlData, qosData *models.QosData) error {
+	tcData *TrafficControlData, qosData *models.QosData,
+) error {
 	var targetRoute models.RouteToLocation
 	if tcData != nil && len(tcData.RouteToLocs) > 0 {
 		targetRoute = tcData.RouteToLocs[0]
@@ -535,7 +532,8 @@ func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
 
 func (c *SMContext) BuildUpPathChgEventExposureNotification(
 	chgEvent *models.UpPathChgEvent,
-	srcRoute, tgtRoute *models.RouteToLocation) {
+	srcRoute, tgtRoute *models.RouteToLocation,
+) {
 	if chgEvent == nil {
 		return
 	}
@@ -580,7 +578,8 @@ func (c *SMContext) BuildUpPathChgEventExposureNotification(
 
 func newEventExposureNotification(
 	uri, id string,
-	en models.EventNotification) *EventExposureNotification {
+	en models.EventNotification,
+) *EventExposureNotification {
 	return &EventExposureNotification{
 		NsmfEventExposureNotification: &models.NsmfEventExposureNotification{
 			NotifId:     id,
