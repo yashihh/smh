@@ -60,7 +60,12 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	smContext.SmStatusNotifyUri = createData.SmContextStatusUri
 
 	smContext.SMLock.Lock()
-	defer smContext.SMLock.Unlock()
+	needUnlock := true
+	defer func() {
+		if needUnlock {
+			smContext.SMLock.Unlock()
+		}
+	}()
 
 	// DNN Information from config
 	smContext.DNNInfo = smf_context.RetrieveDnnInformation(smContext.SNssai, smContext.Dnn)
@@ -186,9 +191,10 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Errorf("apply sm policy decision error: %+v", err)
 	}
 
-	// not block PDUSessionSMContextCreate rsp when waiting PFCP rsp
+	// generate goroutine to handle PFCP and
+	// reply PDUSessionSMContextCreate rsp immediately
+	needUnlock = false
 	go func() {
-		smContext.SMLock.Lock()
 		defer smContext.SMLock.Unlock()
 
 		smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
