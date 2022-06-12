@@ -20,7 +20,6 @@ import (
 	"bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/internal/pfcp"
-	"bitbucket.org/free5gc-team/smf/internal/pfcp/message"
 	"bitbucket.org/free5gc-team/smf/internal/pfcp/udp"
 	"bitbucket.org/free5gc-team/smf/internal/sbi/callback"
 	"bitbucket.org/free5gc-team/smf/internal/sbi/consumer"
@@ -278,9 +277,6 @@ func (smf *SMF) Start() {
 		}
 		if err = setupPfcpAssociation(upf.UPF, upfStr); err != nil {
 			logger.AppLog.Errorf("Failed to setup an association with UPF%s, error:%+v", upfStr, err)
-		}
-		if _, err = message.SendPfcpAssociationSetupRequest(upf.NodeID); err != nil {
-			logger.AppLog.Errorf("Send PFCP Association Setup Request failed: %v", err)
 		}
 	}
 
