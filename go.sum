@@ -1,11 +1,11 @@
 bitbucket.org/free5gc-team/aper v0.0.0-20220401145518-cfd1a7865d35 h1:u4WopuRN8O57EJUPTjJRCzRwfsRVwIiaVQ33pCiWZcA=
 bitbucket.org/free5gc-team/aper v0.0.0-20220401145518-cfd1a7865d35/go.mod h1:Zx3hTNqJnXnnTJjk6zFTShDxIV5EPajvLcSggebT2qI=
-bitbucket.org/free5gc-team/nas v0.0.0-20220321031018-649c3b9d4eef h1:yDqdk0E0wwuiKeME5WNmbxD5y7myx7b2mj+S0ixyXhE=
-bitbucket.org/free5gc-team/nas v0.0.0-20220321031018-649c3b9d4eef/go.mod h1:8AtKGruFp1iTABvKgQ2LnOWPsXUrpIRRZdupn3Nfs9I=
-bitbucket.org/free5gc-team/ngap v0.0.0-20220401150948-ee175234d5fb h1:AXTxVSPS93GAPp2HtEGwsdXfhh3sp9664b8pSu94CeA=
-bitbucket.org/free5gc-team/ngap v0.0.0-20220401150948-ee175234d5fb/go.mod h1:FNgo+EUw6IhqV4b41HYRmDX5MAyaZ298y4vc9AEL0tM=
-bitbucket.org/free5gc-team/openapi v0.0.0-20220309072330-923e8c97eac7 h1:GPMQTT4hjFnJtNR3GBYPPYsM9xdpgg27NBFQDNZN9V0=
-bitbucket.org/free5gc-team/openapi v0.0.0-20220309072330-923e8c97eac7/go.mod h1:ccgobwwP00dqzm0MkNFuS+37jIwtOExeBpaL5hja9Ik=
+bitbucket.org/free5gc-team/nas v0.0.0-20220623012519-3b41da8e7310 h1:D31NORZFYbGA9Ft2eBcLPM6leFYzydDWKYqSPdACY0g=
+bitbucket.org/free5gc-team/nas v0.0.0-20220623012519-3b41da8e7310/go.mod h1:eJnUvx3Pm/LmPcI2UT0v52DQREKqt5JHUNIWeHDeCd0=
+bitbucket.org/free5gc-team/ngap v0.0.0-20220623012559-b93c014cf164 h1:UwZ60qSXXjPPY+0MBTTx6MOC1+aUALVvjsnsL/vpnJ0=
+bitbucket.org/free5gc-team/ngap v0.0.0-20220623012559-b93c014cf164/go.mod h1:CE7aCi16t97jyxg/PDn37MNr1FUUYW4SqnZQuWbMY1w=
+bitbucket.org/free5gc-team/openapi v0.0.0-20220622044855-5d6e4b933d1f h1:uoD/CpFCnEGfHRW/l7yvckz0e6PXXWkAtc0SbVrQeMI=
+bitbucket.org/free5gc-team/openapi v0.0.0-20220622044855-5d6e4b933d1f/go.mod h1:ccgobwwP00dqzm0MkNFuS+37jIwtOExeBpaL5hja9Ik=
 bitbucket.org/free5gc-team/pfcp v0.0.0-20220513093716-389989aa32ff h1:GmbdcKXl6ZQKHv18V/9KXeZrKldQm4rSdzNhWWac2ZY=
 bitbucket.org/free5gc-team/pfcp v0.0.0-20220513093716-389989aa32ff/go.mod h1:XCjlGMVD20gjocndERqBytnNikVfXAMT/f69on14H5w=
 bitbucket.org/free5gc-team/tlv v0.0.0-20210812114216-86fbccfc2463 h1:giyIhWBT0DIArArwc4NWV2vyLqCYCzT82Al0LaB4hkk=
