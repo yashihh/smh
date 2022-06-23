@@ -19,7 +19,8 @@ func (c *SMContext) SelectedSessionRule() *SessionRule {
 }
 
 func (c *SMContext) ApplySessionRules(
-	decision *models.SmPolicyDecision) error {
+	decision *models.SmPolicyDecision,
+) error {
 	if decision == nil {
 		return fmt.Errorf("SmPolicyDecision is nil")
 	}
@@ -68,7 +69,8 @@ func (c *SMContext) RemoveQosFlow(qfi uint8) {
 }
 
 func (c *SMContext) ApplyPccRules(
-	decision *models.SmPolicyDecision) error {
+	decision *models.SmPolicyDecision,
+) error {
 	if decision == nil {
 		return fmt.Errorf("SmPolicyDecision is nil")
 	}
@@ -175,7 +177,8 @@ func (c *SMContext) ApplyPccRules(
 
 func (c *SMContext) getSrcTgtTcData(
 	decisionTcDecs map[string]*models.TrafficControlData,
-	tcID string) (*TrafficControlData, *TrafficControlData) {
+	tcID string,
+) (*TrafficControlData, *TrafficControlData) {
 	if tcID == "" {
 		return nil, nil
 	}
@@ -191,7 +194,8 @@ func (c *SMContext) getSrcTgtTcData(
 
 func (c *SMContext) getSrcTgtQosData(
 	decisionQosDecs map[string]*models.QosData,
-	qosID string) (*models.QosData, *models.QosData) {
+	qosID string,
+) (*models.QosData, *models.QosData) {
 	if qosID == "" {
 		return nil, nil
 	}
@@ -263,7 +267,8 @@ func applyFlowInfoOrPFD(pcc *PCCRule) error {
 }
 
 func checkUpPathChgEvent(c *SMContext,
-	srcTcData, tgtTcData *TrafficControlData) error {
+	srcTcData, tgtTcData *TrafficControlData,
+) error {
 	var srcRoute, tgtRoute models.RouteToLocation
 	var upPathChgEvt *models.UpPathChgEvent
 

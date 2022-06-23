@@ -563,12 +563,15 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 		},
 	}
 
+	// init all stubs for all TCs first to prevent gock race condition
+	for _, tc := range testCases {
+		for _, initFunc := range tc.initFuncs {
+			initFunc()
+		}
+	}
+
 	for _, tc := range testCases {
 		t.Run(tc.paramStr, func(t *testing.T) {
-			for _, initFunc := range tc.initFuncs {
-				initFunc()
-			}
-
 			httpResp := producer.HandlePDUSessionSMContextCreate(tc.request)
 
 			require.Equal(t, tc.expectedHTTPRsp.Status, httpResp.Status)

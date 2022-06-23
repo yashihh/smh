@@ -233,17 +233,24 @@ func sendPDUSessionEstablishmentReject(
 		},
 	}
 
-	rspData, _, err := smContext.
+	rspData, rsp, err := smContext.
 		CommunicationClient.
 		N1N2MessageCollectionDocumentApi.
 		N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+	defer func() {
+		if rsp != nil {
+			if resCloseErr := rsp.Body.Close(); resCloseErr != nil {
+				logger.PduSessLog.Warnf("response Body closed error")
+			}
+		}
+	}()
 	smContext.SetState(smf_context.InActive)
 	if err != nil {
-		logger.PfcpLog.Warnf("Send N1N2Transfer failed")
+		logger.PduSessLog.Warnf("Send N1N2Transfer failed")
 		return
 	}
 	if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
-		logger.PfcpLog.Warnf("%v", rspData.Cause)
+		logger.PduSessLog.Warnf("%v", rspData.Cause)
 	}
 }
 
@@ -287,17 +294,25 @@ func sendPDUSessionEstablishmentAccept(
 		},
 	}
 
-	rspData, _, err := smContext.
+	rspData, rsp, err := smContext.
 		CommunicationClient.
 		N1N2MessageCollectionDocumentApi.
 		N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
+	defer func() {
+		if rsp != nil {
+			if resCloseErr := rsp.Body.Close(); resCloseErr != nil {
+				logger.PduSessLog.Warnf("response Body closed error")
+			}
+		}
+	}()
 	smContext.SetState(smf_context.Active)
+
 	if err != nil {
-		logger.PfcpLog.Warnf("Send N1N2Transfer failed")
+		logger.PduSessLog.Warnf("Send N1N2Transfer failed")
 		return
 	}
 	if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
-		logger.PfcpLog.Warnf("%v", rspData.Cause)
+		logger.PduSessLog.Warnf("%v", rspData.Cause)
 	}
 }
 
@@ -307,7 +322,8 @@ func updateAnUpfPfcpSession(
 	farList []*smf_context.FAR,
 	barList []*smf_context.BAR,
 	qerList []*smf_context.QER,
-	urrList []*smf_context.URR) smf_context.PFCPSessionResponseStatus {
+	urrList []*smf_context.URR,
+) smf_context.PFCPSessionResponseStatus {
 	defaultPath := smContext.Tunnel.DataPathPool.GetDefaultPath()
 	ANUPF := defaultPath.FirstDPNode
 	rcvMsg, err := pfcp_message.SendPfcpSessionModificationRequest(

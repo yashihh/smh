@@ -165,7 +165,8 @@ func TestNewUserPlaneInformation(t *testing.T) {
 }
 
 func TestGenerateDefaultPath(t *testing.T) {
-	configuration.Links = []*factory.UPLink{
+	config1 := *configuration
+	config1.Links = []*factory.UPLink{
 		{
 			A: "GNodeB",
 			B: "UPF1",
@@ -246,7 +247,7 @@ func TestGenerateDefaultPath(t *testing.T) {
 		},
 	}
 
-	userplaneInformation := NewUserPlaneInformation(configuration)
+	userplaneInformation := NewUserPlaneInformation(&config1)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			pathExist := userplaneInformation.GenerateDefaultPath(tc.param)

@@ -109,8 +109,6 @@ func initConfig() {
 }
 
 func TestApplySessionRules(t *testing.T) {
-	t.Parallel()
-
 	initConfig()
 
 	testCases := []struct {
@@ -339,8 +337,6 @@ func TestApplySessionRules(t *testing.T) {
 }
 
 func TestApplyPccRules(t *testing.T) {
-	t.Parallel()
-
 	testCases := []struct {
 		name             string
 		decision         *models.SmPolicyDecision
@@ -626,6 +622,10 @@ func TestApplyPccRules(t *testing.T) {
 	}
 
 	smctx := NewSMContext("imsi-208930000000002", 10)
+
+	smctx.SMLock.Lock()
+	defer smctx.SMLock.Unlock()
+
 	smctx.SmContextCreateData = &models.SmContextCreateData{
 		Supi:         "imsi-208930000000002",
 		Pei:          "imeisv-1110000000000000",

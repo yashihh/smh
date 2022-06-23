@@ -14,6 +14,7 @@ import (
 	"bitbucket.org/free5gc-team/nas/nasType"
 	"bitbucket.org/free5gc-team/openapi/models"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
+	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/util/flowdesc"
 )
 
@@ -49,18 +50,24 @@ func SendSMPolicyAssociationCreate(smContext *smf_context.SMContext) (string, *m
 
 	var smPolicyID string
 	var smPolicyDecision *models.SmPolicyDecision
-	if smPolicyDecisionFromPCF, httpRsp, err := smContext.SMPolicyClient.
-		DefaultApi.SmPoliciesPost(context.Background(), smPolicyData); err != nil {
-		return "", nil, err
-	} else {
-		smPolicyDecision = &smPolicyDecisionFromPCF
-
-		loc := httpRsp.Header.Get("Location")
-		if smPolicyID = extractSMPolicyIDFromLocation(loc); len(smPolicyID) == 0 {
-			return "", nil, fmt.Errorf("SMPolicy ID parse failed")
+	smPolicyDecisionFromPCF, httpRsp, err := smContext.SMPolicyClient.DefaultApi.
+		SmPoliciesPost(context.Background(), smPolicyData)
+	defer func() {
+		if httpRsp != nil {
+			if closeErr := httpRsp.Body.Close(); closeErr != nil {
+				logger.PduSessLog.Errorf("rsp body close err: %v", closeErr)
+			}
 		}
+	}()
+	if err != nil {
+		return "", nil, err
 	}
 
+	smPolicyDecision = &smPolicyDecisionFromPCF
+	loc := httpRsp.Header.Get("Location")
+	if smPolicyID = extractSMPolicyIDFromLocation(loc); len(smPolicyID) == 0 {
+		return "", nil, fmt.Errorf("SMPolicy ID parse failed")
+	}
 	return smPolicyID, smPolicyDecision, nil
 }
 
@@ -77,7 +84,8 @@ func extractSMPolicyIDFromLocation(location string) string {
 
 func SendSMPolicyAssociationUpdateByUERequestModification(
 	smContext *smf_context.SMContext,
-	qosRules nasType.QoSRules, qosFlowDescs nasType.QoSFlowDescs) (*models.SmPolicyDecision, error) {
+	qosRules nasType.QoSRules, qosFlowDescs nasType.QoSFlowDescs,
+) (*models.SmPolicyDecision, error) {
 	updateSMPolicy := models.SmPolicyUpdateContextData{}
 
 	updateSMPolicy.RepPolicyCtrlReqTriggers = []models.PolicyControlRequestTrigger{
@@ -136,13 +144,19 @@ func SendSMPolicyAssociationUpdateByUERequestModification(
 		}
 	}
 	var smPolicyDecision *models.SmPolicyDecision
-	if smPolicyDecisionFromPCF, _, err := smContext.SMPolicyClient.
-		DefaultApi.SmPoliciesSmPolicyIdUpdatePost(context.TODO(), smContext.SMPolicyID, updateSMPolicy); err != nil {
+	smPolicyDecisionFromPCF, rsp, err := smContext.SMPolicyClient.
+		DefaultApi.SmPoliciesSmPolicyIdUpdatePost(context.TODO(), smContext.SMPolicyID, updateSMPolicy)
+	defer func() {
+		if rsp != nil {
+			if closeErr := rsp.Body.Close(); closeErr != nil {
+				logger.PduSessLog.Errorf("rsp body close err: %v", closeErr)
+			}
+		}
+	}()
+	if err != nil {
 		return nil, fmt.Errorf("update sm policy [%s] association failed: %s", smContext.SMPolicyID, err)
-	} else {
-		smPolicyDecision = &smPolicyDecisionFromPCF
 	}
-
+	smPolicyDecision = &smPolicyDecisionFromPCF
 	return smPolicyDecision, nil
 }
 
@@ -350,10 +364,17 @@ func SendSMPolicyAssociationTermination(smContext *smf_context.SMContext) error 
 		return errors.Errorf("smContext not selected PCF")
 	}
 
-	if _, err := smContext.SMPolicyClient.DefaultApi.SmPoliciesSmPolicyIdDeletePost(
-		context.Background(), smContext.SMPolicyID, models.SmPolicyDeleteData{}); err != nil {
+	rsp, err := smContext.SMPolicyClient.DefaultApi.SmPoliciesSmPolicyIdDeletePost(
+		context.Background(), smContext.SMPolicyID, models.SmPolicyDeleteData{})
+	defer func() {
+		if rsp != nil {
+			if closeErr := rsp.Body.Close(); closeErr != nil {
+				logger.PduSessLog.Errorf("rsp body close err: %v", closeErr)
+			}
+		}
+	}()
+	if err != nil {
 		return fmt.Errorf("SM Policy termination failed: %v", err)
 	}
-
 	return nil
 }
