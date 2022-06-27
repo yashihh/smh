@@ -39,6 +39,11 @@ func (t *UPTunnel) UpdateANInformation(ip net.IP, teid uint32) {
 			ANUPF := dataPath.FirstDPNode
 			DLPDR := ANUPF.DownLinkTunnel.PDR
 
+			if DLPDR.FAR.ForwardingParameters.OuterHeaderCreation != nil {
+				// Old AN tunnel exists
+				DLPDR.FAR.ForwardingParameters.SendEndMarker = true
+			}
+
 			DLPDR.FAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
 			dlOuterHeaderCreation := DLPDR.FAR.ForwardingParameters.OuterHeaderCreation
 			dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
