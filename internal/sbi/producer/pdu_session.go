@@ -446,12 +446,21 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				ANUPF := dataPath.FirstDPNode
 				DLPDR := ANUPF.DownLinkTunnel.PDR
 
-				DLPDR.FAR.ApplyAction = pfcpType.ApplyAction{Buff: false, Drop: false, Dupl: false, Forw: true, Nocp: false}
+				DLPDR.FAR.ApplyAction = pfcpType.ApplyAction{
+					Buff: false,
+					Drop: false,
+					Dupl: false,
+					Forw: true,
+					Nocp: false,
+				}
 				DLPDR.FAR.ForwardingParameters = &smf_context.ForwardingParameters{
 					DestinationInterface: pfcpType.DestinationInterface{
 						InterfaceValue: pfcpType.DestinationInterfaceAccess,
 					},
-					NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
+					NetworkInstance: &pfcpType.NetworkInstance{
+						NetworkInstance: smContext.Dnn,
+						FQDNEncoding:    factory.SmfConfig.Configuration.NwInstFqdnEncoding,
+					},
 				}
 
 				DLPDR.State = smf_context.RULE_UPDATE

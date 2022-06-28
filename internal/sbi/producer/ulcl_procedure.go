@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpUdp"
 	"bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
+	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	"bitbucket.org/free5gc-team/util/flowdesc"
 )
 
@@ -252,7 +253,10 @@ func EstablishRANTunnelInfo(smContext *context.SMContext) {
 		DestinationInterface: pfcpType.DestinationInterface{
 			InterfaceValue: pfcpType.DestinationInterfaceAccess,
 		},
-		NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
+		NetworkInstance: &pfcpType.NetworkInstance{
+			NetworkInstance: smContext.Dnn,
+			FQDNEncoding:    factory.SmfConfig.Configuration.NwInstFqdnEncoding,
+		},
 	}
 
 	activatingANUPFDLFAR.State = context.RULE_INITIAL

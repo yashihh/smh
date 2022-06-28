@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/internal/util"
+	"bitbucket.org/free5gc-team/smf/pkg/factory"
 )
 
 // GTPTunnel represents the GTP tunnel information
@@ -392,13 +393,18 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				return
 			} else {
 				ULPDR.PDI = PDI{
-					SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceAccess},
+					SourceInterface: pfcpType.SourceInterface{
+						InterfaceValue: pfcpType.SourceInterfaceAccess,
+					},
 					LocalFTeid: &pfcpType.FTEID{
 						V4:          true,
 						Ipv4Address: upIP,
 						Teid:        curULTunnel.TEID,
 					},
-					NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
+					NetworkInstance: &pfcpType.NetworkInstance{
+						NetworkInstance: smContext.Dnn,
+						FQDNEncoding:    factory.SmfConfig.Configuration.NwInstFqdnEncoding,
+					},
 					UEIPAddress: &pfcpType.UEIPAddress{
 						V4:          true,
 						Ipv4Address: smContext.PDUAddress.To4(),
@@ -422,7 +428,10 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				DestinationInterface: pfcpType.DestinationInterface{
 					InterfaceValue: pfcpType.DestinationInterfaceCore,
 				},
-				NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
+				NetworkInstance: &pfcpType.NetworkInstance{
+					NetworkInstance: smContext.Dnn,
+					FQDNEncoding:    factory.SmfConfig.Configuration.NwInstFqdnEncoding,
+				},
 			}
 
 			if node.IsAnchorUPF() {
@@ -459,8 +468,13 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 			// TODO: Should delete this after FR5GC-1029 is solved
 			if node.IsAnchorUPF() {
 				DLPDR.PDI = PDI{
-					SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceSgiLanN6Lan},
-					NetworkInstance: &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn},
+					SourceInterface: pfcpType.SourceInterface{
+						InterfaceValue: pfcpType.SourceInterfaceSgiLanN6Lan,
+					},
+					NetworkInstance: &pfcpType.NetworkInstance{
+						NetworkInstance: smContext.Dnn,
+						FQDNEncoding:    factory.SmfConfig.Configuration.NwInstFqdnEncoding,
+					},
 					UEIPAddress: &pfcpType.UEIPAddress{
 						V4:          true,
 						Sd:          true,
@@ -517,7 +531,9 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 					return
 				} else {
 					DLFAR.ForwardingParameters = &ForwardingParameters{
-						DestinationInterface: pfcpType.DestinationInterface{InterfaceValue: pfcpType.DestinationInterfaceAccess},
+						DestinationInterface: pfcpType.DestinationInterface{
+							InterfaceValue: pfcpType.DestinationInterfaceAccess,
+						},
 						OuterHeaderCreation: &pfcpType.OuterHeaderCreation{
 							OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationGtpUUdpIpv4,
 							Ipv4Address:                    upIP,
@@ -530,15 +546,20 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 					ANUPF := dataPath.FirstDPNode
 					DLPDR := ANUPF.DownLinkTunnel.PDR
 					DLFAR := DLPDR.FAR
-					DLFAR.ForwardingParameters = new(ForwardingParameters)
-					DLFAR.ForwardingParameters.DestinationInterface.InterfaceValue = pfcpType.DestinationInterfaceAccess
-					DLFAR.ForwardingParameters.NetworkInstance = &pfcpType.NetworkInstance{NetworkInstance: smContext.Dnn}
-					DLFAR.ForwardingParameters.OuterHeaderCreation = new(pfcpType.OuterHeaderCreation)
-
-					dlOuterHeaderCreation := DLFAR.ForwardingParameters.OuterHeaderCreation
-					dlOuterHeaderCreation.OuterHeaderCreationDescription = pfcpType.OuterHeaderCreationGtpUUdpIpv4
-					dlOuterHeaderCreation.Teid = smContext.Tunnel.ANInformation.TEID
-					dlOuterHeaderCreation.Ipv4Address = smContext.Tunnel.ANInformation.IPAddress.To4()
+					DLFAR.ForwardingParameters = &ForwardingParameters{
+						DestinationInterface: pfcpType.DestinationInterface{
+							InterfaceValue: pfcpType.DestinationInterfaceAccess,
+						},
+						NetworkInstance: &pfcpType.NetworkInstance{
+							NetworkInstance: smContext.Dnn,
+							FQDNEncoding:    factory.SmfConfig.Configuration.NwInstFqdnEncoding,
+						},
+						OuterHeaderCreation: &pfcpType.OuterHeaderCreation{
+							OuterHeaderCreationDescription: pfcpType.OuterHeaderCreationGtpUUdpIpv4,
+							Teid:                           smContext.Tunnel.ANInformation.TEID,
+							Ipv4Address:                    smContext.Tunnel.ANInformation.IPAddress.To4(),
+						},
+					}
 				}
 			}
 		}

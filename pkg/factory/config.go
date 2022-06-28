@@ -74,18 +74,19 @@ func (i *Info) validate() (bool, error) {
 }
 
 type Configuration struct {
-	SmfName              string               `yaml:"smfName,omitempty" valid:"type(string),required"`
-	Sbi                  *Sbi                 `yaml:"sbi,omitempty" valid:"required"`
-	PFCP                 *PFCP                `yaml:"pfcp,omitempty" valid:"required"`
-	NrfUri               string               `yaml:"nrfUri,omitempty" valid:"url,required"`
+	SmfName              string               `yaml:"smfName" valid:"type(string),required"`
+	Sbi                  *Sbi                 `yaml:"sbi" valid:"required"`
+	PFCP                 *PFCP                `yaml:"pfcp" valid:"required"`
+	NrfUri               string               `yaml:"nrfUri" valid:"url,required"`
 	UserPlaneInformation UserPlaneInformation `yaml:"userplaneInformation" valid:"required"`
-	ServiceNameList      []string             `yaml:"serviceNameList,omitempty" valid:"required"`
-	SNssaiInfo           []*SnssaiInfoItem    `yaml:"snssaiInfos,omitempty" valid:"required"`
-	ULCL                 bool                 `yaml:"ulcl,omitempty" valid:"type(bool),optional"`
-	PLMNList             []PlmnID             `yaml:"plmnList,omitempty"  valid:"optional"`
-	Locality             string               `yaml:"locality,omitempty" valid:"type(string),optional"`
+	ServiceNameList      []string             `yaml:"serviceNameList" valid:"required"`
+	SNssaiInfo           []*SnssaiInfoItem    `yaml:"snssaiInfos" valid:"required"`
+	ULCL                 bool                 `yaml:"ulcl" valid:"type(bool),optional"`
+	PLMNList             []PlmnID             `yaml:"plmnList"  valid:"optional"`
+	Locality             string               `yaml:"locality" valid:"type(string),optional"`
 	T3591                *TimerValue          `yaml:"t3591" valid:"required"`
 	T3592                *TimerValue          `yaml:"t3592" valid:"required"`
+	NwInstFqdnEncoding   bool                 `yaml:"nwInstFqdnEncoding" valid:"type(bool),optional"`
 }
 
 func (c *Configuration) validate() (bool, error) {

@@ -37,7 +37,7 @@ func setupPfcpAssociation(upf *smf_context.UPF, upfStr string) error {
 		upf.UPIPInfo = *rsp.UserPlaneIPResourceInformation
 
 		logger.AppLog.Infof("UPF(%s)[%s] setup association",
-			upf.NodeID.ResolveNodeIdToIp().String(), upf.UPIPInfo.NetworkInstance)
+			upf.NodeID.ResolveNodeIdToIp().String(), upf.UPIPInfo.NetworkInstance.NetworkInstance)
 	}
 
 	return nil

@@ -7,7 +7,7 @@ require (
 	bitbucket.org/free5gc-team/nas v0.0.0-20220623012519-3b41da8e7310
 	bitbucket.org/free5gc-team/ngap v0.0.0-20220623012559-b93c014cf164
 	bitbucket.org/free5gc-team/openapi v0.0.0-20220622044855-5d6e4b933d1f
-	bitbucket.org/free5gc-team/pfcp v0.0.0-20220513093716-389989aa32ff
+	bitbucket.org/free5gc-team/pfcp v0.0.0-20220628021714-a6c73d7bc0a0
 	bitbucket.org/free5gc-team/util v0.0.0-20220501150925-a07647243fa5
 	github.com/antihax/optional v1.0.0
 	github.com/antonfisher/nested-logrus-formatter v1.3.1

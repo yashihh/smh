@@ -94,8 +94,24 @@ var userPlaneConfig = factory.UserPlaneInformation{
 	},
 }
 
+var testConfig = factory.Config{
+	Info: &factory.Info{
+		Version:     "1.0.0",
+		Description: "SMF procdeure test configuration",
+	},
+	Configuration: &factory.Configuration{
+		UserPlaneInformation: userPlaneConfig,
+	},
+}
+
+func initConfig() {
+	factory.SmfConfig = testConfig
+}
+
 func TestApplySessionRules(t *testing.T) {
 	t.Parallel()
+
+	initConfig()
 
 	testCases := []struct {
 		name              string
