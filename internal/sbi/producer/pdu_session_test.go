@@ -109,8 +109,9 @@ var testConfig = factory.Config{
 	},
 }
 
-func init() {
+func initConfig() {
 	context.InitSmfContext(&testConfig)
+	factory.SmfConfig = testConfig
 }
 
 func initDiscUDMStubNRF() {
@@ -428,6 +429,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 	// Activate Gock
 	openapi.InterceptH2CClient()
 	defer openapi.RestoreH2CClient()
+	initConfig()
 	initStubPFCP()
 
 	// modify associate setup status
