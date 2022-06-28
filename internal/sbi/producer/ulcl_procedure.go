@@ -58,7 +58,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 	ulcl := bpMGR.ULCL
 	nodeAfterULCL := false
 	resChan := make(chan SendPfcpResult)
-	var visitedUPF []string
+	pendingUPFs := []string{}
 
 	for node := activatingPath.FirstDPNode; node != nil; node = node.Next() {
 		if nodeAfterULCL {
@@ -92,8 +92,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 			}
 
 			curDPNodeIP := node.UPF.NodeID.ResolveNodeIdToIp().String()
-			bpMGR.PendingUPF[curDPNodeIP] = true
-			visitedUPF = append(visitedUPF, curDPNodeIP)
+			pendingUPFs = append(pendingUPFs, curDPNodeIP)
 
 			sessionContext, exist := smContext.PFCPContext[node.GetNodeIP()]
 			if !exist || sessionContext.RemoteSEID == 0 {
@@ -110,10 +109,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 
 	bpMGR.AddingPSAState = context.EstablishingNewPSA
 
-	waitAllPfcpRsp(smContext, len(bpMGR.PendingUPF), resChan, nil)
-	for i := 0; i < len(visitedUPF); i++ {
-		delete(bpMGR.PendingUPF, visitedUPF[i])
-	}
+	waitAllPfcpRsp(smContext, len(pendingUPFs), resChan, nil)
 	close(resChan)
 	// TODO: remove failed PSA2 path
 	logger.PduSessLog.Traceln("End of EstablishPSA2")
@@ -127,7 +123,7 @@ func EstablishULCL(smContext *context.SMContext) {
 	dest := activatingPath.Destination
 	ulcl := bpMGR.ULCL
 	resChan := make(chan SendPfcpResult)
-	var visitedUPF []string
+	pendingUPFs := []string{}
 
 	// find updatedUPF in activatingPath
 	for curDPNode := activatingPath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
@@ -170,8 +166,7 @@ func EstablishULCL(smContext *context.SMContext) {
 			}
 
 			curDPNodeIP := ulcl.NodeID.ResolveNodeIdToIp().String()
-			bpMGR.PendingUPF[curDPNodeIP] = true
-			visitedUPF = append(visitedUPF, curDPNodeIP)
+			pendingUPFs = append(pendingUPFs, curDPNodeIP)
 			go modifyExistingPfcpSession(smContext, pfcpState, resChan)
 			break
 		}
@@ -180,11 +175,7 @@ func EstablishULCL(smContext *context.SMContext) {
 	bpMGR.AddingPSAState = context.EstablishingULCL
 	logger.PfcpLog.Info("[SMF] Establish ULCL msg has been send")
 
-	waitAllPfcpRsp(smContext, len(bpMGR.PendingUPF), resChan, nil)
-	for i := 0; i < len(visitedUPF); i++ {
-		delete(bpMGR.PendingUPF, visitedUPF[i])
-	}
-
+	waitAllPfcpRsp(smContext, len(pendingUPFs), resChan, nil)
 	close(resChan)
 }
 
@@ -195,7 +186,7 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 	ulcl := bpMGR.ULCL
 	activatingPath := bpMGR.ActivatingPath
 	resChan := make(chan SendPfcpResult)
-	var visitedUPF []string
+	pendingUPFs := []string{}
 
 	for node := activatingPath.FirstDPNode; node != nil; node = node.Next() {
 		lastNode := node.Prev()
@@ -217,8 +208,7 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 				}
 
 				curDPNodeIP := node.UPF.NodeID.ResolveNodeIdToIp().String()
-				bpMGR.PendingUPF[curDPNodeIP] = true
-				visitedUPF = append(visitedUPF, curDPNodeIP)
+				pendingUPFs = append(pendingUPFs, curDPNodeIP)
 				go modifyExistingPfcpSession(smContext, pfcpState, resChan)
 				logger.PfcpLog.Info("[SMF] Update PSA2 downlink msg has been send")
 				break
@@ -228,11 +218,7 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 
 	bpMGR.AddingPSAState = context.UpdatingPSA2DownLink
 
-	waitAllPfcpRsp(smContext, len(bpMGR.PendingUPF), resChan, nil)
-	for i := 0; i < len(visitedUPF); i++ {
-		delete(bpMGR.PendingUPF, visitedUPF[i])
-	}
-
+	waitAllPfcpRsp(smContext, len(pendingUPFs), resChan, nil)
 	close(resChan)
 }
 
@@ -287,7 +273,7 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 	dest := activatingPath.Destination
 	ulcl := bpMGR.ULCL
 	resChan := make(chan SendPfcpResult)
-	var visitedUPF []string
+	pendingUPFs := []string{}
 
 	for curDPNode := activatingPath.FirstDPNode; curDPNode != nil; curDPNode = curDPNode.Next() {
 		if reflect.DeepEqual(ulcl.NodeID, curDPNode.UPF.NodeID) {
@@ -333,19 +319,14 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 			}
 
 			curDPNodeIP := curDPNode.UPF.NodeID.ResolveNodeIdToIp().String()
-			bpMGR.PendingUPF[curDPNodeIP] = true
-			visitedUPF = append(visitedUPF, curDPNodeIP)
+			pendingUPFs = append(pendingUPFs, curDPNodeIP)
 			go modifyExistingPfcpSession(smContext, pfcpState, resChan)
 		}
 	}
 
-	if !bpMGR.PendingUPF.IsEmpty() {
+	if len(pendingUPFs) > 0 {
 		bpMGR.AddingPSAState = context.UpdatingRANAndIUPFUpLink
-		waitAllPfcpRsp(smContext, len(bpMGR.PendingUPF), resChan, nil)
-		for i := 0; i < len(visitedUPF); i++ {
-			delete(bpMGR.PendingUPF, visitedUPF[i])
-		}
-
+		waitAllPfcpRsp(smContext, len(pendingUPFs), resChan, nil)
 		close(resChan)
 	}
 	bpMGR.AddingPSAState = context.Finished

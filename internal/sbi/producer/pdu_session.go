@@ -423,7 +423,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				DLPDR.FAR.ApplyAction.Forw = false
 				DLPDR.FAR.ApplyAction.Buff = true
 				DLPDR.FAR.ApplyAction.Nocp = true
-				smContext.PendingUPF[ANUPF.GetNodeIP()] = true
 				farList = append(farList, DLPDR.FAR)
 				sendPFCPModification = true
 				smContext.SetState(smf_context.PFCPModification)
@@ -468,10 +467,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 				pdrList = append(pdrList, DLPDR)
 				farList = append(farList, DLPDR.FAR)
-
-				if _, exist := smContext.PendingUPF[ANUPF.GetNodeIP()]; !exist {
-					smContext.PendingUPF[ANUPF.GetNodeIP()] = true
-				}
 			}
 		}
 
@@ -547,10 +542,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 				pdrList = append(pdrList, DLPDR)
 				farList = append(farList, DLPDR.FAR)
-
-				if _, exist := smContext.PendingUPF[ANUPF.GetNodeIP()]; !exist {
-					smContext.PendingUPF[ANUPF.GetNodeIP()] = true
-				}
 			}
 		}
 
@@ -624,10 +615,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			pdrList = append(pdrList, IndirectForwardingPDR)
 			farList = append(farList, IndirectForwardingPDR.FAR)
 
-			if _, exist := smContext.PendingUPF[ANUPF.GetNodeIP()]; !exist {
-				smContext.PendingUPF[ANUPF.GetNodeIP()] = true
-			}
-
 			// release indirect forwading path
 			if err := ANUPF.UPF.RemovePDR(IndirectForwardingPDR); err != nil {
 				logger.PduSessLog.Errorln("release indirect path: ", err)
@@ -660,10 +647,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 				pdrList = append(pdrList, DLPDR)
 				farList = append(farList, DLPDR.FAR)
-
-				if _, exist := smContext.PendingUPF[ANUPF.GetNodeIP()]; !exist {
-					smContext.PendingUPF[ANUPF.GetNodeIP()] = true
-				}
 			}
 		}
 
