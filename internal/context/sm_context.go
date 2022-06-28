@@ -120,7 +120,6 @@ type SMContext struct {
 	BPManager   *BPManager
 	// NodeID(string form) to PFCP Session Context
 	PFCPContext                         map[string]*PFCPSessionContext
-	PendingUPF                          PendingUPF
 	PDUSessionRelease_DUE_TO_DUP_PDU_ID bool
 
 	DNNInfo *SnssaiSmfDnnInfo
@@ -210,7 +209,6 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 
 	smContext.BPManager = NewBPManager(id)
 	smContext.Tunnel = NewUPTunnel()
-	smContext.PendingUPF = make(PendingUPF)
 
 	smContext.QoSRuleIDGenerator = idgenerator.NewGenerator(1, 255)
 	smContext.PacketFilterIDGenerator = idgenerator.NewGenerator(1, 255)
