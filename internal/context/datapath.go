@@ -165,20 +165,20 @@ func (node *DataPathNode) DeactivateUpLinkTunnel(smContext *SMContext) {
 		smContext.RemovePDRfromPFCPSession(node.UPF.NodeID, pdr)
 		err := node.UPF.RemovePDR(pdr)
 		if err != nil {
-			logger.CtxLog.Warnln("Deactivaed UpLinkTunnel", err)
+			logger.CtxLog.Warnln("Deactivated UpLinkTunnel", err)
 		}
 
 		if far := pdr.FAR; far != nil {
 			err = node.UPF.RemoveFAR(far)
 			if err != nil {
-				logger.CtxLog.Warnln("Deactivaed UpLinkTunnel", err)
+				logger.CtxLog.Warnln("Deactivated UpLinkTunnel", err)
 			}
 
 			bar := far.BAR
 			if bar != nil {
 				err = node.UPF.RemoveBAR(bar)
 				if err != nil {
-					logger.CtxLog.Warnln("Deactivaed UpLinkTunnel", err)
+					logger.CtxLog.Warnln("Deactivated UpLinkTunnel", err)
 				}
 			}
 		}
@@ -187,7 +187,7 @@ func (node *DataPathNode) DeactivateUpLinkTunnel(smContext *SMContext) {
 				if qer != nil {
 					err = node.UPF.RemoveQER(qer)
 					if err != nil {
-						logger.CtxLog.Warnln("Deactivaed UpLinkTunnel", err)
+						logger.CtxLog.Warnln("Deactivated UpLinkTunnel", err)
 					}
 				}
 			}
@@ -203,20 +203,20 @@ func (node *DataPathNode) DeactivateDownLinkTunnel(smContext *SMContext) {
 		smContext.RemovePDRfromPFCPSession(node.UPF.NodeID, pdr)
 		err := node.UPF.RemovePDR(pdr)
 		if err != nil {
-			logger.CtxLog.Warnln("Deactivaed DownLinkTunnel", err)
+			logger.CtxLog.Warnln("Deactivated DownLinkTunnel", err)
 		}
 
 		if far := pdr.FAR; far != nil {
 			err = node.UPF.RemoveFAR(far)
 			if err != nil {
-				logger.CtxLog.Warnln("Deactivaed DownLinkTunnel", err)
+				logger.CtxLog.Warnln("Deactivated DownLinkTunnel", err)
 			}
 
 			bar := far.BAR
 			if bar != nil {
 				err = node.UPF.RemoveBAR(bar)
 				if err != nil {
-					logger.CtxLog.Warnln("Deactivaed DownLinkTunnel", err)
+					logger.CtxLog.Warnln("Deactivated DownLinkTunnel", err)
 				}
 			}
 		}
@@ -225,7 +225,7 @@ func (node *DataPathNode) DeactivateDownLinkTunnel(smContext *SMContext) {
 				if qer != nil {
 					err = node.UPF.RemoveQER(qer)
 					if err != nil {
-						logger.CtxLog.Warnln("Deactivaed UpLinkTunnel", err)
+						logger.CtxLog.Warnln("Deactivated UpLinkTunnel", err)
 					}
 				}
 			}
