@@ -75,6 +75,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 			farList := []*context.FAR{upLinkPDR.FAR}
 			barList := []*context.BAR{}
 			qerList := upLinkPDR.QER
+			urrList := upLinkPDR.URR
 
 			lastNode := node.Prev()
 
@@ -89,6 +90,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 				farList: farList,
 				barList: barList,
 				qerList: qerList,
+				urrList: urrList,
 			}
 
 			curDPNodeIP := node.UPF.NodeID.ResolveNodeIdToIp().String()
@@ -163,6 +165,7 @@ func EstablishULCL(smContext *context.SMContext) {
 				farList: []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR},
 				barList: []*context.BAR{},
 				qerList: UPLinkPDR.QER,
+				urrList: UPLinkPDR.URR,
 			}
 
 			curDPNodeIP := ulcl.NodeID.ResolveNodeIdToIp().String()
@@ -199,12 +202,15 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 
 				qerList := []*context.QER{}
 				qerList = append(qerList, downLinkPDR.QER...)
+				urrList := []*context.URR{}
+				urrList = append(urrList, downLinkPDR.URR...)
 				pfcpState := &PFCPState{
 					upf:     node.UPF,
 					pdrList: []*context.PDR{downLinkPDR},
 					farList: []*context.FAR{downLinkPDR.FAR},
 					barList: []*context.BAR{},
 					qerList: qerList,
+					urrList: urrList,
 				}
 
 				curDPNodeIP := node.UPF.NodeID.ResolveNodeIdToIp().String()
@@ -316,6 +322,7 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 				farList: []*context.FAR{UPLinkPDR.FAR, DownLinkPDR.FAR},
 				barList: []*context.BAR{},
 				qerList: UPLinkPDR.QER,
+				urrList: UPLinkPDR.URR,
 			}
 
 			curDPNodeIP := curDPNode.UPF.NodeID.ResolveNodeIdToIp().String()

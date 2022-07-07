@@ -84,6 +84,8 @@ type Configuration struct {
 	ULCL                 bool                 `yaml:"ulcl" valid:"type(bool),optional"`
 	PLMNList             []PlmnID             `yaml:"plmnList"  valid:"optional"`
 	Locality             string               `yaml:"locality" valid:"type(string),optional"`
+	UrrPeriod            uint16               `yaml:"urrPeriod,omitempty" valid:"optional"`
+	UrrThreshold         uint64               `yaml:"urrThreshold,omitempty" valid:"optional"`
 	T3591                *TimerValue          `yaml:"t3591" valid:"required"`
 	T3592                *TimerValue          `yaml:"t3592" valid:"required"`
 	NwInstFqdnEncoding   bool                 `yaml:"nwInstFqdnEncoding" valid:"type(bool),optional"`

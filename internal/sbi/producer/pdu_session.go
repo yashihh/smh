@@ -369,6 +369,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	farList := []*smf_context.FAR{}
 	barList := []*smf_context.BAR{}
 	qerList := []*smf_context.QER{}
+	urrList := []*smf_context.URR{}
 
 	switch smContextUpdateData.UpCnxState {
 	case models.UpCnxState_ACTIVATING:
@@ -714,7 +715,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		smContext.Log.Traceln("In case PFCPModification")
 
 		if sendPFCPModification {
-			pfcpResponseStatus = updateAnUpfPfcpSession(smContext, pdrList, farList, barList, qerList)
+			pfcpResponseStatus = updateAnUpfPfcpSession(smContext, pdrList, farList, barList, qerList, urrList)
 		}
 
 		switch pfcpResponseStatus {

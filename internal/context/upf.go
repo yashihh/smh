@@ -76,7 +76,8 @@ type UPF struct {
 	farPool sync.Map
 	barPool sync.Map
 	qerPool sync.Map
-	// urrPool        sync.Map
+	urrPool sync.Map
+
 	pdrIDGenerator *idgenerator.IDGenerator
 	farIDGenerator *idgenerator.IDGenerator
 	barIDGenerator *idgenerator.IDGenerator
@@ -442,6 +443,17 @@ func (upf *UPF) qerID() (uint32, error) {
 	return qerID, nil
 }
 
+func (upf *UPF) urrID() (uint32, error) {
+	var urrID uint32
+	if tmpID, err := upf.urrIDGenerator.Allocate(); err != nil {
+		return 0, err
+	} else {
+		urrID = uint32(tmpID)
+	}
+
+	return urrID, nil
+}
+
 func (upf *UPF) AddPDR() (*PDR, error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
@@ -512,6 +524,35 @@ func (upf *UPF) AddQER() (*QER, error) {
 	}
 
 	return qer, nil
+}
+
+func (upf *UPF) AddURR(urrId uint32, opts ...UrrOpt) (*URR, error) {
+	if upf.UPFStatus != AssociatedSetUpSuccess {
+		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
+		return nil, err
+	}
+
+	urr := new(URR)
+	urr.MeasureMethod = MesureMethodVol
+	urr.MeasurementInformation = MeasureInformation(true, false)
+	urr.ReportingTrigger.Perio = true
+	urr.ReportingTrigger.Volth = true
+
+	for _, opt := range opts {
+		opt(urr)
+	}
+
+	if urrId == 0 {
+		if URRID, err := upf.urrID(); err != nil {
+		} else {
+			urr.URRID = URRID
+			upf.urrPool.Store(urr.URRID, urr)
+		}
+	} else {
+		urr.URRID = urrId
+		upf.urrPool.Store(urr.URRID, urr)
+	}
+	return urr, nil
 }
 
 //*** add unit test ***//

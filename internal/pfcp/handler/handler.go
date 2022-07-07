@@ -81,19 +81,31 @@ func HandlePfcpSessionSetDeletionResponse(msg *pfcpUdp.Message) {
 }
 
 func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
-	req := msg.PfcpMessage.Body.(pfcp.PFCPSessionReportRequest)
+	var cause pfcpType.Cause
+	var remoteSEID uint64
+	var nodeId pfcpType.NodeID
 
+	req := msg.PfcpMessage.Body.(pfcp.PFCPSessionReportRequest)
 	SEID := msg.PfcpMessage.Header.SEID
 	smContext := smf_context.GetSMContextBySEID(SEID)
 	seqFromUPF := msg.PfcpMessage.Header.SequenceNumber
-
-	var cause pfcpType.Cause
 
 	if smContext == nil {
 		logger.PfcpLog.Errorf("PFCP Session SEID[%d] not found", SEID)
 		cause.CauseValue = pfcpType.CauseSessionContextNotFound
 		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, 0)
 		return
+	} else {
+		nodeId = smContext.GetNodeIDByLocalSEID(SEID)
+		nodeIDtoIP := nodeId.ResolveNodeIdToIp().String()
+		if pfcpCtx := smContext.PFCPContext[nodeIDtoIP]; pfcpCtx == nil {
+			logger.PfcpLog.Errorf("pfcpCtx [nodeId: %v, seid:%d] not found", nodeId, SEID)
+			cause.CauseValue = pfcpType.CauseRequestRejected
+			pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, 0)
+			return
+		} else {
+			remoteSEID = pfcpCtx.RemoteSEID
+		}
 	}
 
 	smContext.SMLock.Lock()
@@ -156,8 +168,54 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 		}
 	}
 
+	if req.ReportType.Usar && req.UsageReport != nil {
+		HandleReports(req.UsageReport, nil, nil, smContext, nodeId)
+	}
+
 	// TS 23.502 4.2.3.3 2b. Send Data Notification Ack, SMF->UPF
 	cause.CauseValue = pfcpType.CauseRequestAccepted
-	// TODO fix: SEID should be the value sent by UPF but now the SEID value is from sm context
-	pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, SEID)
+	pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, remoteSEID)
+}
+
+func HandleReports(
+	UsageReportReport []*pfcp.UsageReportPFCPSessionReportRequest,
+	UsageReportModification []*pfcp.UsageReportPFCPSessionModificationResponse,
+	UsageReportDeletion []*pfcp.UsageReportPFCPSessionDeletionResponse,
+	smContext *smf_context.SMContext,
+	nodeId pfcpType.NodeID) {
+	var usageReport smf_context.UsageReport
+
+	for _, report := range UsageReportReport {
+		usageReport.UrrId = report.URRID.UrrIdValue
+		usageReport.TotalVolume = report.VolumeMeasurement.TotalVolume
+		usageReport.UplinkVolume = report.VolumeMeasurement.UplinkVolume
+		usageReport.DownlinkVolume = report.VolumeMeasurement.DownlinkVolume
+		usageReport.TotalPktNum = report.VolumeMeasurement.TotalPktNum
+		usageReport.UplinkPktNum = report.VolumeMeasurement.UplinkPktNum
+		usageReport.DownlinkPktNum = report.VolumeMeasurement.DownlinkPktNum
+
+		smContext.UrrReports = append(smContext.UrrReports, usageReport)
+	}
+	for _, report := range UsageReportModification {
+		usageReport.UrrId = report.URRID.UrrIdValue
+		usageReport.TotalVolume = report.VolumeMeasurement.TotalVolume
+		usageReport.UplinkVolume = report.VolumeMeasurement.UplinkVolume
+		usageReport.DownlinkVolume = report.VolumeMeasurement.DownlinkVolume
+		usageReport.TotalPktNum = report.VolumeMeasurement.TotalPktNum
+		usageReport.UplinkPktNum = report.VolumeMeasurement.UplinkPktNum
+		usageReport.DownlinkPktNum = report.VolumeMeasurement.DownlinkPktNum
+
+		smContext.UrrReports = append(smContext.UrrReports, usageReport)
+	}
+	for _, report := range UsageReportDeletion {
+		usageReport.UrrId = report.URRID.UrrIdValue
+		usageReport.TotalVolume = report.VolumeMeasurement.TotalVolume
+		usageReport.UplinkVolume = report.VolumeMeasurement.UplinkVolume
+		usageReport.DownlinkVolume = report.VolumeMeasurement.DownlinkVolume
+		usageReport.TotalPktNum = report.VolumeMeasurement.TotalPktNum
+		usageReport.UplinkPktNum = report.VolumeMeasurement.UplinkPktNum
+		usageReport.DownlinkPktNum = report.VolumeMeasurement.DownlinkPktNum
+
+		smContext.UrrReports = append(smContext.UrrReports, usageReport)
+	}
 }

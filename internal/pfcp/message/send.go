@@ -133,16 +133,19 @@ func SendPfcpAssociationReleaseResponse(addr *net.UDPAddr, cause pfcpType.Cause)
 func SendPfcpSessionEstablishmentRequest(
 	upf *context.UPF,
 	ctx *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR,
-	barList []*context.BAR, qerList []*context.QER,
-) (resMsg *pfcpUdp.Message, err error) {
+	pdrList []*context.PDR,
+	farList []*context.FAR,
+	barList []*context.BAR,
+	qerList []*context.QER,
+	urrList []*context.URR) (resMsg *pfcpUdp.Message, err error) {
 	nodeIDtoIP := upf.NodeID.ResolveNodeIdToIp()
 	if upf.UPFStatus != context.AssociatedSetUpSuccess {
 		return nil, fmt.Errorf("Not Associated with UPF[%s]", nodeIDtoIP.String())
 	}
 
 	pfcpMsg, err :=
-		BuildPfcpSessionEstablishmentRequest(upf.NodeID, nodeIDtoIP.String(), ctx, pdrList, farList, barList, qerList)
+		BuildPfcpSessionEstablishmentRequest(upf.NodeID, nodeIDtoIP.String(),
+			ctx, pdrList, farList, barList, qerList, urrList)
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Session Establishment Request failed: %v", err)
 		return
@@ -210,18 +213,21 @@ func SendPfcpSessionEstablishmentResponse(addr *net.UDPAddr) {
 	udp.SendPfcpResponse(message, addr)
 }
 
-func SendPfcpSessionModificationRequest(upf *context.UPF,
+func SendPfcpSessionModificationRequest(
+	upf *context.UPF,
 	ctx *context.SMContext,
-	pdrList []*context.PDR, farList []*context.FAR,
-	barList []*context.BAR, qerList []*context.QER,
-) (resMsg *pfcpUdp.Message, err error) {
+	pdrList []*context.PDR,
+	farList []*context.FAR,
+	barList []*context.BAR,
+	qerList []*context.QER,
+	urrList []*context.URR) (resMsg *pfcpUdp.Message, err error) {
 	nodeIDtoIP := upf.NodeID.ResolveNodeIdToIp()
 	if upf.UPFStatus != context.AssociatedSetUpSuccess {
 		return nil, fmt.Errorf("Not Associated with UPF[%s]", nodeIDtoIP.String())
 	}
 
 	pfcpMsg, err := BuildPfcpSessionModificationRequest(upf.NodeID, nodeIDtoIP.String(),
-		ctx, pdrList, farList, barList, qerList)
+		ctx, pdrList, farList, barList, qerList, urrList)
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Session Modification Request failed: %v", err)
 		return

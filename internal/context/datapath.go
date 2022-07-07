@@ -321,6 +321,65 @@ func (dataPath *DataPath) String() string {
 	return str
 }
 
+func getUrrIdKey(uuid string, urrId uint32) string {
+	return uuid + ":" + strconv.Itoa(int(urrId))
+}
+
+func (node DataPathNode) addUrrToNode(smContext *SMContext, urrId uint32, isMeasurePkt, isMeasureBeforeQos bool) {
+	var urr *URR
+	var ok bool
+	var err error
+	currentUUID := node.UPF.UUID()
+	id := getUrrIdKey(currentUUID, urrId)
+
+	if urr, ok = smContext.UrrUpfMap[id]; !ok {
+		if urr, err = node.UPF.AddURR(urrId,
+			NewMeasureInformation(isMeasurePkt, isMeasureBeforeQos),
+			NewMeasurementPeriod(smContext.UrrReportTime),
+			NewVolumeThreshold(smContext.UrrReportThreshold)); err != nil {
+			logger.PduSessLog.Errorln("new URR failed")
+			return
+		}
+		smContext.UrrUpfMap[id] = urr
+	}
+
+	if urr != nil {
+		if node.UpLinkTunnel != nil && node.UpLinkTunnel.PDR != nil {
+			node.UpLinkTunnel.PDR.URR = append(node.UpLinkTunnel.PDR.URR, urr)
+		}
+		if node.DownLinkTunnel != nil && node.DownLinkTunnel.PDR != nil {
+			node.DownLinkTunnel.PDR.URR = append(node.DownLinkTunnel.PDR.URR, urr)
+		}
+	}
+}
+
+func (datapath *DataPath) addUrrToPath(smContext *SMContext) {
+	if smContext.UrrReportTime == 0 && smContext.UrrReportThreshold == 0 {
+		logger.PduSessLog.Errorln("URR Report time and threshold is 0")
+		return
+	}
+
+	for curDataPathNode := datapath.FirstDPNode; curDataPathNode != nil; curDataPathNode = curDataPathNode.Next() {
+		var MBQEUrrId uint32
+		var MAQEUrrId uint32
+
+		if curDataPathNode.IsANUPF() {
+			if curDataPathNode.Next() == nil {
+				MBQEUrrId = smContext.UrrIdMap[N3N6_MBEQ_URR]
+				MAQEUrrId = smContext.UrrIdMap[N3N6_MAEQ_URR]
+			} else {
+				MBQEUrrId = smContext.UrrIdMap[N3N9_MBEQ_URR]
+				MAQEUrrId = smContext.UrrIdMap[N3N9_MAEQ_URR]
+			}
+		} else {
+			MBQEUrrId = smContext.UrrIdMap[N9N6_MBEQ_URR]
+			MAQEUrrId = smContext.UrrIdMap[N9N6_MAEQ_URR]
+		}
+		curDataPathNode.addUrrToNode(smContext, MBQEUrrId, true, true)
+		curDataPathNode.addUrrToNode(smContext, MAQEUrrId, true, false)
+	}
+}
+
 func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence uint32) {
 	smContext.AllocateLocalSEIDForDataPath(dataPath)
 
@@ -338,6 +397,14 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 			logger.CtxLog.Warnln(err)
 			return
 		}
+	}
+
+	// Note: This should be after Activate Tunnels
+	if smContext.UrrReportTime != 0 || smContext.UrrReportThreshold != 0 {
+		dataPath.addUrrToPath(smContext)
+		logger.PduSessLog.Warn("Create URR")
+	} else {
+		logger.PduSessLog.Warn("No Create URR")
 	}
 
 	sessionRule := smContext.SelectedSessionRule()
