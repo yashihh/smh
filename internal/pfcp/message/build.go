@@ -2,6 +2,7 @@ package message
 
 import (
 	"net"
+	"time"
 
 	"bitbucket.org/free5gc-team/pfcp"
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
@@ -196,7 +197,7 @@ func urrToCreateURR(urr *context.URR) *pfcp.CreateURR {
 	createURR.ReportingTriggers = &urr.ReportingTrigger
 	if urr.MeasurementPeriod != 0 {
 		createURR.MeasurementPeriod = &pfcpType.MeasurementPeriod{
-			MeasurementPeriod: uint32(urr.MeasurementPeriod),
+			MeasurementPeriod: uint32(urr.MeasurementPeriod / time.Second),
 		}
 	}
 	if urr.VolumeThreshold != 0 {
