@@ -490,6 +490,11 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			HandlePDUSessionResourceSetupUnsuccessfulTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
 			smContext.Log.Errorf("Handle PDUSessionResourceSetupResponseTransfer failed: %+v", err)
 		}
+	case models.N2SmInfoType_PDU_RES_MOD_RSP:
+		if err := smf_context.
+			HandlePDUSessionResourceModifyResponseTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+			smContext.Log.Errorf("Handle PDUSessionResourceModifyResponseTransfer failed: %+v", err)
+		}
 	case models.N2SmInfoType_PDU_RES_REL_RSP:
 		// remove an tunnel info
 		smContext.Tunnel.ANInformation = struct {
