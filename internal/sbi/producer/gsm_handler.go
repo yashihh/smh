@@ -211,12 +211,19 @@ func HandlePDUSessionModificationRequest(
 		}
 	}
 
-	var smPolicyDecision *models.SmPolicyDecision
+	smPolicyDecision, err := consumer.SendSMPolicyAssociationUpdateByUERequestModification(
+		smCtx, reqQoSRules, reqQoSFlowDescs)
+	if err != nil {
+		return nil, fmt.Errorf("sm policy update failed: %s", err)
+	}
 
-	if smPolicyDecisionRsp, err := consumer.
-		SendSMPolicyAssociationUpdateByUERequestModification(smCtx, reqQoSRules, reqQoSFlowDescs); err != nil {
-	} else {
-		smPolicyDecision = smPolicyDecisionRsp
+	// Update SessionRule from decision
+	if err := smCtx.ApplySessionRules(smPolicyDecision); err != nil {
+		return nil, fmt.Errorf("PDUSessionSMContextCreate err: %v", err)
+	}
+
+	if err := smCtx.ApplyPccRules(smPolicyDecision); err != nil {
+		smCtx.Log.Errorf("apply sm policy decision error: %+v", err)
 	}
 
 	authQoSRules := nasType.QoSRules{}
