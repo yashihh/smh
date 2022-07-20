@@ -56,7 +56,7 @@ func (q *QoSFlow) IsNonGBRFlow() bool {
 	return q.Get5QI() > 4
 }
 
-func (q *QoSFlow) BuildNasQoSDesc(opCode nasType.QoSFlowOperationCode) nasType.QoSFlowDesc {
+func (q *QoSFlow) BuildNasQoSDesc(opCode nasType.QoSFlowOperationCode) (nasType.QoSFlowDesc, error) {
 	qosDesc := nasType.QoSFlowDesc{}
 	qosDesc.QFI = q.GetQFI()
 	qosDesc.OperationCode = opCode
@@ -82,7 +82,7 @@ func (q *QoSFlow) BuildNasQoSDesc(opCode nasType.QoSFlowOperationCode) nasType.Q
 		mbrUlParameter.Value = util.BitRateTombps(q.QoSProfile.MaxbrUl)
 		qosDesc.Parameters = append(qosDesc.Parameters, mbrUlParameter)
 	}
-	return qosDesc
+	return qosDesc, nil
 }
 
 func buildArpFromModels(arp *models.Arp) (int64, aper.Enumerated, aper.Enumerated) {
@@ -126,7 +126,7 @@ func buildGBRQosInformationFromModel(qos *models.QosData) *ngapType.GBRQosInform
 	}
 }
 
-func (q *QoSFlow) BuildNgapQosFlowSetupRequestItem() ngapType.QosFlowSetupRequestItem {
+func (q *QoSFlow) BuildNgapQosFlowSetupRequestItem() (ngapType.QosFlowSetupRequestItem, error) {
 	qosDesc := ngapType.QosFlowSetupRequestItem{}
 
 	qosDesc.QosFlowIdentifier = ngapType.QosFlowIdentifier{
@@ -175,7 +175,7 @@ func (q *QoSFlow) BuildNgapQosFlowSetupRequestItem() ngapType.QosFlowSetupReques
 
 	qosDesc.QosFlowLevelQosParameters = parameter
 
-	return qosDesc
+	return qosDesc, nil
 }
 
 func (q *QoSFlow) BuildNgapQosFlowAddOrModifyRequestItem() (ngapType.QosFlowAddOrModifyRequestItem, error) {

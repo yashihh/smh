@@ -87,10 +87,30 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 		pDUSessionEstablishmentAccept.PDUAddress.SetPDUAddressInformation(addr)
 	}
 
+	authDescs := nasType.QoSFlowDescs{}
+	dafaultAuthDesc := nasType.QoSFlowDesc{}
+	dafaultAuthDesc.QFI = uint8(authDefQos.Var5qi)
+	dafaultAuthDesc.OperationCode = nasType.OperationCodeCreateNewQoSFlowDescription
+	parameter := new(nasType.QoSFlow5QI)
+	parameter.FiveQI = uint8(authDefQos.Var5qi)
+	dafaultAuthDesc.Parameters = append(dafaultAuthDesc.Parameters, parameter)
+	authDescs = append(authDescs, dafaultAuthDesc)
+	for _, qosFlow := range smContext.AdditonalQosFlows {
+		if qosDesc, e := qosFlow.BuildNasQoSDesc(nasType.OperationCodeCreateNewQoSFlowDescription); e != nil {
+			logger.GsmLog.Warnf("Create QoS Desc from qos flow error: %s\n", e)
+		} else {
+			authDescs = append(authDescs, qosDesc)
+		}
+	}
+	qosDescBytes, err := authDescs.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
 	pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions =
 		nasType.NewAuthorizedQosFlowDescriptions(nasMessage.PDUSessionEstablishmentAcceptAuthorizedQosFlowDescriptionsType)
-	pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions.SetLen(6)
-	pDUSessionEstablishmentAccept.SetQoSFlowDescriptions([]uint8{uint8(authDefQos.Var5qi), 0x20, 0x41, 0x01, 0x01, 0x09})
+	pDUSessionEstablishmentAccept.AuthorizedQosFlowDescriptions.SetLen(uint16(len(qosDescBytes)))
+	pDUSessionEstablishmentAccept.SetQoSFlowDescriptions(qosDescBytes)
 
 	var sd [3]uint8
 

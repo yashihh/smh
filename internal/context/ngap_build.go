@@ -122,6 +122,15 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 			},
 		},
 	}
+
+	for _, qosFlow := range ctx.AdditonalQosFlows {
+		if qosDesc, err := qosFlow.BuildNgapQosFlowSetupRequestItem(); err != nil {
+			return nil, fmt.Errorf("encode BuildNgapQosFlowSetupRequestItem failed: %s", err)
+		} else {
+			ie.Value.QosFlowSetupRequestList.List = append(ie.Value.QosFlowSetupRequestList.List, qosDesc)
+		}
+	}
+
 	resourceSetupRequestTransfer.ProtocolIEs.List = append(resourceSetupRequestTransfer.ProtocolIEs.List, ie)
 
 	// Security Indication to NG-RAN (optional) TS 38.413 9.3.1.27
@@ -184,6 +193,35 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 
 	if buf, err := aper.MarshalWithParams(resourceSetupRequestTransfer, "valueExt"); err != nil {
 		return nil, fmt.Errorf("encode resourceSetupRequestTransfer failed: %s", err)
+	} else {
+		return buf, nil
+	}
+}
+
+func BuildPDUSessionResourceModifyRequestTransfer(ctx *SMContext) ([]byte, error) {
+	resourceModifyRequestTransfer := ngapType.PDUSessionResourceModifyRequestTransfer{}
+	ie := ngapType.PDUSessionResourceModifyRequestTransferIEs{}
+
+	ie.Id.Value = ngapType.ProtocolIEIDQosFlowAddOrModifyRequestList
+	ie.Criticality.Value = ngapType.CriticalityPresentReject
+	ie.Value.Present = ngapType.PDUSessionResourceModifyRequestTransferIEsPresentQosFlowAddOrModifyRequestList
+	ie.Value.QosFlowAddOrModifyRequestList = new(ngapType.QosFlowAddOrModifyRequestList)
+	qosFlowAddOrModifyRequestList := ie.Value.QosFlowAddOrModifyRequestList
+
+	for _, qos := range ctx.AdditonalQosFlows {
+		if qos.State == QoSFlowUnset || qos.State == QoSFlowToBeModify {
+			if qosDesc, err := qos.BuildNgapQosFlowAddOrModifyRequestItem(); err != nil {
+				return nil, fmt.Errorf("BuildNgapQosFlowSetupRequestItem failed: %s", err)
+			} else {
+				qosFlowAddOrModifyRequestList.List = append(qosFlowAddOrModifyRequestList.List, qosDesc)
+			}
+		}
+	}
+
+	resourceModifyRequestTransfer.ProtocolIEs.List = append(resourceModifyRequestTransfer.ProtocolIEs.List, ie)
+
+	if buf, err := aper.MarshalWithParams(resourceModifyRequestTransfer, "valueExt"); err != nil {
+		return nil, fmt.Errorf("encode resourceModifyRequestTransfer failed: %s", err)
 	} else {
 		return buf, nil
 	}
