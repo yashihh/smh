@@ -185,6 +185,7 @@ type SMContext struct {
 	PacketFilterIDGenerator *idgenerator.IDGenerator
 	PCCRuleIDToQoSRuleID    map[string]uint8
 	PacketFilterIDToNASPFID map[string]uint8
+	AdditonalQosFlows       map[uint8]*QoSFlow // Key: qfi
 
 	// URR
 	UrrIDGenerator     *idgenerator.IDGenerator
@@ -266,7 +267,7 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 	smContext.PacketFilterIDGenerator = idgenerator.NewGenerator(1, 255)
 	smContext.PCCRuleIDToQoSRuleID = make(map[string]uint8)
 	smContext.PacketFilterIDToNASPFID = make(map[string]uint8)
-
+	smContext.AdditonalQosFlows = make(map[uint8]*QoSFlow)
 	smContext.UrrIDGenerator = idgenerator.NewGenerator(1, math.MaxUint32)
 	smContext.UrrIdMap = make(map[UrrType]uint32)
 	smContext.GenerateUrrId()

@@ -56,6 +56,13 @@ func (c *SMContext) ApplySessionRules(
 	return nil
 }
 
+func (c *SMContext) AddQosFlow(qfi uint8, qos *models.QosData) {
+	qosFlow := NewQoSFlow(qfi, qos)
+	if qosFlow != nil {
+		c.AdditonalQosFlows[qfi] = qosFlow
+	}
+}
+
 func (c *SMContext) ApplyPccRules(
 	decision *models.SmPolicyDecision) error {
 	if decision == nil {
