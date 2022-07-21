@@ -610,6 +610,7 @@ func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
 	pccRule.Datapath = createdDataPath
 	pccRule.AddDataPathForwardingParameters(c, &targetRoute)
 	pccRule.AddDataPathQoSData(qosData)
+	c.AddQosFlow(pccRule.QFI, qosData)
 	return nil
 }
 
