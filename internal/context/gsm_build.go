@@ -42,7 +42,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 			DQR:        true,
 			Operation:  nasType.OperationCodeCreateNewQoSRule,
 			Precedence: 255,
-			QFI:        uint8(authDefQos.Var5qi),
+			QFI:        sessRule.DefQosQFI,
 			PacketFilterList: nasType.PacketFilterList{
 				{
 					Identifier: 1,
@@ -89,7 +89,7 @@ func BuildGSMPDUSessionEstablishmentAccept(smContext *SMContext) ([]byte, error)
 
 	authDescs := nasType.QoSFlowDescs{}
 	dafaultAuthDesc := nasType.QoSFlowDesc{}
-	dafaultAuthDesc.QFI = uint8(authDefQos.Var5qi)
+	dafaultAuthDesc.QFI = sessRule.DefQosQFI
 	dafaultAuthDesc.OperationCode = nasType.OperationCodeCreateNewQoSFlowDescription
 	parameter := new(nasType.QoSFlow5QI)
 	parameter.FiveQI = uint8(authDefQos.Var5qi)
