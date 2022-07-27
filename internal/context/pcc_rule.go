@@ -12,7 +12,6 @@ import (
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	"bitbucket.org/free5gc-team/util/flowdesc"
-	// "bitbucket.org/free5gc-team/smf/internal/pfcp/pfcpType"
 )
 
 // PCCRule - Policy and Charging Rule
