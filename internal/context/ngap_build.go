@@ -83,7 +83,6 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 
 	// QoS Flow Setup Request List
 	// use Default 5qi, arp
-	// TODO: Get QFI from PCF/UDM
 
 	authDefQos := sessRule.AuthDefQos
 	ie = ngapType.PDUSessionResourceSetupRequestTransferIEs{}

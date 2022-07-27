@@ -408,7 +408,6 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 	}
 
 	sessionRule := smContext.SelectedSessionRule()
-	AuthDefQos := sessionRule.AuthDefQos
 
 	// Activate PDR
 	for node := firstDPNode; node != nil; node = node.Next() {
@@ -422,7 +421,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				logger.PduSessLog.Errorln("new QER failed")
 				return
 			} else {
-				newQER.QFI.QFI = uint8(AuthDefQos.Var5qi)
+				newQER.QFI.QFI = sessionRule.DefQosQFI
 				newQER.GateStatus = &pfcpType.GateStatus{
 					ULGate: pfcpType.GateOpen,
 					DLGate: pfcpType.GateOpen,
@@ -664,7 +663,7 @@ func (p *DataPath) RemovePDR() {
 	}
 }
 
-func (p *DataPath) AddQoS(qos *models.QosData) {
+func (p *DataPath) AddQoS(qfi uint8, qos *models.QosData) {
 	if qos == nil {
 		return
 	}
@@ -673,7 +672,7 @@ func (p *DataPath) AddQoS(qos *models.QosData) {
 			logger.PduSessLog.Errorln("new QER failed")
 			return
 		} else {
-			newQER.QFI.QFI = uint8(qos.Var5qi)
+			newQER.QFI.QFI = qfi
 			newQER.GateStatus = &pfcpType.GateStatus{
 				ULGate: pfcpType.GateOpen,
 				DLGate: pfcpType.GateOpen,

@@ -12,6 +12,7 @@ import (
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	"bitbucket.org/free5gc-team/util/flowdesc"
+	// "bitbucket.org/free5gc-team/smf/internal/pfcp/pfcpType"
 )
 
 // PCCRule - Policy and Charging Rule
@@ -47,6 +48,10 @@ func (r *PCCRule) RefQosDataID() string {
 		return r.RefQosData[0]
 	}
 	return ""
+}
+
+func (r *PCCRule) SetQFI(qfi uint8) {
+	r.QFI = qfi
 }
 
 func (r *PCCRule) RefTcDataID() string {
@@ -117,7 +122,7 @@ func (r *PCCRule) AddDataPathQoSData(qos *models.QosData) {
 		logger.CtxLog.Warnf("AddDataPathQoSData pcc[%s]: no data path", r.PccRuleId)
 		return
 	}
-	r.Datapath.AddQoS(qos)
+	r.Datapath.AddQoS(r.QFI, qos)
 }
 
 func (r *PCCRule) BuildNasQoSRule(smCtx *SMContext,
