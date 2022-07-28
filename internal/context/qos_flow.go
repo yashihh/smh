@@ -49,11 +49,7 @@ func (q *QoSFlow) GetQoSProfile() *models.QosData {
 }
 
 func (q *QoSFlow) IsGBRFlow() bool {
-	return q.Get5QI() <= 4
-}
-
-func (q *QoSFlow) IsNonGBRFlow() bool {
-	return q.Get5QI() > 4
+	return isGBRFlow(q.QoSProfile)
 }
 
 func (q *QoSFlow) BuildNasQoSDesc(opCode nasType.QoSFlowOperationCode) (nasType.QoSFlowDesc, error) {
