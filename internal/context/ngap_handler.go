@@ -3,6 +3,7 @@ package context
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"bitbucket.org/free5gc-team/aper"
 	"bitbucket.org/free5gc-team/ngap/ngapType"
@@ -10,6 +11,34 @@ import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 )
+
+func strNgapCause(cause *ngapType.Cause) string {
+	ret := ""
+	switch cause.Present {
+	case ngapType.CausePresentRadioNetwork:
+		ret = fmt.Sprintf("Cause by RadioNetwork[%d]",
+			cause.RadioNetwork.Value)
+	case ngapType.CausePresentTransport:
+		ret = fmt.Sprintf("Cause by Transport[%d]",
+			cause.Transport.Value)
+	case ngapType.CausePresentNas:
+		ret = fmt.Sprintf("Cause by NAS[%d]",
+			cause.Nas.Value)
+	case ngapType.CausePresentProtocol:
+		ret = fmt.Sprintf("Cause by Protocol[%d]",
+			cause.Protocol.Value)
+	case ngapType.CausePresentMisc:
+		ret = fmt.Sprintf("Cause by Protocol[%d]",
+			cause.Misc.Value)
+	case ngapType.CausePresentChoiceExtensions:
+		ret = fmt.Sprintf("Cause by Protocol[%v]",
+			cause.ChoiceExtensions)
+	default:
+		ret = "Cause [unspecific]"
+	}
+
+	return ret
+}
 
 func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (err error) {
 	resourceSetupResponseTransfer := ngapType.PDUSessionResourceSetupResponseTransfer{}
@@ -34,6 +63,45 @@ func HandlePDUSessionResourceSetupResponseTransfer(b []byte, ctx *SMContext) (er
 		binary.BigEndian.Uint32(GTPTunnel.GTPTEID.Value))
 
 	ctx.UpCnxState = models.UpCnxState_ACTIVATED
+	for _, qos := range ctx.AdditonalQosFlows {
+		qos.State = QoSFlowSet
+	}
+	return nil
+}
+
+func HandlePDUSessionResourceModifyResponseTransfer(b []byte, ctx *SMContext) error {
+	resourceModifyResponseTransfer := ngapType.PDUSessionResourceModifyResponseTransfer{}
+
+	err := aper.UnmarshalWithParams(b, &resourceModifyResponseTransfer, "valueExt")
+	if err != nil {
+		return err
+	}
+
+	if DLInfo := resourceModifyResponseTransfer.DLNGUUPTNLInformation; DLInfo != nil {
+		GTPTunnel := DLInfo.GTPTunnel
+
+		ctx.Tunnel.UpdateANInformation(
+			GTPTunnel.TransportLayerAddress.Value.Bytes,
+			binary.BigEndian.Uint32(GTPTunnel.GTPTEID.Value))
+	}
+
+	if qosInfoList := resourceModifyResponseTransfer.QosFlowAddOrModifyResponseList; qosInfoList != nil {
+		for _, item := range qosInfoList.List {
+			qfi := uint8(item.QosFlowIdentifier.Value)
+			ctx.AdditonalQosFlows[qfi].State = QoSFlowSet
+		}
+	}
+
+	if qosFailedInfoList := resourceModifyResponseTransfer.QosFlowFailedToAddOrModifyList; qosFailedInfoList != nil {
+		for _, item := range qosFailedInfoList.List {
+			qfi := uint8(item.QosFlowIdentifier.Value)
+			logger.PduSessLog.Warnf("PDU Session Resource Modify QFI[%d] %s",
+				qfi, strNgapCause(&item.Cause))
+
+			ctx.AdditonalQosFlows[qfi].State = QoSFlowUnset
+		}
+	}
+
 	return nil
 }
 

@@ -8,6 +8,7 @@ import (
 // associated with PDU session.
 type SessionRule struct {
 	*models.SessionRule
+	DefQosQFI uint8
 }
 
 // NewSessionRule - create session rule from OpenAPI models
@@ -18,5 +19,6 @@ func NewSessionRule(model *models.SessionRule) *SessionRule {
 
 	return &SessionRule{
 		SessionRule: model,
+		DefQosQFI:   1,
 	}
 }

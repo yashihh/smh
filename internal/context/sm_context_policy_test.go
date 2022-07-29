@@ -159,6 +159,7 @@ func TestApplySessionRules(t *testing.T) {
 						},
 						SessRuleId: "SessRuleId-1",
 					},
+					DefQosQFI: 1,
 				},
 			},
 			noErr: true,
@@ -199,6 +200,7 @@ func TestApplySessionRules(t *testing.T) {
 						},
 						SessRuleId: "SessRuleId-1",
 					},
+					DefQosQFI: 1,
 				},
 				"SessRuleId-2": {
 					SessionRule: &models.SessionRule{
@@ -215,6 +217,7 @@ func TestApplySessionRules(t *testing.T) {
 						},
 						SessRuleId: "SessRuleId-2",
 					},
+					DefQosQFI: 1,
 				},
 			},
 			noErr: true,
@@ -255,6 +258,7 @@ func TestApplySessionRules(t *testing.T) {
 						},
 						SessRuleId: "SessRuleId-1",
 					},
+					DefQosQFI: 1,
 				},
 				"SessRuleId-2": {
 					SessionRule: &models.SessionRule{
@@ -271,6 +275,7 @@ func TestApplySessionRules(t *testing.T) {
 						},
 						SessRuleId: "SessRuleId-2",
 					},
+					DefQosQFI: 1,
 				},
 			},
 			noErr: true,
@@ -298,6 +303,7 @@ func TestApplySessionRules(t *testing.T) {
 						},
 						SessRuleId: "SessRuleId-2",
 					},
+					DefQosQFI: 1,
 				},
 			},
 			noErr: true,

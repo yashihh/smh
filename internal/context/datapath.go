@@ -11,6 +11,23 @@ import (
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
 )
 
+// Refer to TS 23.501 5.7.4
+var standardGbr5QIs = map[int32]struct{}{
+	1:  {},
+	2:  {},
+	3:  {},
+	4:  {},
+	65: {},
+	66: {},
+	67: {},
+	75: {},
+	71: {},
+	72: {},
+	73: {},
+	74: {},
+	76: {},
+}
+
 // GTPTunnel represents the GTP tunnel information
 type GTPTunnel struct {
 	SrcEndPoint  *DataPathNode
@@ -408,7 +425,6 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 	}
 
 	sessionRule := smContext.SelectedSessionRule()
-	AuthDefQos := sessionRule.AuthDefQos
 
 	// Activate PDR
 	for node := firstDPNode; node != nil; node = node.Next() {
@@ -422,7 +438,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				logger.PduSessLog.Errorln("new QER failed")
 				return
 			} else {
-				newQER.QFI.QFI = uint8(AuthDefQos.Var5qi)
+				newQER.QFI.QFI = sessionRule.DefQosQFI
 				newQER.GateStatus = &pfcpType.GateStatus{
 					ULGate: pfcpType.GateOpen,
 					DLGate: pfcpType.GateOpen,
@@ -664,7 +680,7 @@ func (p *DataPath) RemovePDR() {
 	}
 }
 
-func (p *DataPath) AddQoS(qos *models.QosData) {
+func (p *DataPath) AddQoS(qfi uint8, qos *models.QosData) {
 	if qos == nil {
 		return
 	}
@@ -673,18 +689,20 @@ func (p *DataPath) AddQoS(qos *models.QosData) {
 			logger.PduSessLog.Errorln("new QER failed")
 			return
 		} else {
-			newQER.QFI.QFI = uint8(qos.Var5qi)
+			newQER.QFI.QFI = qfi
 			newQER.GateStatus = &pfcpType.GateStatus{
 				ULGate: pfcpType.GateOpen,
 				DLGate: pfcpType.GateOpen,
 			}
-			newQER.MBR = &pfcpType.MBR{
-				ULMBR: util.BitRateTokbps(qos.MaxbrUl),
-				DLMBR: util.BitRateTokbps(qos.MaxbrDl),
-			}
-			newQER.GBR = &pfcpType.GBR{
-				ULGBR: util.BitRateTokbps(qos.GbrUl),
-				DLGBR: util.BitRateTokbps(qos.GbrDl),
+			if isGBRFlow(qos) {
+				newQER.MBR = &pfcpType.MBR{
+					ULMBR: util.BitRateTokbps(qos.MaxbrUl),
+					DLMBR: util.BitRateTokbps(qos.MaxbrDl),
+				}
+				newQER.GBR = &pfcpType.GBR{
+					ULGBR: util.BitRateTokbps(qos.GbrUl),
+					DLGBR: util.BitRateTokbps(qos.GbrDl),
+				}
 			}
 
 			if node.UpLinkTunnel != nil && node.UpLinkTunnel.PDR != nil {
@@ -762,4 +780,12 @@ func (dataPath *DataPath) CopyFirstDPNode() *DataPathNode {
 		parentNode = newNode
 	}
 	return firstNode
+}
+
+func isGBRFlow(qos *models.QosData) bool {
+	if qos == nil {
+		return false
+	}
+	_, ok := standardGbr5QIs[qos.Var5qi]
+	return ok
 }

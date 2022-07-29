@@ -352,6 +352,14 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				}
 			}
 
+			if buf, err := smf_context.BuildPDUSessionResourceModifyRequestTransfer(smContext); err != nil {
+				smContext.Log.Errorf("build N2 BuildPDUSessionResourceModifyRequestTransfer failed: %v", err)
+			} else {
+				response.BinaryDataN2SmInformation = buf
+				response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDU_RES_MOD"}
+				response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_MOD_REQ
+			}
+
 			response.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionModificationReject"}
 			return &httpwrapper.Response{
 				Status: http.StatusOK,
@@ -481,6 +489,11 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		if err := smf_context.
 			HandlePDUSessionResourceSetupUnsuccessfulTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
 			smContext.Log.Errorf("Handle PDUSessionResourceSetupResponseTransfer failed: %+v", err)
+		}
+	case models.N2SmInfoType_PDU_RES_MOD_RSP:
+		if err := smf_context.
+			HandlePDUSessionResourceModifyResponseTransfer(body.BinaryDataN2SmInformation, smContext); err != nil {
+			smContext.Log.Errorf("Handle PDUSessionResourceModifyResponseTransfer failed: %+v", err)
 		}
 	case models.N2SmInfoType_PDU_RES_REL_RSP:
 		// remove an tunnel info

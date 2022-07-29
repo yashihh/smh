@@ -49,6 +49,10 @@ func (r *PCCRule) RefQosDataID() string {
 	return ""
 }
 
+func (r *PCCRule) SetQFI(qfi uint8) {
+	r.QFI = qfi
+}
+
 func (r *PCCRule) RefTcDataID() string {
 	if len(r.RefTcData) > 0 {
 		// now 1 pcc rule only maps to 1 Traffic Control data
@@ -117,7 +121,7 @@ func (r *PCCRule) AddDataPathQoSData(qos *models.QosData) {
 		logger.CtxLog.Warnf("AddDataPathQoSData pcc[%s]: no data path", r.PccRuleId)
 		return
 	}
-	r.Datapath.AddQoS(qos)
+	r.Datapath.AddQoS(r.QFI, qos)
 }
 
 func (r *PCCRule) BuildNasQoSRule(smCtx *SMContext,
