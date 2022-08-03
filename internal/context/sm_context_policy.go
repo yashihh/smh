@@ -63,6 +63,10 @@ func (c *SMContext) AddQosFlow(qfi uint8, qos *models.QosData) {
 	}
 }
 
+func (c *SMContext) RemoveQosFlow(qfi uint8) {
+	delete(c.AdditonalQosFlows, qfi)
+}
+
 func (c *SMContext) ApplyPccRules(
 	decision *models.SmPolicyDecision) error {
 	if decision == nil {
@@ -72,6 +76,14 @@ func (c *SMContext) ApplyPccRules(
 	finalPccRules := make(map[string]*PCCRule)
 	finalTcDatas := make(map[string]*TrafficControlData)
 	finalQosDatas := make(map[string]*models.QosData)
+
+	// Handle QoSData
+	for id, qos := range decision.QosDecs {
+		if qos == nil {
+			// If QoS Data is nil should remove QFI
+			c.RemoveQFI(id)
+		}
+	}
 
 	// Handle PccRules in decision first
 	for id, pccModel := range decision.PccRules {
@@ -94,6 +106,7 @@ func (c *SMContext) ApplyPccRules(
 
 			tgtQosID := tgtPcc.RefQosDataID()
 			_, tgtQosData := c.getSrcTgtQosData(decision.QosDecs, tgtQosID)
+			tgtPcc.SetQFI(c.AssignQFI(tgtQosID))
 
 			// Create Data path for targetPccRule
 			if err := c.CreatePccRuleDataPath(tgtPcc, tgtTcData, tgtQosData); err != nil {

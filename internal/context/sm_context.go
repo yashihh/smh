@@ -183,7 +183,9 @@ type SMContext struct {
 	// QoS
 	QoSRuleIDGenerator      *idgenerator.IDGenerator
 	PacketFilterIDGenerator *idgenerator.IDGenerator
+	QFIGenerator            *idgenerator.IDGenerator
 	PCCRuleIDToQoSRuleID    map[string]uint8
+	qosDataToQFI            map[string]uint8
 	PacketFilterIDToNASPFID map[string]uint8
 	AdditonalQosFlows       map[uint8]*QoSFlow // Key: qfi
 
@@ -265,8 +267,10 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 
 	smContext.QoSRuleIDGenerator = idgenerator.NewGenerator(1, 255)
 	smContext.PacketFilterIDGenerator = idgenerator.NewGenerator(1, 255)
+	smContext.QFIGenerator = idgenerator.NewGenerator(2, 63) // 1 always reserve for default Qos
 	smContext.PCCRuleIDToQoSRuleID = make(map[string]uint8)
 	smContext.PacketFilterIDToNASPFID = make(map[string]uint8)
+	smContext.qosDataToQFI = make(map[string]uint8)
 	smContext.AdditonalQosFlows = make(map[uint8]*QoSFlow)
 	smContext.UrrIDGenerator = idgenerator.NewGenerator(1, math.MaxUint32)
 	smContext.UrrIdMap = make(map[UrrType]uint32)
@@ -835,5 +839,27 @@ func (smContextState SMContextState) String() string {
 		return "PFCPModification"
 	default:
 		return "Unknown State"
+	}
+}
+
+func (smContext *SMContext) AssignQFI(qosId string) uint8 {
+	qfi, ok := smContext.qosDataToQFI[qosId]
+	if !ok {
+		newId, err := smContext.QFIGenerator.Allocate()
+		if err != nil {
+			return 0
+		}
+		smContext.qosDataToQFI[qosId] = uint8(newId)
+		return uint8(newId)
+	}
+	return qfi
+}
+
+func (smContext *SMContext) RemoveQFI(qosId string) {
+	qfi, ok := smContext.qosDataToQFI[qosId]
+	if ok {
+		smContext.QFIGenerator.FreeID(int64(qfi))
+		delete(smContext.qosDataToQFI, qosId)
+		smContext.RemoveQosFlow(qfi)
 	}
 }
