@@ -94,7 +94,7 @@ func BuildPDUSessionResourceSetupRequestTransfer(ctx *SMContext) ([]byte, error)
 			List: []ngapType.QosFlowSetupRequestItem{
 				{
 					QosFlowIdentifier: ngapType.QosFlowIdentifier{
-						Value: int64(authDefQos.Var5qi),
+						Value: int64(sessRule.DefQosQFI),
 					},
 					QosFlowLevelQosParameters: ngapType.QosFlowLevelQosParameters{
 						QosCharacteristics: ngapType.QosCharacteristics{
