@@ -555,6 +555,18 @@ func (upf *UPF) AddURR(urrId uint32, opts ...UrrOpt) (*URR, error) {
 	return urr, nil
 }
 
+func (upf *UPF) GetUUID() uuid.UUID {
+	return upf.uuid
+}
+
+func (upf *UPF) GetQERById(qerId uint32) *QER {
+	qer, ok := upf.qerPool.Load(qerId)
+	if ok {
+		return qer.(*QER)
+	}
+	return nil
+}
+
 //*** add unit test ***//
 func (upf *UPF) RemovePDR(pdr *PDR) (err error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
