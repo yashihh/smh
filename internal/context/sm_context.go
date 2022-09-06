@@ -187,6 +187,8 @@ type SMContext struct {
 	PCCRuleIDToQoSRuleID    map[string]uint8
 	qosDataToQFI            map[string]uint8
 	PacketFilterIDToNASPFID map[string]uint8
+	AMBRQerMap              map[uuid.UUID]uint32
+	QerUpfMap               map[string]uint32
 	AdditonalQosFlows       map[uint8]*QoSFlow // Key: qfi
 
 	// URR
@@ -271,6 +273,8 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 	smContext.PCCRuleIDToQoSRuleID = make(map[string]uint8)
 	smContext.PacketFilterIDToNASPFID = make(map[string]uint8)
 	smContext.qosDataToQFI = make(map[string]uint8)
+	smContext.AMBRQerMap = make(map[uuid.UUID]uint32)
+	smContext.QerUpfMap = make(map[string]uint32)
 	smContext.AdditonalQosFlows = make(map[uint8]*QoSFlow)
 	smContext.UrrIDGenerator = idgenerator.NewGenerator(1, math.MaxUint32)
 	smContext.UrrIdMap = make(map[UrrType]uint32)
@@ -609,11 +613,12 @@ func (c *SMContext) CreatePccRuleDataPath(pccRule *PCCRule,
 	if createdDataPath == nil {
 		return fmt.Errorf("fail to create data path for pcc rule[%s]", pccRule.PccRuleId)
 	}
+	createdDataPath.GBRFlow = isGBRFlow(qosData)
 	createdDataPath.ActivateTunnelAndPDR(c, uint32(pccRule.Precedence))
 	c.Tunnel.AddDataPath(createdDataPath)
 	pccRule.Datapath = createdDataPath
 	pccRule.AddDataPathForwardingParameters(c, &targetRoute)
-	pccRule.AddDataPathQoSData(qosData)
+	pccRule.Datapath.AddQoS(c, pccRule.QFI, qosData)
 	c.AddQosFlow(pccRule.QFI, qosData)
 	return nil
 }

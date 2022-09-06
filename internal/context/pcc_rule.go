@@ -116,14 +116,6 @@ func (r *PCCRule) AddDataPathForwardingParameters(c *SMContext,
 		c.Tunnel.DataPathPool.GetDefaultPath().FirstDPNode.GetUpLinkPDR().PDI.LocalFTeid.Teid)
 }
 
-func (r *PCCRule) AddDataPathQoSData(qos *models.QosData) {
-	if r.Datapath == nil {
-		logger.CtxLog.Warnf("AddDataPathQoSData pcc[%s]: no data path", r.PccRuleId)
-		return
-	}
-	r.Datapath.AddQoS(r.QFI, qos)
-}
-
 func (r *PCCRule) BuildNasQoSRule(smCtx *SMContext,
 	opCode nasType.QoSRuleOperationCode) (*nasType.QoSRule, error) {
 	rule := nasType.QoSRule{}
