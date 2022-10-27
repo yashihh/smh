@@ -714,12 +714,21 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			} else {
 				response.BinaryDataN2SmInformation = buf
 			}
-
-			smContext.SetState(smf_context.PFCPModification)
-			pfcpResponseStatus = releaseSession(smContext)
+		case smf_context.InActivePending, smf_context.InActive:
+			smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
+			smContext.Log.Infof("Skip deleting the PFCP sessions of PDUSessionID:%d of SUPI:%s",
+				smContext.PDUSessionID, smContext.Supi)
+			return &httpwrapper.Response{
+				Status: http.StatusOK,
+				Body:   response,
+			}
 		default:
 			smContext.Log.Infof("Not needs to send pfcp release")
 		}
+
+		smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
+		smContext.Log.Infoln("[SMF] Cause_REL_DUE_TO_DUPLICATE_SESSION_ID")
+		pfcpResponseStatus = releaseSession(smContext)
 	}
 
 	// Check FSM and take corresponding action
@@ -766,7 +775,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Traceln("In case SessionReleaseFailed")
 			problemDetail := models.ProblemDetails{
 				Status: http.StatusInternalServerError,
-				Cause:  "SYSTEM_FAILULE",
+				Cause:  "SYSTEM_FAILURE",
 			}
 			httpResponse = &httpwrapper.Response{
 				Status: int(problemDetail.Status),
@@ -777,15 +786,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 					Error: &problemDetail,
 				},
 			}
-			if smContextUpdateData.Cause == models.Cause_REL_DUE_TO_DUPLICATE_SESSION_ID {
-				if buf, err := smf_context.BuildGSMPDUSessionEstablishmentReject(smContext,
-					nasMessage.Cause5GSMNetworkFailure); err != nil {
-					logger.PduSessLog.Errorf("build GSM PDUSessionEstablishmentReject failed: %+v", err)
-				} else {
-					errResponse.BinaryDataN1SmMessage = buf
-					errResponse.JsonData.N1SmMsg = &models.RefToBinaryData{ContentId: "PDUSessionEstablishmentReject"}
-				}
-			} else {
+			if smContextUpdateData.Cause != models.Cause_REL_DUE_TO_DUPLICATE_SESSION_ID {
 				if buf, err := smf_context.BuildGSMPDUSessionReleaseReject(smContext); err != nil {
 					logger.PduSessLog.Errorf("build GSM PDUSessionReleaseReject failed: %+v", err)
 				} else {
