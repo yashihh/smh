@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -16,8 +17,7 @@ import (
 	ngapLogger "bitbucket.org/free5gc-team/ngap/logger"
 	"bitbucket.org/free5gc-team/openapi/models"
 	pfcpLogger "bitbucket.org/free5gc-team/pfcp/logger"
-	"bitbucket.org/free5gc-team/pfcp/pfcpType"
-	"bitbucket.org/free5gc-team/smf/internal/context"
+	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/internal/pfcp"
 	"bitbucket.org/free5gc-team/smf/internal/pfcp/udp"
@@ -224,10 +224,10 @@ func (smf *SMF) Start() {
 		keyPath = sbi.Tls.Key
 	}
 
-	context.InitSmfContext(&factory.SmfConfig)
+	smf_context.InitSmfContext(&factory.SmfConfig)
 	// allocate id for each upf
-	context.AllocateUPFID()
-	context.InitSMFUERouting(&factory.UERoutingConfig)
+	smf_context.AllocateUPFID()
+	smf_context.InitSMFUERouting(&factory.UERoutingConfig)
 
 	logger.InitLog.Infoln("Server started")
 	router := logger_util.NewGinWithLogrus(logger.GinLog)
@@ -268,21 +268,15 @@ func (smf *SMF) Start() {
 	}
 	udp.Run(pfcp.Dispatch)
 
-	for _, upf := range context.SMF_Self().UserPlaneInformation.UPFs {
-		var upfStr string
-		if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
-			upfStr = fmt.Sprintf("[%s](%s)", upf.NodeID.FQDN, upf.NodeID.ResolveNodeIdToIp().String())
-		} else {
-			upfStr = fmt.Sprintf("[%s]", upf.NodeID.IP.String())
-		}
-		if err = setupPfcpAssociation(upf.UPF, upfStr); err != nil {
-			logger.AppLog.Errorf("Failed to setup an association with UPF%s, error:%+v", upfStr, err)
-		}
+	ctx, cancel := context.WithCancel(context.Background())
+	smf_context.SMF_Self().PFCPCancelFunc = cancel
+	for _, upNode := range smf_context.SMF_Self().UserPlaneInformation.UPFs {
+		go toBeAssociatedWithUPF(ctx, upNode.UPF)
 	}
 
 	time.Sleep(1000 * time.Millisecond)
 
-	HTTPAddr := fmt.Sprintf("%s:%d", context.SMF_Self().BindingIPv4, context.SMF_Self().SBIPort)
+	HTTPAddr := fmt.Sprintf("%s:%d", smf_context.SMF_Self().BindingIPv4, smf_context.SMF_Self().SBIPort)
 	server, err := httpwrapper.NewHttp2Server(HTTPAddr, smf.KeyLogPath, router)
 
 	if server == nil {
