@@ -252,6 +252,7 @@ func sendPDUSessionEstablishmentReject(
 	if rspData.Cause == models.N1N2MessageTransferCause_N1_MSG_NOT_TRANSFERRED {
 		logger.PduSessLog.Warnf("%v", rspData.Cause)
 	}
+	RemoveSMContextFromAllNF(smContext, true)
 }
 
 func sendPDUSessionEstablishmentAccept(

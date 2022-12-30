@@ -121,9 +121,12 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		smContext.Log.Errorf("PDU Session Establishment fail by %s", err)
 		gsmError := &GSMError{}
 		if errors.As(err, &gsmError) {
-			return makeErrorResponse(smContext, gsmError.GSMCause, &Nsmf_PDUSession.N1SmError)
+			return makeEstRejectResAndReleaseSMContext(smContext,
+				gsmError.GSMCause,
+				&Nsmf_PDUSession.N1SmError)
 		}
-		return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+		return makeEstRejectResAndReleaseSMContext(smContext,
+			nasMessage.Cause5GSMRequestRejectedUnspecified,
 			&Nsmf_PDUSession.N1SmError)
 	}
 
@@ -147,7 +150,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	if err := smContext.AllocUeIP(); err != nil {
 		smContext.SetState(smf_context.InActive)
 		smContext.Log.Errorf("PDUSessionSMContextCreate err: %v", err)
-		return makeErrorResponse(smContext,
+		return makeEstRejectResAndReleaseSMContext(smContext,
 			nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
 			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
 	}
@@ -163,11 +166,13 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 			smContext.Log.Errorln("setup sm policy association failed:", err, problemDetails)
 			smContext.SetState(smf_context.InActive)
 			if problemDetails.Cause == "USER_UNKNOWN" {
-				return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+				return makeEstRejectResAndReleaseSMContext(smContext,
+					nasMessage.Cause5GSMRequestRejectedUnspecified,
 					&Nsmf_PDUSession.SubscriptionDenied)
 			}
 		}
-		return makeErrorResponse(smContext, nasMessage.Cause5GSMNetworkFailure,
+		return makeEstRejectResAndReleaseSMContext(smContext,
+			nasMessage.Cause5GSMNetworkFailure,
 			&Nsmf_PDUSession.NetworkFailure)
 	}
 	smContext.SMPolicyID = smPolicyID
@@ -175,14 +180,15 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 	// Update SessionRule from decision
 	if err := smContext.ApplySessionRules(smPolicyDecision); err != nil {
 		smContext.Log.Errorf("PDUSessionSMContextCreate err: %v", err)
-		return makeErrorResponse(smContext, nasMessage.Cause5GSMRequestRejectedUnspecified,
+		return makeEstRejectResAndReleaseSMContext(smContext,
+			nasMessage.Cause5GSMRequestRejectedUnspecified,
 			&Nsmf_PDUSession.SubscriptionDenied)
 	}
 
 	if err := smContext.SelectDefaultDataPath(); err != nil {
 		smContext.SetState(smf_context.InActive)
 		smContext.Log.Errorf("PDUSessionSMContextCreate err: %v", err)
-		return makeErrorResponse(smContext,
+		return makeEstRejectResAndReleaseSMContext(smContext,
 			nasMessage.Cause5GSMInsufficientResourcesForSpecificSliceAndDNN,
 			&Nsmf_PDUSession.InsufficientResourceSliceDnn)
 	}
@@ -278,12 +284,13 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			// TODO: implement sleep wait in concurrent architecture
 
 			HandlePDUSessionReleaseRequest(smContext, m.PDUSessionReleaseRequest)
-			if smContext.SelectedUPF != nil {
+			if smContext.SelectedUPF != nil && smContext.PDUAddress != nil {
 				smContext.Log.Infof("Release IP[%s]", smContext.PDUAddress.String())
 				smf_context.
 					GetUserPlaneInformation().
 					ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress, smContext.UseStaticIP)
-				smContext.SelectedUPF = nil
+				smContext.PDUAddress = nil
+				// keep SelectedUPF until PDU Session Release is completed
 			}
 
 			// remove SM Policy Association
@@ -300,7 +307,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				cause = m.PDUSessionReleaseRequest.Cause5GSM.GetCauseValue()
 			}
 
-			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext, cause); err != nil {
+			if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext, cause, true); err != nil {
 				smContext.Log.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 			} else {
 				response.BinaryDataN1SmMessage = buf
@@ -324,17 +331,13 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			// Wait till the state becomes Active again
 			// TODO: implement sleep wait in concurrent architecture
 
-			// Send Release Notify to AMF
-			smContext.Log.Infoln("[SMF] Send Update SmContext Response")
 			smContext.SetState(smf_context.InActive)
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
 			smContext.StopT3592()
 
 			// If CN tunnel resource is released, should
 			if smContext.Tunnel.ANInformation.IPAddress == nil {
-				// Use go routine to send Notification to prevent blocking the handling process
-				go sendSMContextStatusNotification(smContext)
-				smf_context.RemoveSMContext(smContext.Ref)
+				RemoveSMContextFromAllNF(smContext, true)
 			}
 		case nas.MsgTypePDUSessionModificationRequest:
 			if rsp, err := HandlePDUSessionModificationRequest(smContext, m.PDUSessionModificationRequest); err != nil {
@@ -497,12 +500,12 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		}
 	case models.N2SmInfoType_PDU_RES_REL_RSP:
 		// remove an tunnel info
+		smContext.Log.Infoln("Handle N2 PDU Resource Release Response")
 		smContext.Tunnel.ANInformation = struct {
 			IPAddress net.IP
 			TEID      uint32
 		}{nil, 0}
 
-		smContext.Log.Infoln("Handle N2 PDU Resource Release Response")
 		if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
 			smContext.CheckState(smf_context.InActivePending)
 			// Wait till the state becomes Active again
@@ -511,9 +514,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			response.JsonData.UpCnxState = models.UpCnxState_DEACTIVATED
 			// If NAS layer is inActive, the context should be remove
 			if smContext.CheckState(smf_context.InActive) {
-				// Use go routine to send Notification to prevent blocking the handling process
-				go sendSMContextStatusNotification(smContext)
-				smf_context.RemoveSMContext(smContextRef)
+				RemoveSMContextFromAllNF(smContext, true)
 			}
 		} else { // normal case
 			// Wait till the state becomes Active again
@@ -523,8 +524,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				// If N1 PDU Session Release Complete is received, smContext state is InActive.
 				// Remove SMContext when receiving N2 PDU Resource Release Response.
 				// Use go routine to send Notification to prevent blocking the handling process
-				go sendSMContextStatusNotification(smContext)
-				smf_context.RemoveSMContext(smContext.Ref)
+				RemoveSMContextFromAllNF(smContext, true)
 			}
 		}
 	case models.N2SmInfoType_PATH_SWITCH_REQ:
@@ -794,8 +794,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		}
 
 		if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
-			go sendSMContextStatusNotification(smContext)
-			smf_context.RemoveSMContext(smContext.Ref)
+			RemoveSMContextFromAllNF(smContext, true)
 		}
 
 	default:
@@ -809,26 +808,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		// Note:
 		// We don't want to launch timer to wait for N2SmInfoType_PDU_RES_REL_RSP.
 		// So, local release smCtx and notify AMF after sending PDUSessionResourceReleaseCommand
-		go sendSMContextStatusNotification(smContext)
-		smf_context.RemoveSMContext(smContext.Ref)
+		RemoveSMContextFromAllNF(smContext, true)
 	}
 	return httpResponse
-}
-
-func sendSMContextStatusNotification(smContext *smf_context.SMContext) {
-	// Use go routine to send Notification to prevent blocking the handling process
-	problemDetails, err := consumer.SendSMContextStatusNotification(smContext.SmStatusNotifyUri)
-	if problemDetails != nil || err != nil {
-		if problemDetails != nil {
-			smContext.Log.Warnf("Send SMContext Status Notification Problem[%+v]", problemDetails)
-		}
-
-		if err != nil {
-			smContext.Log.Warnf("Send SMContext Status Notification Error[%v]", err)
-		}
-	} else {
-		smContext.Log.Traceln("Send SMContext Status Notification successfully")
-	}
 }
 
 func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSmContextRequest) *httpwrapper.Response {
@@ -938,7 +920,7 @@ func HandlePDUSessionSMContextRelease(smContextRef string, body models.ReleaseSm
 		httpResponse.Body = errResponse
 	}
 
-	smf_context.RemoveSMContext(smContext.Ref)
+	RemoveSMContextFromAllNF(smContext, false)
 
 	return httpResponse
 }
@@ -978,7 +960,7 @@ func HandlePDUSessionSMContextLocalRelease(smContext *smf_context.SMContext, cre
 				logger.PduSessLog.Traceln("Send SMContext Status Notification successfully")
 			}
 		}
-		smf_context.RemoveSMContext(smContext.Ref)
+		RemoveSMContextFromAllNF(smContext, false)
 
 	case smf_context.SessionReleaseFailed:
 		logger.CtxLog.Traceln("In case SessionReleaseFailed")
@@ -1002,7 +984,7 @@ func releaseSession(smContext *smf_context.SMContext) smf_context.PFCPSessionRes
 	return smf_context.SessionReleaseSuccess
 }
 
-func makeErrorResponse(smContext *smf_context.SMContext, nasErrorCause uint8,
+func makeEstRejectResAndReleaseSMContext(smContext *smf_context.SMContext, nasErrorCause uint8,
 	sbiError *models.ProblemDetails,
 ) *httpwrapper.Response {
 	var httpResponse *httpwrapper.Response
@@ -1034,6 +1016,7 @@ func makeErrorResponse(smContext *smf_context.SMContext, nasErrorCause uint8,
 			},
 		}
 	}
+	RemoveSMContextFromAllNF(smContext, false)
 	return httpResponse
 }
 
@@ -1075,7 +1058,7 @@ func sendGSMPDUSessionReleaseCommand(smContext *smf_context.SMContext, nasPdu []
 			smContext.Log.Warn("T3592 Expires 3 times, abort notification procedure")
 			smContext.SMLock.Lock()
 			smContext.T3592 = nil
-			sendSMContextStatusNotification(smContext)
+			SendReleaseNotification(smContext)
 			smContext.SMLock.Unlock()
 		})
 	}

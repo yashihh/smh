@@ -7,6 +7,7 @@ import (
 	"net"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -63,14 +64,15 @@ const (
 )
 
 type UPF struct {
-	uuid         uuid.UUID
-	NodeID       pfcpType.NodeID
-	Addr         string
-	UPIPInfo     pfcpType.UserPlaneIPResourceInformation
-	UPFStatus    UPFStatus
-	SNssaiInfos  []*SnssaiUPFInfo
-	N3Interfaces []*UPFInterfaceInfo
-	N9Interfaces []*UPFInterfaceInfo
+	uuid              uuid.UUID
+	NodeID            pfcpType.NodeID
+	Addr              string
+	UPIPInfo          pfcpType.UserPlaneIPResourceInformation
+	UPFStatus         UPFStatus
+	RecoveryTimeStamp time.Time
+	SNssaiInfos       []*SnssaiUPFInfo
+	N3Interfaces      []*UPFInterfaceInfo
+	N9Interfaces      []*UPFInterfaceInfo
 
 	pdrPool sync.Map
 	farPool sync.Map
@@ -128,7 +130,7 @@ func NewUPFInterfaceInfo(i *factory.InterfaceUpfInfoItem) *UPFInterfaceInfo {
 	return interfaceInfo
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 // IP returns the IP of the user plane IP information of the pduSessType
 func (i *UPFInterfaceInfo) IP(pduSessType uint8) (net.IP, error) {
 	if (pduSessType == nasMessage.PDUSessionTypeIPv4 ||
@@ -204,7 +206,7 @@ func NewUPTunnel() (tunnel *UPTunnel) {
 	return
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func (t *UPTunnel) AddDataPath(dataPath *DataPath) {
 	pathID, err := t.PathIDGenerator.Allocate()
 	if err != nil {
@@ -221,7 +223,7 @@ func (t *UPTunnel) RemoveDataPath(pathID int64) {
 	t.PathIDGenerator.FreeID(pathID)
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 // NewUPF returns a new UPF context in SMF
 func NewUPF(nodeID *pfcpType.NodeID, ifaces []*factory.InterfaceUpfInfoItem) (upf *UPF) {
 	upf = new(UPF)
@@ -256,7 +258,7 @@ func NewUPF(nodeID *pfcpType.NodeID, ifaces []*factory.InterfaceUpfInfoItem) (up
 	return upf
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 // GetInterface return the UPFInterfaceInfo that match input cond
 func (upf *UPF) GetInterface(interfaceType models.UpInterfaceType, dnn string) *UPFInterfaceInfo {
 	switch interfaceType {
@@ -303,7 +305,7 @@ func (upf *UPF) PFCPAddr() *net.UDPAddr {
 	}
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func RetrieveUPFNodeByNodeID(nodeID pfcpType.NodeID) *UPF {
 	var targetUPF *UPF = nil
 	upfPool.Range(func(key, value interface{}) bool {
@@ -327,7 +329,7 @@ func RetrieveUPFNodeByNodeID(nodeID pfcpType.NodeID) *UPF {
 	return targetUPF
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func RemoveUPFNodeByNodeID(nodeID pfcpType.NodeID) bool {
 	upfID := ""
 	upfPool.Range(func(key, value interface{}) bool {
@@ -567,7 +569,7 @@ func (upf *UPF) GetQERById(qerId uint32) *QER {
 	return nil
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func (upf *UPF) RemovePDR(pdr *PDR) (err error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
@@ -579,7 +581,7 @@ func (upf *UPF) RemovePDR(pdr *PDR) (err error) {
 	return nil
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func (upf *UPF) RemoveFAR(far *FAR) (err error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
@@ -591,7 +593,7 @@ func (upf *UPF) RemoveFAR(far *FAR) (err error) {
 	return nil
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func (upf *UPF) RemoveBAR(bar *BAR) (err error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
@@ -603,7 +605,7 @@ func (upf *UPF) RemoveBAR(bar *BAR) (err error) {
 	return nil
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func (upf *UPF) RemoveQER(qer *QER) (err error) {
 	if upf.UPFStatus != AssociatedSetUpSuccess {
 		err := fmt.Errorf("UPF[%s] not Associate with SMF", upf.NodeID.ResolveNodeIdToIp().String())
@@ -622,4 +624,14 @@ func (upf *UPF) isSupportSnssai(snssai *SNssai) bool {
 		}
 	}
 	return false
+}
+
+func (upf *UPF) ProcEachSMContext(procFunc func(*SMContext)) {
+	smContextPool.Range(func(key, value interface{}) bool {
+		smContext := value.(*SMContext)
+		if smContext.SelectedUPF != nil && smContext.SelectedUPF.UPF == upf {
+			procFunc(smContext)
+		}
+		return true
+	})
 }
