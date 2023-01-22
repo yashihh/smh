@@ -1,6 +1,7 @@
 package udp
 
 import (
+	"errors"
 	"net"
 	"runtime/debug"
 	"time"
@@ -69,5 +70,8 @@ func SendPfcpResponse(sndMsg *pfcp.Message, addr *net.UDPAddr) {
 }
 
 func SendPfcpRequest(sndMsg *pfcp.Message, addr *net.UDPAddr) (rsvMsg *pfcpUdp.Message, err error) {
+	if addr.IP.Equal(net.IPv4zero) {
+		return nil, errors.New("no destination IP address is specified")
+	}
 	return Server.WriteRequestTo(sndMsg, addr)
 }

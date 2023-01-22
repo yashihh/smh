@@ -243,6 +243,7 @@ type PFCP struct {
 	NodeID       string `yaml:"nodeID,omitempty" valid:"host,required"`
 	// interval at which PFCP Association Setup error messages are output.
 	AlertInterval     time.Duration `yaml:"assocSetupFailedAlertInterval,omitempty" valid:"type(time.Duration),optional"`
+	RetryInterval     time.Duration `yaml:"assocSetupFailedRetryInterval,omitempty" valid:"type(time.Duration),optional"`
 	HeartbeatInterval time.Duration `yaml:"heartbeatInterval,omitempty" valid:"type(time.Duration),optional"`
 }
 
