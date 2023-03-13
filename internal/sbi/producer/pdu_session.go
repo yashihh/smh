@@ -67,6 +67,10 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		}
 	}()
 
+	upi := smf_context.GetUserPlaneInformation()
+	upi.Mu.RLock()
+	defer upi.Mu.RUnlock()
+
 	// DNN Information from config
 	smContext.DNNInfo = smf_context.RetrieveDnnInformation(smContext.SNssai, smContext.Dnn)
 	if smContext.DNNInfo == nil {
@@ -229,6 +233,10 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 	// PDU Session Release Command/Complete
 	smContext := smf_context.GetSMContextByRef(smContextRef)
 
+	upi := smf_context.GetUserPlaneInformation()
+	upi.Mu.RLock()
+	defer upi.Mu.RUnlock()
+
 	if smContext == nil {
 		logger.PduSessLog.Warnf("SMContext[%s] is not found", smContextRef)
 
@@ -285,10 +293,8 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 			HandlePDUSessionReleaseRequest(smContext, m.PDUSessionReleaseRequest)
 			if smContext.SelectedUPF != nil && smContext.PDUAddress != nil {
-				smContext.Log.Infof("Release IP[%s]", smContext.PDUAddress.String())
-				smf_context.
-					GetUserPlaneInformation().
-					ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress, smContext.UseStaticIP)
+				smContext.Log.Infof("Release IP[%s]", smContext.PDUAddress)
+				upi.ReleaseUEIP(smContext.SelectedUPF, smContext.PDUAddress, smContext.UseStaticIP)
 				smContext.PDUAddress = nil
 				// keep SelectedUPF until PDU Session Release is completed
 			}
