@@ -13,8 +13,6 @@ import (
 )
 
 func TestBuildNASPacketFilterFromPacketFilterInfo(t *testing.T) {
-	t.Parallel()
-
 	testCases := []struct {
 		name         string
 		packetFilter []nasType.PacketFilter

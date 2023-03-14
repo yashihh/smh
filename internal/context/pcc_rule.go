@@ -92,7 +92,8 @@ func getUplinkFlowDescription(dlFlowDesc string) string {
 }
 
 func (r *PCCRule) AddDataPathForwardingParameters(c *SMContext,
-	tgtRoute *models.RouteToLocation) {
+	tgtRoute *models.RouteToLocation,
+) {
 	if tgtRoute == nil {
 		return
 	}
@@ -117,7 +118,8 @@ func (r *PCCRule) AddDataPathForwardingParameters(c *SMContext,
 }
 
 func (r *PCCRule) BuildNasQoSRule(smCtx *SMContext,
-	opCode nasType.QoSRuleOperationCode) (*nasType.QoSRule, error) {
+	opCode nasType.QoSRuleOperationCode,
+) (*nasType.QoSRule, error) {
 	rule := nasType.QoSRule{}
 	rule.Operation = nasType.OperationCodeCreateNewQoSRule
 	rule.Precedence = uint8(r.Precedence)
@@ -254,7 +256,8 @@ func createNasPacketFilter(
 }
 
 func BuildNASPacketFiltersFromFlowInformation(pfInfo *models.FlowInformation,
-	smCtx *SMContext) ([]nasType.PacketFilter, error) {
+	smCtx *SMContext,
+) ([]nasType.PacketFilter, error) {
 	var pfList []nasType.PacketFilter
 	var err error
 

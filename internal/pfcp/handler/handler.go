@@ -182,7 +182,8 @@ func HandleReports(
 	UsageReportModification []*pfcp.UsageReportPFCPSessionModificationResponse,
 	UsageReportDeletion []*pfcp.UsageReportPFCPSessionDeletionResponse,
 	smContext *smf_context.SMContext,
-	nodeId pfcpType.NodeID) {
+	nodeId pfcpType.NodeID,
+) {
 	var usageReport smf_context.UsageReport
 
 	for _, report := range UsageReportReport {

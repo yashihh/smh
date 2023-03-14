@@ -183,7 +183,8 @@ func createUPFListForSelectionULCL(inputList []string) (outputList []string) {
 }
 
 func (dfp *UEDefaultPaths) SelectUPFAndAllocUEIPForULCL(upi *UserPlaneInformation,
-	selection *UPFSelectionParams) (string, net.IP, bool) {
+	selection *UPFSelectionParams,
+) (string, net.IP, bool) {
 	sortedUPFList := createUPFListForSelectionULCL(dfp.AnchorUPFs)
 
 	for _, upfName := range sortedUPFList {
