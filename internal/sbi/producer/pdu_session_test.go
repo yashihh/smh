@@ -3,6 +3,7 @@ package producer_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
@@ -576,6 +577,9 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 
 			require.Equal(t, tc.expectedHTTPRsp.Status, httpResp.Status)
 			require.Equal(t, tc.expectedHTTPRsp.Body, httpResp.Body)
+
+			// wait for another go-routine to execute following procedure
+			time.Sleep(100 * time.Millisecond)
 
 			createData := tc.request.JsonData
 			if createData != nil {
