@@ -702,8 +702,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
 		}
 
-		smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
-
 		switch smContext.State() {
 		case smf_context.ActivePending, smf_context.ModificationPending, smf_context.Active:
 			response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
@@ -715,7 +713,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 				response.BinaryDataN2SmInformation = buf
 			}
 		case smf_context.InActivePending, smf_context.InActive:
-			smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
 			smContext.Log.Infof("Skip deleting the PFCP sessions of PDUSessionID:%d of SUPI:%s",
 				smContext.PDUSessionID, smContext.Supi)
 			return &httpwrapper.Response{
@@ -726,7 +723,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			smContext.Log.Infof("Not needs to send pfcp release")
 		}
 
-		smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
 		smContext.Log.Infoln("[SMF] Cause_REL_DUE_TO_DUPLICATE_SESSION_ID")
 		pfcpResponseStatus = releaseSession(smContext)
 	}
