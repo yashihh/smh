@@ -693,38 +693,24 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 
 		smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID = true
 
-		buf, err := smf_context.BuildPDUSessionResourceReleaseCommandTransfer(smContext)
-		if err != nil {
-			logger.PduSessLog.Error(err)
-		} else {
-			response.BinaryDataN2SmInformation = buf
-			response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
-			response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
-		}
-
 		switch smContext.State() {
 		case smf_context.ActivePending, smf_context.ModificationPending, smf_context.Active:
-			response.JsonData.N2SmInfo = &models.RefToBinaryData{ContentId: "PDUResourceReleaseCommand"}
-			response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
-
 			if buf, err := smf_context.BuildPDUSessionResourceReleaseCommandTransfer(smContext); err != nil {
 				smContext.Log.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %v", err)
 			} else {
 				response.BinaryDataN2SmInformation = buf
+				response.JsonData.N2SmInfoType = models.N2SmInfoType_PDU_RES_REL_CMD
+				response.JsonData.N2SmInfo = &models.RefToBinaryData{
+					ContentId: "PDUResourceReleaseCommand",
+				}
 			}
-		case smf_context.InActivePending, smf_context.InActive:
-			smContext.Log.Infof("Skip deleting the PFCP sessions of PDUSessionID:%d of SUPI:%s",
-				smContext.PDUSessionID, smContext.Supi)
-			return &httpwrapper.Response{
-				Status: http.StatusOK,
-				Body:   response,
-			}
+
+			pfcpResponseStatus = releaseSession(smContext)
 		default:
 			smContext.Log.Infof("Not needs to send pfcp release")
 		}
 
 		smContext.Log.Infoln("[SMF] Cause_REL_DUE_TO_DUPLICATE_SESSION_ID")
-		pfcpResponseStatus = releaseSession(smContext)
 	}
 
 	// Check FSM and take corresponding action
@@ -792,6 +778,7 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			}
 			httpResponse.Body = errResponse
 		}
+		smContext.PostRemoveDataPath()
 	case smf_context.ModificationPending:
 		smContext.Log.Traceln("In case ModificationPending")
 		smContext.SetState(smf_context.Active)
@@ -818,6 +805,13 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 		}
 	}
 
+	if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
+		// Note:
+		// We don't want to launch timer to wait for N2SmInfoType_PDU_RES_REL_RSP.
+		// So, local release smCtx and notify AMF after sending PDUSessionResourceReleaseCommand
+		go sendSMContextStatusNotification(smContext)
+		smf_context.RemoveSMContext(smContext.Ref)
+	}
 	return httpResponse
 }
 
