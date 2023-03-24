@@ -241,6 +241,8 @@ type PFCP struct {
 	ListenAddr   string `yaml:"listenAddr,omitempty" valid:"host,required"`
 	ExternalAddr string `yaml:"externalAddr,omitempty" valid:"host,required"`
 	NodeID       string `yaml:"nodeID,omitempty" valid:"host,required"`
+	// interval at which PFCP Association Setup error messages are output.
+	AlertInterval time.Duration `yaml:"associationSetupFailedAlertInterval,omitempty" valid:"type(time.Duration),optional"`
 }
 
 func (p *PFCP) validate() (bool, error) {
