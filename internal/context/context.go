@@ -175,7 +175,7 @@ func InitSmfContext(config *factory.Config) {
 			}
 		}
 
-		smfContext.PfcpHeartbeatInterval = pfcp.Heartbeat.Interval
+		smfContext.PfcpHeartbeatInterval = pfcp.HeartbeatInterval
 
 		if pfcp.AlertInterval == 0 {
 			smfContext.AssociationSetupFailedAlertInterval = 5 * time.Minute

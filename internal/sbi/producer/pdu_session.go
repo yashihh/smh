@@ -792,11 +792,6 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			Status: http.StatusOK,
 			Body:   response,
 		}
-
-		if smContext.PDUSessionRelease_DUE_TO_DUP_PDU_ID {
-			RemoveSMContextFromAllNF(smContext, true)
-		}
-
 	default:
 		httpResponse = &httpwrapper.Response{
 			Status: http.StatusOK,
