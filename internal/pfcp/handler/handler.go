@@ -82,8 +82,6 @@ func HandlePfcpSessionSetDeletionResponse(msg *pfcpUdp.Message) {
 
 func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 	var cause pfcpType.Cause
-	var remoteSEID uint64
-	var nodeId pfcpType.NodeID
 
 	req := msg.PfcpMessage.Body.(pfcp.PFCPSessionReportRequest)
 	SEID := msg.PfcpMessage.Header.SEID
@@ -95,21 +93,44 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 		cause.CauseValue = pfcpType.CauseSessionContextNotFound
 		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, 0)
 		return
-	} else {
-		nodeId = smContext.GetNodeIDByLocalSEID(SEID)
-		nodeIDtoIP := nodeId.ResolveNodeIdToIp().String()
-		if pfcpCtx := smContext.PFCPContext[nodeIDtoIP]; pfcpCtx == nil {
-			logger.PfcpLog.Errorf("pfcpCtx [nodeId: %v, seid:%d] not found", nodeId, SEID)
-			cause.CauseValue = pfcpType.CauseRequestRejected
-			pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, 0)
-			return
-		} else {
-			remoteSEID = pfcpCtx.RemoteSEID
-		}
 	}
 
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
+
+	upfNodeID := smContext.GetNodeIDByLocalSEID(SEID)
+	upfNodeIDtoIP := upfNodeID.ResolveNodeIdToIp()
+	if upfNodeIDtoIP.IsUnspecified() {
+		logger.PduSessLog.Errorf("Invalid PFCP Session Report Request : no PFCP session found with SEID %d", SEID)
+		cause.CauseValue = pfcpType.CauseNoEstablishedPfcpAssociation
+		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, 0)
+		return
+	}
+	upfNodeIDtoIPStr := upfNodeIDtoIP.String()
+
+	pfcpCtx := smContext.PFCPContext[upfNodeIDtoIPStr]
+	if pfcpCtx == nil {
+		logger.PfcpLog.Errorf("pfcpCtx [nodeId: %v, seid:%d] not found", upfNodeID, SEID)
+		cause.CauseValue = pfcpType.CauseNoEstablishedPfcpAssociation
+		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, 0)
+		return
+	}
+	remoteSEID := pfcpCtx.RemoteSEID
+
+	upf := smf_context.RetrieveUPFNodeByNodeID(upfNodeID)
+	if upf == nil {
+		logger.PfcpLog.Errorf("can't find UPF[%s]", upfNodeIDtoIPStr)
+		cause.CauseValue = pfcpType.CauseNoEstablishedPfcpAssociation
+		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, 0)
+		return
+	}
+	if upf.UPFStatus != smf_context.AssociatedSetUpSuccess {
+		logger.PfcpLog.Warnf("PFCP Session Report Request : Not Associated with UPF[%s], Request Rejected",
+			upfNodeIDtoIPStr)
+		cause.CauseValue = pfcpType.CauseNoEstablishedPfcpAssociation
+		pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, 0)
+		return
+	}
 
 	if smContext.UpCnxState == models.UpCnxState_DEACTIVATED {
 		if req.ReportType.Dldr {
@@ -169,7 +190,7 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 	}
 
 	if req.ReportType.Usar && req.UsageReport != nil {
-		HandleReports(req.UsageReport, nil, nil, smContext, nodeId)
+		HandleReports(req.UsageReport, nil, nil, smContext, upfNodeID)
 	}
 
 	// TS 23.502 4.2.3.3 2b. Send Data Notification Ack, SMF->UPF

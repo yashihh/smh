@@ -291,7 +291,7 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 	return smContext
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func GetSMContextByRef(ref string) *SMContext {
 	var smCtx *SMContext
 	if value, ok := smContextPool.Load(ref); ok {
@@ -312,7 +312,7 @@ func GetSMContextById(id string, pduSessID int32) *SMContext {
 	return smCtx
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func RemoveSMContext(ref string) {
 	var smContext *SMContext
 	if value, ok := smContextPool.Load(ref); ok {
@@ -321,7 +321,7 @@ func RemoveSMContext(ref string) {
 		return
 	}
 
-	if smContext.SelectedUPF != nil {
+	if smContext.SelectedUPF != nil && smContext.PDUAddress != nil {
 		logger.PduSessLog.Infof("UE[%s] PDUSessionID[%d] Release IP[%s]",
 			smContext.Supi, smContext.PDUSessionID, smContext.PDUAddress.String())
 		GetUserPlaneInformation().
@@ -338,7 +338,7 @@ func RemoveSMContext(ref string) {
 	smContext.Log.Infof("smContext[%s] is deleted from pool", ref)
 }
 
-//*** add unit test ***//
+// *** add unit test ***//
 func GetSMContextBySEID(SEID uint64) *SMContext {
 	if value, ok := seidSMContextMap.Load(SEID); ok {
 		smContext := value.(*SMContext)
