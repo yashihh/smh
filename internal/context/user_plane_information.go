@@ -157,7 +157,8 @@ func NewUserPlaneInformation(upTopology *factory.UserPlaneInformation) *UserPlan
 							for _, dynamicUePool := range ueIPPools {
 								if dynamicUePool.ueSubNet.Contains(ueIPPool.ueSubNet.IP) {
 									if err := dynamicUePool.exclude(ueIPPool); err != nil {
-										logger.InitLog.Fatalf("exclude static Pool[%s] failed: %v", ueIPPool.ueSubNet, err)
+										logger.InitLog.Fatalf("exclude static Pool[%s] failed: %v",
+											ueIPPool.ueSubNet, err)
 									}
 								}
 							}
@@ -242,14 +243,21 @@ func (upi *UserPlaneInformation) UpNodesToConfiguration() map[string]*factory.UP
 					FDnnUpfInfoList := make([]*factory.DnnUpfInfoItem, 0)
 					for _, dnnInfo := range sNssaiInfo.DnnList {
 						FUEIPPools := make([]*factory.UEIPPool, 0)
+						FStaticUEIPPools := make([]*factory.UEIPPool, 0)
 						for _, pool := range dnnInfo.UeIPPools {
 							FUEIPPools = append(FUEIPPools, &factory.UEIPPool{
 								Cidr: pool.ueSubNet.String(),
 							})
 						} // for pool
+						for _, pool := range dnnInfo.StaticIPPools {
+							FStaticUEIPPools = append(FStaticUEIPPools, &factory.UEIPPool{
+								Cidr: pool.ueSubNet.String(),
+							})
+						} // for static pool
 						FDnnUpfInfoList = append(FDnnUpfInfoList, &factory.DnnUpfInfoItem{
-							Dnn:   dnnInfo.Dnn,
-							Pools: FUEIPPools,
+							Dnn:         dnnInfo.Dnn,
+							Pools:       FUEIPPools,
+							StaticPools: FStaticUEIPPools,
 						})
 					} // for dnnInfo
 					Fsnssai := &factory.SnssaiUpfInfoItem{
@@ -388,6 +396,7 @@ func (upi *UserPlaneInformation) UpNodesFromConfiguration(upTopology *factory.Us
 
 				for _, dnnInfoConfig := range snssaiInfoConfig.DnnUpfInfoList {
 					ueIPPools := make([]*UeIPPool, 0)
+					staticUeIPPools := make([]*UeIPPool, 0)
 					for _, pool := range dnnInfoConfig.Pools {
 						ueIPPool := NewUEIPPool(pool)
 						if ueIPPool == nil {
@@ -396,11 +405,28 @@ func (upi *UserPlaneInformation) UpNodesFromConfiguration(upTopology *factory.Us
 							ueIPPools = append(ueIPPools, ueIPPool)
 						}
 					}
+					for _, pool := range dnnInfoConfig.StaticPools {
+						ueIPPool := NewUEIPPool(pool)
+						if ueIPPool == nil {
+							logger.InitLog.Fatalf("invalid pools value: %+v", pool)
+						} else {
+							staticUeIPPools = append(staticUeIPPools, ueIPPool)
+							for _, dynamicUePool := range ueIPPools {
+								if dynamicUePool.ueSubNet.Contains(ueIPPool.ueSubNet.IP) {
+									if err := dynamicUePool.exclude(ueIPPool); err != nil {
+										logger.InitLog.Fatalf("exclude static Pool[%s] failed: %v",
+											ueIPPool.ueSubNet, err)
+									}
+								}
+							}
+						}
+					}
 					snssaiInfo.DnnList = append(snssaiInfo.DnnList, &DnnUPFInfoItem{
 						Dnn:             dnnInfoConfig.Dnn,
 						DnaiList:        dnnInfoConfig.DnaiList,
 						PduSessionTypes: dnnInfoConfig.PduSessionTypes,
 						UeIPPools:       ueIPPools,
+						StaticIPPools:   staticUeIPPools,
 					})
 				}
 				snssaiInfos = append(snssaiInfos, snssaiInfo)

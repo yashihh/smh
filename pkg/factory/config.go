@@ -242,9 +242,9 @@ type PFCP struct {
 	ExternalAddr string `yaml:"externalAddr,omitempty" valid:"host,required"`
 	NodeID       string `yaml:"nodeID,omitempty" valid:"host,required"`
 	// interval at which PFCP Association Setup error messages are output.
-	AlertInterval     time.Duration `yaml:"assocSetupFailedAlertInterval,omitempty" valid:"type(time.Duration),optional"`
-	RetryInterval     time.Duration `yaml:"assocSetupFailedRetryInterval,omitempty" valid:"type(time.Duration),optional"`
-	HeartbeatInterval time.Duration `yaml:"heartbeatInterval,omitempty" valid:"type(time.Duration),optional"`
+	AssocFailAlertInterval time.Duration `yaml:"assocFailAlertInterval,omitempty" valid:"type(time.Duration),optional"`
+	AssocFailRetryInterval time.Duration `yaml:"assocFailRetryInterval,omitempty" valid:"type(time.Duration),optional"`
+	HeartbeatInterval      time.Duration `yaml:"heartbeatInterval,omitempty" valid:"type(time.Duration),optional"`
 }
 
 func (p *PFCP) validate() (bool, error) {

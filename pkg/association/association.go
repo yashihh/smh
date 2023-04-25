@@ -70,8 +70,8 @@ func isDone(ctx context.Context, upf *smf_context.UPF) bool {
 
 func ensureSetupPfcpAssociation(ctx context.Context, upf *smf_context.UPF, upfStr string) {
 	alertTime := time.Now()
-	alertInterval := smf_context.SMF_Self().AssociationSetupFailedAlertInterval
-	retryInterval := smf_context.SMF_Self().AssociationSetupFailedRetryInterval
+	alertInterval := smf_context.SMF_Self().AssocFailAlertInterval
+	retryInterval := smf_context.SMF_Self().AssocFailRetryInterval
 	for {
 		timer := time.After(retryInterval)
 		err := setupPfcpAssociation(upf, upfStr)

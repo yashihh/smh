@@ -47,13 +47,13 @@ type SMFContext struct {
 
 	SnssaiInfos []*SnssaiSmfInfo
 
-	NrfUri                              string
-	NFManagementClient                  *Nnrf_NFManagement.APIClient
-	NFDiscoveryClient                   *Nnrf_NFDiscovery.APIClient
-	SubscriberDataManagementClient      *Nudm_SubscriberDataManagement.APIClient
-	Locality                            string
-	AssociationSetupFailedAlertInterval time.Duration
-	AssociationSetupFailedRetryInterval time.Duration
+	NrfUri                         string
+	NFManagementClient             *Nnrf_NFManagement.APIClient
+	NFDiscoveryClient              *Nnrf_NFDiscovery.APIClient
+	SubscriberDataManagementClient *Nudm_SubscriberDataManagement.APIClient
+	Locality                       string
+	AssocFailAlertInterval         time.Duration
+	AssocFailRetryInterval         time.Duration
 
 	UserPlaneInformation  *UserPlaneInformation
 	Ctx                   context.Context
@@ -179,15 +179,15 @@ func InitSmfContext(config *factory.Config) {
 
 		smfContext.PfcpHeartbeatInterval = pfcp.HeartbeatInterval
 
-		if pfcp.AlertInterval == 0 {
-			smfContext.AssociationSetupFailedAlertInterval = 5 * time.Minute
+		if pfcp.AssocFailAlertInterval == 0 {
+			smfContext.AssocFailAlertInterval = 5 * time.Minute
 		} else {
-			smfContext.AssociationSetupFailedAlertInterval = pfcp.AlertInterval
+			smfContext.AssocFailAlertInterval = pfcp.AssocFailAlertInterval
 		}
-		if pfcp.RetryInterval == 0 {
-			smfContext.AssociationSetupFailedRetryInterval = 5 * time.Second
+		if pfcp.AssocFailRetryInterval == 0 {
+			smfContext.AssocFailRetryInterval = 5 * time.Second
 		} else {
-			smfContext.AssociationSetupFailedRetryInterval = pfcp.RetryInterval
+			smfContext.AssocFailRetryInterval = pfcp.AssocFailRetryInterval
 		}
 	}
 
