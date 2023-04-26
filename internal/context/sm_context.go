@@ -517,18 +517,18 @@ func (c *SMContext) findPSAandAllocUeIP(param *UPFSelectionParams) error {
 		return fmt.Errorf("UPFSelectionParams is nil")
 	}
 
-	upInfo := GetUserPlaneInformation()
+	upi := GetUserPlaneInformation()
 	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(c.Supi) {
 		groupName := GetULCLGroupNameFromSUPI(c.Supi)
 		preConfigPathPool := GetUEDefaultPathPool(groupName)
 		if preConfigPathPool != nil {
 			selectedUPFName := ""
 			selectedUPFName, c.PDUAddress, c.UseStaticIP = preConfigPathPool.SelectUPFAndAllocUEIPForULCL(
-				upInfo, param)
-			c.SelectedUPF = GetUserPlaneInformation().UPFs[selectedUPFName]
+				upi, param)
+			c.SelectedUPF = upi.UPFs[selectedUPFName]
 		}
 	} else {
-		c.SelectedUPF, c.PDUAddress, c.UseStaticIP = GetUserPlaneInformation().SelectUPFAndAllocUEIP(param)
+		c.SelectedUPF, c.PDUAddress, c.UseStaticIP = upi.SelectUPFAndAllocUEIP(param)
 		c.Log.Infof("Allocated PDUAdress[%s]", c.PDUAddress.String())
 	}
 	if c.PDUAddress == nil {

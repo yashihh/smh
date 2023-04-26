@@ -1,4 +1,4 @@
-package service
+package association
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"bitbucket.org/free5gc-team/smf/internal/sbi/producer"
 )
 
-func toBeAssociatedWithUPF(ctx context.Context, upf *smf_context.UPF) {
+func ToBeAssociatedWithUPF(ctx context.Context, upf *smf_context.UPF) {
 	var upfStr string
 	if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
 		upfStr = fmt.Sprintf("[%s](%s)", upf.NodeID.FQDN, upf.NodeID.ResolveNodeIdToIp().String())
@@ -26,7 +26,7 @@ func toBeAssociatedWithUPF(ctx context.Context, upf *smf_context.UPF) {
 
 	for {
 		ensureSetupPfcpAssociation(ctx, upf, upfStr)
-		if isDone(ctx) {
+		if isDone(ctx, upf) {
 			break
 		}
 
@@ -36,20 +36,32 @@ func toBeAssociatedWithUPF(ctx context.Context, upf *smf_context.UPF) {
 
 		keepHeartbeatTo(ctx, upf, upfStr)
 		// return when UPF heartbeat lost is detected or association is canceled
-		if isDone(ctx) {
+		if isDone(ctx, upf) {
 			break
 		}
 
 		releaseAllResourcesOfUPF(upf, upfStr)
-		if isDone(ctx) {
+		if isDone(ctx, upf) {
 			break
 		}
 	}
 }
 
-func isDone(ctx context.Context) bool {
+func ReleaseAllResourcesOfUPF(upf *smf_context.UPF) {
+	var upfStr string
+	if upf.NodeID.NodeIdType == pfcpType.NodeIdTypeFqdn {
+		upfStr = fmt.Sprintf("[%s](%s)", upf.NodeID.FQDN, upf.NodeID.ResolveNodeIdToIp().String())
+	} else {
+		upfStr = fmt.Sprintf("[%s]", upf.NodeID.ResolveNodeIdToIp().String())
+	}
+	releaseAllResourcesOfUPF(upf, upfStr)
+}
+
+func isDone(ctx context.Context, upf *smf_context.UPF) bool {
 	select {
 	case <-ctx.Done():
+		return true
+	case <-upf.Ctx.Done():
 		return true
 	default:
 		return false
@@ -57,22 +69,32 @@ func isDone(ctx context.Context) bool {
 }
 
 func ensureSetupPfcpAssociation(ctx context.Context, upf *smf_context.UPF, upfStr string) {
-	var alertTime time.Time
-	alertInterval := smf_context.SMF_Self().AssociationSetupFailedAlertInterval
+	alertTime := time.Now()
+	alertInterval := smf_context.SMF_Self().AssocFailAlertInterval
+	retryInterval := smf_context.SMF_Self().AssocFailRetryInterval
 	for {
+		timer := time.After(retryInterval)
 		err := setupPfcpAssociation(upf, upfStr)
 		if err == nil {
 			return
 		}
+		logger.AppLog.Warnf("Failed to setup an association with UPF%s, error:%+v", upfStr, err)
 		now := time.Now()
-		if alertTime.IsZero() || now.After(alertTime.Add(alertInterval)) {
-			logger.AppLog.Errorf("Failed to setup an association with UPF%s, error:%+v", upfStr, err)
+		logger.AppLog.Debugf("now %+v, alertTime %+v", now, alertTime)
+		if now.After(alertTime.Add(alertInterval)) {
+			logger.AppLog.Errorf("ALERT for UPF%s", upfStr)
 			alertTime = now
 		}
-
-		if isDone(ctx) {
+		logger.AppLog.Debugf("Wait %+v (or less) until next retry attempt", retryInterval)
+		select {
+		case <-ctx.Done():
 			logger.AppLog.Infof("Canceled association request to UPF%s", upfStr)
 			return
+		case <-upf.Ctx.Done():
+			logger.AppLog.Infof("Canceled association request to this UPF%s only", upfStr)
+			return
+		case <-timer:
+			continue
 		}
 	}
 }
@@ -123,6 +145,9 @@ func keepHeartbeatTo(ctx context.Context, upf *smf_context.UPF, upfStr string) {
 		case <-ctx.Done():
 			logger.AppLog.Infof("Canceled Heartbeat with UPF%s", upfStr)
 			return
+		case <-upf.Ctx.Done():
+			logger.AppLog.Infof("Canceled Heartbeat to this UPF%s only", upfStr)
+			return
 		case <-timer:
 			continue
 		}
@@ -163,7 +188,7 @@ func doPfcpHeartbeat(upf *smf_context.UPF, upfStr string) error {
 }
 
 func releaseAllResourcesOfUPF(upf *smf_context.UPF, upfStr string) {
-	logger.AppLog.Infof("Release all resources of UPF%s", upfStr)
+	logger.AppLog.Infof("Release all resources of UPF %s", upfStr)
 
 	upf.ProcEachSMContext(func(smContext *smf_context.SMContext) {
 		smContext.SMLock.Lock()
