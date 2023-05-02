@@ -8,9 +8,8 @@ require (
 	bitbucket.org/free5gc-team/ngap v0.0.0-20220623012559-b93c014cf164
 	bitbucket.org/free5gc-team/openapi v0.0.0-20230303073356-24501c097165
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20230310073727-f9d31bc12880
-	bitbucket.org/free5gc-team/util v0.0.0-20220501150925-a07647243fa5
+	bitbucket.org/free5gc-team/util v0.0.0-20230306155723-79c7c67a6d04
 	github.com/antihax/optional v1.0.0
-	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gin-gonic/gin v1.7.7
@@ -27,6 +26,7 @@ require (
 
 require (
 	bitbucket.org/free5gc-team/tlv v0.0.0-20230131124718-ad904f976cf9 // indirect
+	github.com/antonfisher/nested-logrus-formatter v1.3.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
@@ -34,6 +34,7 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
+	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
 	github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 // indirect
 	github.com/json-iterator/go v1.1.9 // indirect
@@ -47,6 +48,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
+	github.com/tim-ywliu/nested-logrus-formatter v1.3.2 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.7.0 // indirect

@@ -413,11 +413,11 @@ func (smContext *SMContext) PCFSelection() error {
 	// Send NFDiscovery for find PCF
 	localVarOptionals := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
 
-	if SMF_Self().Locality != "" {
-		localVarOptionals.PreferredLocality = optional.NewString(SMF_Self().Locality)
+	if GetSelf().Locality != "" {
+		localVarOptionals.PreferredLocality = optional.NewString(GetSelf().Locality)
 	}
 
-	rep, res, err := SMF_Self().
+	rep, res, err := GetSelf().
 		NFDiscoveryClient.
 		NFInstancesStoreApi.
 		SearchNFInstances(context.TODO(), models.NfType_PCF, models.NfType_SMF, &localVarOptionals)
@@ -518,7 +518,7 @@ func (c *SMContext) findPSAandAllocUeIP(param *UPFSelectionParams) error {
 	}
 
 	upi := GetUserPlaneInformation()
-	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(c.Supi) {
+	if GetSelf().ULCLSupport && CheckUEHasPreConfig(c.Supi) {
 		groupName := GetULCLGroupNameFromSUPI(c.Supi)
 		preConfigPathPool := GetUEDefaultPathPool(groupName)
 		if preConfigPathPool != nil {
@@ -566,7 +566,7 @@ func (c *SMContext) SelectDefaultDataPath() error {
 	}
 
 	var defaultPath *DataPath
-	if SMF_Self().ULCLSupport && CheckUEHasPreConfig(c.Supi) {
+	if GetSelf().ULCLSupport && CheckUEHasPreConfig(c.Supi) {
 		c.Log.Infof("Has pre-config route")
 		uePreConfigPaths := GetUEPreConfigPaths(c.Supi, c.SelectedUPF.Name)
 		c.Tunnel.DataPathPool = uePreConfigPaths.DataPathPool
@@ -731,7 +731,7 @@ func (smContext *SMContext) IsAllowedPDUSessionType(requestedPDUSessionType uint
 		}
 	}
 
-	supportedPDUSessionType := SMF_Self().SupportedPDUSessionType
+	supportedPDUSessionType := GetSelf().SupportedPDUSessionType
 	switch supportedPDUSessionType {
 	case "IPv4":
 		if !allowIPv4 {

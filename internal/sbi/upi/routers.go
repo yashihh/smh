@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"bitbucket.org/free5gc-team/smf/internal/logger"
+	"bitbucket.org/free5gc-team/smf/pkg/factory"
 	logger_util "bitbucket.org/free5gc-team/util/logger"
 )
 
@@ -33,7 +34,7 @@ func NewRouter() *gin.Engine {
 }
 
 func AddService(engine *gin.Engine) *gin.RouterGroup {
-	group := engine.Group("/upi/v1")
+	group := engine.Group(factory.UpiUriPrefix)
 
 	for _, route := range routes {
 		switch route.Method {

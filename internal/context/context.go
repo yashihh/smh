@@ -19,7 +19,7 @@ import (
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
 )
 
-func init() {
+func Init() {
 	smfContext.NfInstanceID = uuid.New().String()
 }
 
@@ -90,7 +90,7 @@ func (s *SMFContext) ListenIP() net.IP {
 
 // RetrieveDnnInformation gets the corresponding dnn info from S-NSSAI and DNN
 func RetrieveDnnInformation(Snssai *models.Snssai, dnn string) *SnssaiSmfDnnInfo {
-	for _, snssaiInfo := range SMF_Self().SnssaiInfos {
+	for _, snssaiInfo := range GetSelf().SnssaiInfos {
 		if snssaiInfo.Snssai.Sst == Snssai.Sst && snssaiInfo.Snssai.Sd == Snssai.Sd {
 			return snssaiInfo.DnnInfos[dnn]
 		}
@@ -120,8 +120,8 @@ func InitSmfContext(config *factory.Config) {
 		return
 	} else {
 		smfContext.URIScheme = models.UriScheme(sbi.Scheme)
-		smfContext.RegisterIPv4 = factory.SMF_DEFAULT_IPV4 // default localhost
-		smfContext.SBIPort = factory.SMF_DEFAULT_PORT_INT  // default port
+		smfContext.RegisterIPv4 = factory.SmfSbiDefaultIPv4 // default localhost
+		smfContext.SBIPort = factory.SmfSbiDefaultPort      // default port
 		if sbi.RegisterIPv4 != "" {
 			smfContext.RegisterIPv4 = sbi.RegisterIPv4
 		}
@@ -218,11 +218,11 @@ func InitSmfContext(config *factory.Config) {
 
 	// Set client and set url
 	ManagementConfig := Nnrf_NFManagement.NewConfiguration()
-	ManagementConfig.SetBasePath(SMF_Self().NrfUri)
+	ManagementConfig.SetBasePath(GetSelf().NrfUri)
 	smfContext.NFManagementClient = Nnrf_NFManagement.NewAPIClient(ManagementConfig)
 
 	NFDiscovryConfig := Nnrf_NFDiscovery.NewConfiguration()
-	NFDiscovryConfig.SetBasePath(SMF_Self().NrfUri)
+	NFDiscovryConfig.SetBasePath(GetSelf().NrfUri)
 	smfContext.NFDiscoveryClient = Nnrf_NFDiscovery.NewAPIClient(NFDiscovryConfig)
 
 	smfContext.ULCLSupport = configuration.ULCL
@@ -272,7 +272,7 @@ func InitSMFUERouting(routingConfig *factory.RoutingConfig) {
 	}
 }
 
-func SMF_Self() *SMFContext {
+func GetSelf() *SMFContext {
 	return &smfContext
 }
 

@@ -342,7 +342,7 @@ func updateAnUpfPfcpSession(
 
 	logger.PduSessLog.Info("Received PFCP Session Modification Accepted Response from AN UPF")
 
-	if smf_context.SMF_Self().ULCLSupport && smContext.BPManager != nil {
+	if smf_context.GetSelf().ULCLSupport && smContext.BPManager != nil {
 		if smContext.BPManager.BPStatus == smf_context.UnInitialized {
 			logger.PfcpLog.Infoln("Add PSAAndULCL")
 			// TODO: handle error cases

@@ -13,7 +13,7 @@ import (
 func BuildPfcpAssociationSetupRequest() (pfcp.PFCPAssociationSetupRequest, error) {
 	msg := pfcp.PFCPAssociationSetupRequest{}
 
-	msg.NodeID = &context.SMF_Self().CPNodeID
+	msg.NodeID = &context.GetSelf().CPNodeID
 
 	msg.RecoveryTimeStamp = &pfcpType.RecoveryTimeStamp{
 		RecoveryTimeStamp: udp.ServerStartTime,
@@ -29,7 +29,7 @@ func BuildPfcpAssociationSetupRequest() (pfcp.PFCPAssociationSetupRequest, error
 func BuildPfcpAssociationSetupResponse(cause pfcpType.Cause) (pfcp.PFCPAssociationSetupResponse, error) {
 	msg := pfcp.PFCPAssociationSetupResponse{}
 
-	msg.NodeID = &context.SMF_Self().CPNodeID
+	msg.NodeID = &context.GetSelf().CPNodeID
 
 	msg.Cause = &cause
 
@@ -47,7 +47,7 @@ func BuildPfcpAssociationSetupResponse(cause pfcpType.Cause) (pfcp.PFCPAssociati
 func BuildPfcpAssociationReleaseRequest() (pfcp.PFCPAssociationReleaseRequest, error) {
 	msg := pfcp.PFCPAssociationReleaseRequest{}
 
-	msg.NodeID = &context.SMF_Self().CPNodeID
+	msg.NodeID = &context.GetSelf().CPNodeID
 
 	return msg, nil
 }
@@ -55,7 +55,7 @@ func BuildPfcpAssociationReleaseRequest() (pfcp.PFCPAssociationReleaseRequest, e
 func BuildPfcpAssociationReleaseResponse(cause pfcpType.Cause) (pfcp.PFCPAssociationReleaseResponse, error) {
 	msg := pfcp.PFCPAssociationReleaseResponse{}
 
-	msg.NodeID = &context.SMF_Self().CPNodeID
+	msg.NodeID = &context.GetSelf().CPNodeID
 
 	msg.Cause = &cause
 
@@ -302,9 +302,9 @@ func BuildPfcpSessionEstablishmentRequest(
 ) (pfcp.PFCPSessionEstablishmentRequest, error) {
 	msg := pfcp.PFCPSessionEstablishmentRequest{}
 
-	msg.NodeID = &context.SMF_Self().CPNodeID
+	msg.NodeID = &context.GetSelf().CPNodeID
 
-	isv4 := context.SMF_Self().ExternalIP().To4() != nil
+	isv4 := context.GetSelf().ExternalIP().To4() != nil
 	nodeIDtoIP := upNodeID.ResolveNodeIdToIp().String()
 
 	localSEID := smContext.PFCPContext[nodeIDtoIP].LocalSEID
@@ -313,7 +313,7 @@ func BuildPfcpSessionEstablishmentRequest(
 		V4:          isv4,
 		V6:          !isv4,
 		Seid:        localSEID,
-		Ipv4Address: context.SMF_Self().ExternalIP().To4(),
+		Ipv4Address: context.GetSelf().ExternalIP().To4(),
 	}
 
 	msg.CreatePDR = make([]*pfcp.CreatePDR, 0)
@@ -378,7 +378,7 @@ func BuildPfcpSessionEstablishmentRequest(
 func BuildPfcpSessionEstablishmentResponse() (pfcp.PFCPSessionEstablishmentResponse, error) {
 	msg := pfcp.PFCPSessionEstablishmentResponse{}
 
-	msg.NodeID = &context.SMF_Self().CPNodeID
+	msg.NodeID = &context.GetSelf().CPNodeID
 
 	msg.Cause = &pfcpType.Cause{
 		CauseValue: pfcpType.CauseRequestAccepted,
@@ -436,7 +436,7 @@ func BuildPfcpSessionModificationRequest(
 		V4:          true,
 		V6:          false,
 		Seid:        localSEID,
-		Ipv4Address: context.SMF_Self().ExternalIP().To4(),
+		Ipv4Address: context.GetSelf().ExternalIP().To4(),
 	}
 
 	for _, pdr := range pdrList {

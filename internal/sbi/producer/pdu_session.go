@@ -97,7 +97,7 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 		SingleNssai: optional.NewInterface(openapi.MarshToJsonString(smContext.SNssai)),
 	}
 
-	SubscriberDataManagementClient := smf_context.SMF_Self().SubscriberDataManagementClient
+	SubscriberDataManagementClient := smf_context.GetSelf().SubscriberDataManagementClient
 
 	if sessSubData, rsp, err := SubscriberDataManagementClient.
 		SessionManagementSubscriptionDataRetrievalApi.
