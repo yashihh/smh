@@ -112,7 +112,7 @@ var testConfig = factory.Config{
 
 func initConfig() {
 	context.InitSmfContext(&testConfig)
-	factory.SmfConfig = testConfig
+	factory.SmfConfig = &testConfig
 }
 
 func initDiscUDMStubNRF() {
@@ -158,7 +158,7 @@ func initDiscUDMStubNRF() {
 		},
 	}
 
-	gock.New("http://127.0.0.10:8000/nnrf-disc/v1").
+	gock.New("http://127.0.0.10:8000"+factory.NrfDiscUriPrefix).
 		Get("/nf-instances").
 		MatchParam("target-nf-type", "UDM").
 		MatchParam("requester-nf-type", "SMF").
@@ -215,7 +215,7 @@ func initDiscPCFStubNRF() {
 		},
 	}
 
-	gock.New("http://127.0.0.10:8000/nnrf-disc/v1").
+	gock.New("http://127.0.0.10:8000"+factory.NrfDiscUriPrefix).
 		Get("/nf-instances").
 		MatchParam("target-nf-type", "PCF").
 		MatchParam("requester-nf-type", "SMF").
@@ -262,7 +262,7 @@ func initGetSMDataStubUDM() {
 		},
 	}
 
-	gock.New("http://127.0.0.3:8000/nudm-sdm/v1/imsi-208930000007487").
+	gock.New("http://127.0.0.3:8000/"+factory.UdmSdmUriPrefix+"/imsi-208930000007487").
 		Get("/sm-data").
 		MatchParam("dnn", "internet").
 		Reply(http.StatusOK).
@@ -294,10 +294,11 @@ func initSMPoliciesPostStubPCF() {
 		SuppFeat: "000f",
 	}
 
-	gock.New("http://127.0.0.7:8000/npcf-smpolicycontrol/v1").
+	gock.New("http://127.0.0.7:8000/"+factory.PcfSmpolicycontrolUriPrefix).
 		Post("/sm-policies").
 		Reply(http.StatusCreated).
-		AddHeader("Location", "http://127.0.0.7:8000/npcf-smpolicycontrol/v1/sm-policies/imsi-208930000007487-10").
+		AddHeader("Location",
+			"http://127.0.0.7:8000/"+factory.PcfSmpolicycontrolUriPrefix+"/sm-policies/imsi-208930000007487-10").
 		JSON(smPolicyDecision)
 }
 
@@ -348,7 +349,7 @@ func initDiscAMFStubNRF() {
 		},
 	}
 
-	gock.New("http://127.0.0.10:8000/nnrf-disc/v1").
+	gock.New("http://127.0.0.10:8000/"+factory.NrfDiscUriPrefix).
 		Get("/nf-instances").
 		MatchParam("target-nf-type", "AMF").
 		MatchParam("requester-nf-type", "SMF").
@@ -434,7 +435,7 @@ func TestHandlePDUSessionSMContextCreate(t *testing.T) {
 	initStubPFCP()
 
 	// modify associate setup status
-	allUPFs := context.SMF_Self().UserPlaneInformation.UPFs
+	allUPFs := context.GetSelf().UserPlaneInformation.UPFs
 	for _, upfNode := range allUPFs {
 		upfNode.UPF.UPFStatus = context.AssociatedSetUpSuccess
 	}

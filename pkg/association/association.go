@@ -30,7 +30,7 @@ func ToBeAssociatedWithUPF(ctx context.Context, upf *smf_context.UPF) {
 			break
 		}
 
-		if smf_context.SMF_Self().PfcpHeartbeatInterval == 0 {
+		if smf_context.GetSelf().PfcpHeartbeatInterval == 0 {
 			return
 		}
 
@@ -70,28 +70,28 @@ func isDone(ctx context.Context, upf *smf_context.UPF) bool {
 
 func ensureSetupPfcpAssociation(ctx context.Context, upf *smf_context.UPF, upfStr string) {
 	alertTime := time.Now()
-	alertInterval := smf_context.SMF_Self().AssocFailAlertInterval
-	retryInterval := smf_context.SMF_Self().AssocFailRetryInterval
+	alertInterval := smf_context.GetSelf().AssocFailAlertInterval
+	retryInterval := smf_context.GetSelf().AssocFailRetryInterval
 	for {
 		timer := time.After(retryInterval)
 		err := setupPfcpAssociation(upf, upfStr)
 		if err == nil {
 			return
 		}
-		logger.AppLog.Warnf("Failed to setup an association with UPF%s, error:%+v", upfStr, err)
+		logger.MainLog.Warnf("Failed to setup an association with UPF%s, error:%+v", upfStr, err)
 		now := time.Now()
-		logger.AppLog.Debugf("now %+v, alertTime %+v", now, alertTime)
+		logger.MainLog.Debugf("now %+v, alertTime %+v", now, alertTime)
 		if now.After(alertTime.Add(alertInterval)) {
-			logger.AppLog.Errorf("ALERT for UPF%s", upfStr)
+			logger.MainLog.Errorf("ALERT for UPF%s", upfStr)
 			alertTime = now
 		}
-		logger.AppLog.Debugf("Wait %+v (or less) until next retry attempt", retryInterval)
+		logger.MainLog.Debugf("Wait %+v (or less) until next retry attempt", retryInterval)
 		select {
 		case <-ctx.Done():
-			logger.AppLog.Infof("Canceled association request to UPF%s", upfStr)
+			logger.MainLog.Infof("Canceled association request to UPF%s", upfStr)
 			return
 		case <-upf.Ctx.Done():
-			logger.AppLog.Infof("Canceled association request to this UPF%s only", upfStr)
+			logger.MainLog.Infof("Canceled association request to this UPF%s only", upfStr)
 			return
 		case <-timer:
 			continue
@@ -100,7 +100,7 @@ func ensureSetupPfcpAssociation(ctx context.Context, upf *smf_context.UPF, upfSt
 }
 
 func setupPfcpAssociation(upf *smf_context.UPF, upfStr string) error {
-	logger.AppLog.Infof("Sending PFCP Association Request to UPF%s", upfStr)
+	logger.MainLog.Infof("Sending PFCP Association Request to UPF%s", upfStr)
 
 	resMsg, err := message.SendPfcpAssociationSetupRequest(upf.NodeID)
 	if err != nil {
@@ -118,14 +118,14 @@ func setupPfcpAssociation(upf *smf_context.UPF, upfStr string) error {
 		return fmt.Errorf("pfcp association needs NodeID")
 	}
 
-	logger.AppLog.Infof("Received PFCP Association Setup Accepted Response from UPF%s", upfStr)
+	logger.MainLog.Infof("Received PFCP Association Setup Accepted Response from UPF%s", upfStr)
 
 	upf.UPFStatus = smf_context.AssociatedSetUpSuccess
 
 	if rsp.UserPlaneIPResourceInformation != nil {
 		upf.UPIPInfo = *rsp.UserPlaneIPResourceInformation
 
-		logger.AppLog.Infof("UPF(%s)[%s] setup association",
+		logger.MainLog.Infof("UPF(%s)[%s] setup association",
 			upf.NodeID.ResolveNodeIdToIp().String(), upf.UPIPInfo.NetworkInstance.NetworkInstance)
 	}
 
@@ -136,17 +136,17 @@ func keepHeartbeatTo(ctx context.Context, upf *smf_context.UPF, upfStr string) {
 	for {
 		err := doPfcpHeartbeat(upf, upfStr)
 		if err != nil {
-			logger.AppLog.Errorf("PFCP Heartbeat error: %v", err)
+			logger.MainLog.Errorf("PFCP Heartbeat error: %v", err)
 			return
 		}
 
-		timer := time.After(smf_context.SMF_Self().PfcpHeartbeatInterval)
+		timer := time.After(smf_context.GetSelf().PfcpHeartbeatInterval)
 		select {
 		case <-ctx.Done():
-			logger.AppLog.Infof("Canceled Heartbeat with UPF%s", upfStr)
+			logger.MainLog.Infof("Canceled Heartbeat with UPF%s", upfStr)
 			return
 		case <-upf.Ctx.Done():
-			logger.AppLog.Infof("Canceled Heartbeat to this UPF%s only", upfStr)
+			logger.MainLog.Infof("Canceled Heartbeat to this UPF%s only", upfStr)
 			return
 		case <-timer:
 			continue
@@ -159,7 +159,7 @@ func doPfcpHeartbeat(upf *smf_context.UPF, upfStr string) error {
 		return fmt.Errorf("invalid status of UPF%s: %d", upfStr, upf.UPFStatus)
 	}
 
-	logger.AppLog.Debugf("Sending PFCP Heartbeat Request to UPF%s", upfStr)
+	logger.MainLog.Debugf("Sending PFCP Heartbeat Request to UPF%s", upfStr)
 
 	resMsg, err := message.SendPfcpHeartbeatRequest(upf)
 	if err != nil {
@@ -170,11 +170,11 @@ func doPfcpHeartbeat(upf *smf_context.UPF, upfStr string) error {
 
 	rsp := resMsg.PfcpMessage.Body.(pfcp.HeartbeatResponse)
 	if rsp.RecoveryTimeStamp == nil {
-		logger.AppLog.Warnf("Received PFCP Heartbeat Response without timestamp from UPF%s", upfStr)
+		logger.MainLog.Warnf("Received PFCP Heartbeat Response without timestamp from UPF%s", upfStr)
 		return nil
 	}
 
-	logger.AppLog.Debugf("Received PFCP Heartbeat Response from UPF%s", upfStr)
+	logger.MainLog.Debugf("Received PFCP Heartbeat Response from UPF%s", upfStr)
 	if upf.RecoveryTimeStamp.IsZero() {
 		// first receive
 		upf.RecoveryTimeStamp = rsp.RecoveryTimeStamp.RecoveryTimeStamp
@@ -188,7 +188,7 @@ func doPfcpHeartbeat(upf *smf_context.UPF, upfStr string) error {
 }
 
 func releaseAllResourcesOfUPF(upf *smf_context.UPF, upfStr string) {
-	logger.AppLog.Infof("Release all resources of UPF %s", upfStr)
+	logger.MainLog.Infof("Release all resources of UPF %s", upfStr)
 
 	upf.ProcEachSMContext(func(smContext *smf_context.SMContext) {
 		smContext.SMLock.Lock()
@@ -216,7 +216,7 @@ func requestAMFToReleasePDUResources(smContext *smf_context.SMContext) (sendNoti
 	}
 	cause := nasMessage.Cause5GSMNetworkFailure
 	if buf, err := smf_context.BuildGSMPDUSessionReleaseCommand(smContext, cause, false); err != nil {
-		logger.AppLog.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
+		logger.MainLog.Errorf("Build GSM PDUSessionReleaseCommand failed: %+v", err)
 	} else {
 		n1n2Request.BinaryDataN1Message = buf
 		n1n2Request.JsonData.N1MessageContainer = &models.N1MessageContainer{
@@ -226,7 +226,7 @@ func requestAMFToReleasePDUResources(smContext *smf_context.SMContext) (sendNoti
 	}
 	if smContext.UpCnxState != models.UpCnxState_DEACTIVATED {
 		if buf, err := smf_context.BuildPDUSessionResourceReleaseCommandTransfer(smContext); err != nil {
-			logger.AppLog.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %+v", err)
+			logger.MainLog.Errorf("Build PDUSessionResourceReleaseCommandTransfer failed: %+v", err)
 		} else {
 			n1n2Request.BinaryDataN2Information = buf
 			n1n2Request.JsonData.N2InfoContainer = &models.N2InfoContainer{
@@ -249,7 +249,7 @@ func requestAMFToReleasePDUResources(smContext *smf_context.SMContext) (sendNoti
 		N1N2MessageCollectionDocumentApi.
 		N1N2MessageTransfer(context.Background(), smContext.Supi, n1n2Request)
 	if err != nil {
-		logger.AppLog.Warnf("Send N1N2Transfer failed: %+v", err)
+		logger.MainLog.Warnf("Send N1N2Transfer failed: %+v", err)
 	}
 	defer func() {
 		if resCloseErr := res.Body.Close(); resCloseErr != nil {

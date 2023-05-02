@@ -14,7 +14,7 @@ var config = configuration
 // smfContext.UserPlaneInformation = NewUserPlaneInformation(config)
 
 func TestNewUEPreConfigPaths(t *testing.T) {
-	smfContext := SMF_Self()
+	smfContext := GetSelf()
 	smfContext.UserPlaneInformation = NewUserPlaneInformation(config)
 	fmt.Println("Start")
 	testcases := []struct {

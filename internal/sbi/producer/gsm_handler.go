@@ -61,7 +61,7 @@ func HandlePDUSessionEstablishmentRequest(
 		}
 	} else {
 		// Set to default supported PDU Session Type
-		switch smf_context.SMF_Self().SupportedPDUSessionType {
+		switch smf_context.GetSelf().SupportedPDUSessionType {
 		case "IPv4":
 			smCtx.SelectedPDUSessionType = nasMessage.PDUSessionTypeIPv4
 		case "IPv6":

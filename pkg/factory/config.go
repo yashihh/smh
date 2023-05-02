@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -15,38 +16,37 @@ import (
 
 	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
-	logger_util "bitbucket.org/free5gc-team/util/logger"
 )
 
 const (
-	SMF_EXPECTED_CONFIG_VERSION        = "1.0.6"
-	UE_ROUTING_EXPECTED_CONFIG_VERSION = "1.0.1"
-	SMF_DEFAULT_IPV4                   = "127.0.0.2"
-	SMF_DEFAULT_PORT                   = "8000"
-	SMF_DEFAULT_PORT_INT               = 8000
+	SmfDefaultTLSKeyLogPath      = "./log/smfsslkey.log"
+	SmfDefaultCertPemPath        = "./cert/smf.pem"
+	SmfDefaultPrivateKeyPath     = "./cert/smf.key"
+	SmfDefaultConfigPath         = "./config/smfcfg.yaml"
+	SmfDefaultUERoutingPath      = "./config/uerouting.yaml"
+	SmfSbiDefaultIPv4            = "127.0.0.2"
+	SmfSbiDefaultPort            = 8000
+	SmfSbiDefaultScheme          = "https"
+	SmfDefaultNrfUri             = "https://127.0.0.10:8000"
+	SmfEventExposureResUriPrefix = "/nsmf_event-exposure/v1"
+	SmfPdusessionResUriPrefix    = "/nsmf-pdusession/v1"
+	SmfOamUriPrefix              = "/nsmf-oam/v1"
+	NrfDiscUriPrefix             = "/nnrf-disc/v1"
+	UdmSdmUriPrefix              = "/nudm-sdm/v1"
+	PcfSmpolicycontrolUriPrefix  = "/npcf-smpolicycontrol/v1"
+	UpiUriPrefix                 = "/upi/v1"
 )
 
 type Config struct {
-	Info          *Info               `yaml:"info" valid:"required"`
-	Configuration *Configuration      `yaml:"configuration" valid:"required"`
-	Logger        *logger_util.Logger `yaml:"logger" valid:"optional"`
+	Info          *Info          `yaml:"info" valid:"required"`
+	Configuration *Configuration `yaml:"configuration" valid:"required"`
+	Logger        *Logger        `yaml:"logger" valid:"required"`
+	sync.RWMutex
 }
 
 func (c *Config) Validate() (bool, error) {
-	if info := c.Info; info != nil {
-		if result, err := info.validate(); err != nil {
-			return result, err
-		}
-	}
-
 	if configuration := c.Configuration; configuration != nil {
 		if result, err := configuration.validate(); err != nil {
-			return result, err
-		}
-	}
-
-	if logger := c.Logger; logger != nil {
-		if result, err := logger.Validate(); err != nil {
 			return result, err
 		}
 	}
@@ -64,7 +64,7 @@ func (c *Config) Print() {
 }
 
 type Info struct {
-	Version     string `yaml:"version,omitempty" valid:"type(string)"`
+	Version     string `yaml:"version,omitempty" valid:"required,in(1.0.7)"`
 	Description string `yaml:"description,omitempty" valid:"type(string)"`
 }
 
@@ -89,6 +89,12 @@ type Configuration struct {
 	T3591                *TimerValue          `yaml:"t3591" valid:"required"`
 	T3592                *TimerValue          `yaml:"t3592" valid:"required"`
 	NwInstFqdnEncoding   bool                 `yaml:"nwInstFqdnEncoding" valid:"type(bool),optional"`
+}
+
+type Logger struct {
+	Enable       bool   `yaml:"enable" valid:"type(bool)"`
+	Level        string `yaml:"level" valid:"required,in(trace|debug|info|warn|error|fatal|panic)"`
+	ReportCaller bool   `yaml:"reportCaller" valid:"type(bool)"`
 }
 
 func (c *Configuration) validate() (bool, error) {
@@ -408,6 +414,7 @@ type RoutingConfig struct {
 	UERoutingInfo map[string]UERoutingInfo     `yaml:"ueRoutingInfo" valid:"optional"`
 	RouteProf     map[RouteProfID]RouteProfile `yaml:"routeProfile,omitempty" valid:"optional"`
 	PfdDatas      []*PfdDataForApp             `yaml:"pfdDataForApp,omitempty" valid:"optional"`
+	sync.RWMutex
 }
 
 func (r *RoutingConfig) Validate() (bool, error) {
@@ -677,15 +684,95 @@ func (t *TimerValue) validate() (bool, error) {
 }
 
 func (c *Config) GetVersion() string {
-	if c.Info != nil && c.Info.Version != "" {
+	c.RLock()
+	defer c.RUnlock()
+
+	if c.Info.Version != "" {
 		return c.Info.Version
 	}
 	return ""
 }
 
 func (r *RoutingConfig) GetVersion() string {
+	r.RLock()
+	defer r.RUnlock()
+
 	if r.Info != nil && r.Info.Version != "" {
 		return r.Info.Version
 	}
 	return ""
+}
+
+func (c *Config) SetLogEnable(enable bool) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		c.Logger = &Logger{
+			Enable: enable,
+			Level:  "info",
+		}
+	} else {
+		c.Logger.Enable = enable
+	}
+}
+
+func (c *Config) SetLogLevel(level string) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		c.Logger = &Logger{
+			Level: level,
+		}
+	} else {
+		c.Logger.Level = level
+	}
+}
+
+func (c *Config) SetLogReportCaller(reportCaller bool) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		c.Logger = &Logger{
+			Level:        "info",
+			ReportCaller: reportCaller,
+		}
+	} else {
+		c.Logger.ReportCaller = reportCaller
+	}
+}
+
+func (c *Config) GetLogEnable() bool {
+	c.RLock()
+	defer c.RUnlock()
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		return false
+	}
+	return c.Logger.Enable
+}
+
+func (c *Config) GetLogLevel() string {
+	c.RLock()
+	defer c.RUnlock()
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		return "info"
+	}
+	return c.Logger.Level
+}
+
+func (c *Config) GetLogReportCaller() bool {
+	c.RLock()
+	defer c.RUnlock()
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		return false
+	}
+	return c.Logger.ReportCaller
 }

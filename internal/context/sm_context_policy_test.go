@@ -3,11 +3,9 @@ package context
 import (
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"bitbucket.org/free5gc-team/openapi/models"
-	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/pkg/factory"
 )
 
@@ -105,7 +103,7 @@ var testConfig = factory.Config{
 }
 
 func initConfig() {
-	factory.SmfConfig = testConfig
+	factory.SmfConfig = &testConfig
 }
 
 func TestApplySessionRules(t *testing.T) {
@@ -318,7 +316,6 @@ func TestApplySessionRules(t *testing.T) {
 		},
 	}
 
-	logger.SetLogLevel(logrus.TraceLevel)
 	smctx := NewSMContext("imsi-208930000000001", 10)
 
 	for _, tc := range testCases {
@@ -614,8 +611,7 @@ func TestApplyPccRules(t *testing.T) {
 		},
 	}
 
-	logger.SetLogLevel(logrus.TraceLevel)
-	smfContext := SMF_Self()
+	smfContext := GetSelf()
 	smfContext.UserPlaneInformation = NewUserPlaneInformation(&userPlaneConfig)
 	for _, n := range smfContext.UserPlaneInformation.UPFs {
 		n.UPF.UPFStatus = AssociatedSetUpSuccess

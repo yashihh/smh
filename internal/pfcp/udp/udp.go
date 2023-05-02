@@ -26,7 +26,7 @@ func Run(Dispatch func(*pfcpUdp.Message)) {
 		}
 	}()
 
-	serverIP := context.SMF_Self().ListenIP().To4()
+	serverIP := context.GetSelf().ListenIP().To4()
 	Server = pfcpUdp.NewPfcpServer(serverIP.String())
 
 	err := Server.Listen()
