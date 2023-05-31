@@ -3,9 +3,9 @@ module bitbucket.org/free5gc-team/smf
 go 1.17
 
 require (
-	bitbucket.org/free5gc-team/aper v0.0.0-20220401145518-cfd1a7865d35
-	bitbucket.org/free5gc-team/nas v0.0.0-20220623012519-3b41da8e7310
-	bitbucket.org/free5gc-team/ngap v0.0.0-20220623012559-b93c014cf164
+	bitbucket.org/free5gc-team/aper v0.0.0-20230306153952-2bd7c700ea4a
+	bitbucket.org/free5gc-team/nas v0.0.0-20230511062158-84b246c51dae
+	bitbucket.org/free5gc-team/ngap v0.0.0-20230306155110-931d2e076741
 	bitbucket.org/free5gc-team/openapi v0.0.0-20230303073356-24501c097165
 	bitbucket.org/free5gc-team/pfcp v0.0.0-20230310073727-f9d31bc12880
 	bitbucket.org/free5gc-team/util v0.0.0-20230511075254-e9f72181c776

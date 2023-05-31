@@ -1,10 +1,9 @@
-bitbucket.org/free5gc-team/aper v0.0.0-20220401145518-cfd1a7865d35 h1:u4WopuRN8O57EJUPTjJRCzRwfsRVwIiaVQ33pCiWZcA=
-bitbucket.org/free5gc-team/aper v0.0.0-20220401145518-cfd1a7865d35/go.mod h1:Zx3hTNqJnXnnTJjk6zFTShDxIV5EPajvLcSggebT2qI=
-bitbucket.org/free5gc-team/nas v0.0.0-20220623012519-3b41da8e7310 h1:D31NORZFYbGA9Ft2eBcLPM6leFYzydDWKYqSPdACY0g=
-bitbucket.org/free5gc-team/nas v0.0.0-20220623012519-3b41da8e7310/go.mod h1:eJnUvx3Pm/LmPcI2UT0v52DQREKqt5JHUNIWeHDeCd0=
-bitbucket.org/free5gc-team/ngap v0.0.0-20220623012559-b93c014cf164 h1:UwZ60qSXXjPPY+0MBTTx6MOC1+aUALVvjsnsL/vpnJ0=
-bitbucket.org/free5gc-team/ngap v0.0.0-20220623012559-b93c014cf164/go.mod h1:CE7aCi16t97jyxg/PDn37MNr1FUUYW4SqnZQuWbMY1w=
-bitbucket.org/free5gc-team/openapi v0.0.0-20220622044855-5d6e4b933d1f/go.mod h1:ccgobwwP00dqzm0MkNFuS+37jIwtOExeBpaL5hja9Ik=
+bitbucket.org/free5gc-team/aper v0.0.0-20230306153952-2bd7c700ea4a h1:9byhtEIUVKfRbPxzzSsxPqc3OnDJvxblxAUTEVgUO2Q=
+bitbucket.org/free5gc-team/aper v0.0.0-20230306153952-2bd7c700ea4a/go.mod h1:OeBR6FQaMnG2S8wG7EcYUDcc6q0P2ptSLgHuRHoL5RY=
+bitbucket.org/free5gc-team/nas v0.0.0-20230511062158-84b246c51dae h1:w+cEOFj57K/vVILccGNSX+wpP+DZT6JIiAEmtAv09OI=
+bitbucket.org/free5gc-team/nas v0.0.0-20230511062158-84b246c51dae/go.mod h1:CmVJxXjf+63l2ZrLLfxXnPKO0vL0rdBaxaWBED3mDYM=
+bitbucket.org/free5gc-team/ngap v0.0.0-20230306155110-931d2e076741 h1:0U7RnMY1ET+vG6eOexU7fO/bnSWjn2CNCw/aSrvg1zE=
+bitbucket.org/free5gc-team/ngap v0.0.0-20230306155110-931d2e076741/go.mod h1:Jj5Q/yMgw7IQAT6+w29UGdUBC6MIReprIGx4oqXKf7w=
 bitbucket.org/free5gc-team/openapi v0.0.0-20230303073356-24501c097165 h1:PKxZ84/PqCOXFB003g1kHNAOn0JfWS9Di3bdtCJU3T0=
 bitbucket.org/free5gc-team/openapi v0.0.0-20230303073356-24501c097165/go.mod h1:xizxLo3hjuJtZpJ0zyr35oUNaynnlyfBckFptXOffgw=
 bitbucket.org/free5gc-team/pfcp v0.0.0-20230310073727-f9d31bc12880 h1:vna4CpCLxhZ+K8n9bMJfoRKpU68vGa788ABtgdvy5s0=
@@ -320,7 +319,6 @@ golang.org/x/net v0.0.0-20200625001655-4c5254603344/go.mod h1:/O7V0waA8r7cgGh81R
 golang.org/x/net v0.0.0-20200707034311-ab3426394381/go.mod h1:/O7V0waA8r7cgGh81Ro3o1hOxt32SMVPicZroKQ2sZA=
 golang.org/x/net v0.0.0-20200822124328-c89045814202/go.mod h1:/O7V0waA8r7cgGh81Ro3o1hOxt32SMVPicZroKQ2sZA=
 golang.org/x/net v0.0.0-20210226172049-e18ecbb05110/go.mod h1:m0MpNAwzfU5UDzcl9v0D8zg8gWTRqZa9RBIspLL5mdg=
-golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20220722155237-a158d28d115b/go.mod h1:XRhObCWvk6IyKnWLug+ECip1KBveYUHfp+8e9klMJ9c=
 golang.org/x/net v0.5.0/go.mod h1:DivGGAXEgPSlEBzxGzZI+ZLohi+xUj054jfeKui00ws=
 golang.org/x/net v0.7.0 h1:rJrUqqhjsgNp7KqAIc25s9pZnjU7TUcSY7HcVZjdn1g=
@@ -368,7 +366,6 @@ golang.org/x/sys v0.0.0-20200515095857-1151b9dac4a9/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200523222454-059865788121/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200803210538-64077c9b5642/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20210423082822-04245dca01da/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
@@ -388,7 +385,6 @@ golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2/go.mod h1:NqM8EUOU14njkJ3
 golang.org/x/text v0.3.2/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
 golang.org/x/text v0.3.5/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
-golang.org/x/text v0.3.6/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
 golang.org/x/text v0.3.7/go.mod h1:u+2+/6zg+i71rQMx5EYifcz6MCKuco9NR6JIITiCfzQ=
 golang.org/x/text v0.3.8/go.mod h1:E6s5w1FMmriuDzIBO73fBruAKo1PCIq6d2Q6DHfQ8WQ=
 golang.org/x/text v0.6.0/go.mod h1:mrYo+phRRbMaCq/xk9113O4dZlRixOauAjOtrjsXDZ8=
