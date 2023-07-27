@@ -2,6 +2,7 @@ package context
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -679,6 +680,8 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				}
 			}
 		}
+		DstMulticastIPAddress := net.ParseIP("224.0.1.129")
+		logger.CtxLog.Warnln("Downlink Multicast IP address is set to", DstMulticastIPAddress)
 		if curDataPathNode.DownLinkTunnel != nil {
 			if curDataPathNode.DownLinkTunnel.SrcEndPoint == nil {
 				DNDLPDR := curDataPathNode.DownLinkTunnel.PDR
@@ -690,7 +693,8 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 					},
 					UEIPAddress: &pfcpType.UEIPAddress{
 						V4:          true,
-						Ipv4Address: smContext.PDUAddress.To4(),
+						Sd:          true,
+						Ipv4Address: DstMulticastIPAddress.To4(), //smContext.PDUAddress.To4(),
 					},
 				}
 			}
