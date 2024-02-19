@@ -587,7 +587,6 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 			DLPDR.Precedence = precedence
 
 			// TODO: Should delete this after FR5GC-1029 is solved
-			// TODO: Should delete this after FR5GC-1029 is solved
 			if curDataPathNode.IsAnchorUPF() {
 				DstMulticastIP := net.ParseIP("224.0.1.129")
 				logger.TSN.Warnln("[Downlink] Dst Multicast IP address is set to", DstMulticastIP)
