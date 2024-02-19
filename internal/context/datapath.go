@@ -2,6 +2,7 @@ package context
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -507,6 +508,8 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				logger.CtxLog.Errorln("ActivateTunnelAndPDR failed", err)
 				return
 			} else {
+				DstMulticastIP := net.ParseIP("224.0.1.129")
+				logger.TSN.Warnln("[Uplink] Dst Multicast IP address is set to", DstMulticastIP)
 				ULPDR.PDI = PDI{
 					SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceAccess},
 					LocalFTeid: &pfcpType.FTEID{
@@ -520,7 +523,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 					},
 					UEIPAddress: &pfcpType.UEIPAddress{
 						V4:          true,
-						Ipv4Address: smContext.PDUAddress.To4(),
+						Ipv4Address: DstMulticastIP.To4(), // smContext.PDUAddress.To4(),
 					},
 				}
 			}
@@ -584,8 +587,9 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 			DLPDR.Precedence = precedence
 
 			// TODO: Should delete this after FR5GC-1029 is solved
-			// TODO: Should delete this after FR5GC-1029 is solved
 			if curDataPathNode.IsAnchorUPF() {
+				TSNSlaveIP := net.ParseIP("172.168.56.3")
+				logger.TSN.Warnln("[Downlink] TSN Slave IP address is set to", TSNSlaveIP)
 				DLPDR.PDI = PDI{
 					SourceInterface: pfcpType.SourceInterface{
 						InterfaceValue: pfcpType.SourceInterfaceSgiLanN6Lan,
@@ -597,7 +601,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 					UEIPAddress: &pfcpType.UEIPAddress{
 						V4:          true,
 						Sd:          true,
-						Ipv4Address: smContext.PDUAddress.To4(),
+						Ipv4Address: TSNSlaveIP.To4(), // smContext.PDUAddress.To4(),
 					},
 				}
 			} else {
@@ -679,22 +683,23 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				}
 			}
 		}
-		if curDataPathNode.DownLinkTunnel != nil {
-			if curDataPathNode.DownLinkTunnel.SrcEndPoint == nil {
-				DNDLPDR := curDataPathNode.DownLinkTunnel.PDR
-				DNDLPDR.PDI = PDI{
-					SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceCore},
-					NetworkInstance: &pfcpType.NetworkInstance{
-						NetworkInstance: smContext.Dnn,
-						FQDNEncoding:    factory.SmfConfig.Configuration.NwInstFqdnEncoding,
-					},
-					UEIPAddress: &pfcpType.UEIPAddress{
-						V4:          true,
-						Ipv4Address: smContext.PDUAddress.To4(),
-					},
-				}
-			}
-		}
+		//if curDataPathNode.DownLinkTunnel != nil {
+		//	if curDataPathNode.DownLinkTunnel.SrcEndPoint == nil {
+		//		DNDLPDR := curDataPathNode.DownLinkTunnel.PDR
+		//		DNDLPDR.PDI = PDI{
+		//			SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceCore},
+		//			NetworkInstance: &pfcpType.NetworkInstance{
+		//				NetworkInstance: smContext.Dnn,
+		//				FQDNEncoding:    factory.SmfConfig.Configuration.NwInstFqdnEncoding,
+		//			},
+		//			UEIPAddress: &pfcpType.UEIPAddress{
+		//				V4:          true,
+		//				Sd:          true,
+		//				Ipv4Address: TSNMasterIP.To4(), //smContext.PDUAddress.To4(),
+		//			},
+		//		}
+		//	}
+		//}
 	}
 
 	dataPath.Activated = true
