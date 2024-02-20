@@ -508,8 +508,8 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 				logger.CtxLog.Errorln("ActivateTunnelAndPDR failed", err)
 				return
 			} else {
-				DstMulticastIP := net.ParseIP("224.0.1.129")
-				logger.TSN.Warnln("[Uplink] Dst Multicast IP address is set to", DstMulticastIP)
+				TSNMasterIP := net.ParseIP("172.168.56.10")
+				logger.TSN.Warnln("[Uplink] TSN Master IP address is set to", TSNMasterIP)
 				ULPDR.PDI = PDI{
 					SourceInterface: pfcpType.SourceInterface{InterfaceValue: pfcpType.SourceInterfaceAccess},
 					LocalFTeid: &pfcpType.FTEID{
@@ -523,7 +523,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 					},
 					UEIPAddress: &pfcpType.UEIPAddress{
 						V4:          true,
-						Ipv4Address: DstMulticastIP.To4(), // smContext.PDUAddress.To4(),
+						Ipv4Address: TSNMasterIP.To4(), // smContext.PDUAddress.To4(),
 					},
 				}
 			}
@@ -588,8 +588,8 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 
 			// TODO: Should delete this after FR5GC-1029 is solved
 			if curDataPathNode.IsAnchorUPF() {
-				TSNSlaveIP := net.ParseIP("172.168.56.3")
-				logger.TSN.Warnln("[Downlink] TSN Slave IP address is set to", TSNSlaveIP)
+				DstMulticastIP := net.ParseIP("224.0.1.129")
+				logger.TSN.Warnln("[Downlink] Dst Multicast IP address is set to", DstMulticastIP)
 				DLPDR.PDI = PDI{
 					SourceInterface: pfcpType.SourceInterface{
 						InterfaceValue: pfcpType.SourceInterfaceSgiLanN6Lan,
@@ -601,7 +601,7 @@ func (dataPath *DataPath) ActivateTunnelAndPDR(smContext *SMContext, precedence 
 					UEIPAddress: &pfcpType.UEIPAddress{
 						V4:          true,
 						Sd:          true,
-						Ipv4Address: TSNSlaveIP.To4(), // smContext.PDUAddress.To4(),
+						Ipv4Address: DstMulticastIP.To4(), // smContext.PDUAddress.To4(),
 					},
 				}
 			} else {
