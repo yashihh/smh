@@ -75,6 +75,12 @@ func HandlePDUSessionEstablishmentRequest(
 		}
 	}
 
+	// for ethertype pdusession
+	if req.DSTTEthernetportMACaddress != nil {
+		macAddr := req.DSTTEthernetportMACaddress.GetMACaddress()
+		copy(smCtx.MACAddress[:], macAddr[:])
+	}
+
 	if req.ExtendedProtocolConfigurationOptions != nil {
 		EPCOContents := req.ExtendedProtocolConfigurationOptions.GetExtendedProtocolConfigurationOptionsContents()
 		protocolConfigurationOptions := nasConvert.NewProtocolConfigurationOptions()

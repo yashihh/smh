@@ -36,6 +36,7 @@ type SendPfcpResult struct {
 func ActivateUPFSession(
 	smContext *smf_context.SMContext,
 	notifyUeHander func(*smf_context.SMContext, bool),
+	port_number uint32,
 ) {
 	pfcpPool := make(map[string]*PFCPState)
 
@@ -90,6 +91,7 @@ func ActivateUPFSession(
 		if !exist || sessionContext.RemoteSEID == 0 {
 			go establishPfcpSession(smContext, pfcp, resChan)
 		} else {
+			// TODO: add port_number
 			go modifyExistingPfcpSession(smContext, pfcp, resChan)
 		}
 	}
@@ -124,9 +126,25 @@ func establishPfcpSession(smContext *smf_context.SMContext,
 
 	if rsp.Cause != nil && rsp.Cause.CauseValue == pfcpType.CauseRequestAccepted {
 		logger.PduSessLog.Infoln("Received PFCP Session Establishment Accepted Response")
-		resCh <- SendPfcpResult{
-			Status: smf_context.SessionEstablishSuccess,
-			RcvMsg: rcvMsg,
+		if rsp.CreatedBridgeInfoForTSC != nil {
+			logger.PduSessLog.Infoln("Received DS-TT Port Number: ",
+				rsp.CreatedBridgeInfoForTSC.DSTTPortNumber.PortNumberValue)
+			logger.PduSessLog.Infof("Received TSN Bridge ID Value: %x",
+				rsp.CreatedBridgeInfoForTSC.FGSUserPlaneNode.UserPlaneNodeIDValue)
+			resCh <- SendPfcpResult{
+				Status: smf_context.SessionEstablishSuccess,
+				RcvMsg: rcvMsg,
+			}
+			pduSession_id := uint8(smContext.PduSessionId)
+			logger.PduSessLog.Infoln("pdu session id: ", uint8(smContext.PduSessionId))
+			if pduSession_id != 0x00 {
+				bridgeinfo, exist := smContext.BridgeInfo[pduSession_id]
+				if !exist {
+					bridgeinfo.BridgeId = rsp.CreatedBridgeInfoForTSC.FGSUserPlaneNode.UserPlaneNodeIDValue
+					bridgeinfo.DSTTPortNumber = rsp.CreatedBridgeInfoForTSC.DSTTPortNumber.PortNumberValue
+					smContext.BridgeInfo[pduSession_id] = bridgeinfo
+				}
+			}
 		}
 	} else {
 		logger.PduSessLog.Infoln("Received PFCP Session Establishment Not Accepted Response")

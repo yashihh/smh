@@ -65,3 +65,7 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace bitbucket.org/free5gc-team/nas v0.0.0-20230511062158-84b246c51dae => ../../../nas
+
+replace bitbucket.org/free5gc-team/pfcp v0.0.0-20230310073727-f9d31bc12880 => ../../../pfcp

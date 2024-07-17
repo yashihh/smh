@@ -193,6 +193,11 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 		HandleReports(req.UsageReport, nil, nil, smContext, upfNodeID)
 	}
 
+	if req.ReportType.Tmir && req.TSCManagementInformation != nil {
+		fmt.Println("uint8(smContext.PDUSessionID)", uint8(smContext.PDUSessionID))
+		HandleTMIReports(req.TSCManagementInformation, smContext, uint8(smContext.PDUSessionID))
+	}
+
 	// TS 23.502 4.2.3.3 2b. Send Data Notification Ack, SMF->UPF
 	cause.CauseValue = pfcpType.CauseRequestAccepted
 	pfcp_message.SendPfcpSessionReportResponse(msg.RemoteAddr, cause, seqFromUPF, remoteSEID)
@@ -240,4 +245,32 @@ func HandleReports(
 
 		smContext.UrrReports = append(smContext.UrrReports, usageReport)
 	}
+}
+
+func HandleTMIReports(
+	TCMIReport []*pfcp.TSCManagementInformation,
+	smContext *smf_context.SMContext,
+	pduSessionID uint8,
+) {
+	bridgeinfo, exist := smContext.BridgeInfo[pduSessionID]
+	if !exist {
+		logger.PfcpLog.Errorln("bridgeinfo doesn't exist")
+		return
+	}
+	for _, report := range TCMIReport {
+		if report.NWTTPortNumber != nil && report.NWTTPortNumber.PortNumberValue != 0 {
+			logger.PfcpLog.Infoln("Received PMIC: [", report.PortManagementInformationContainer.PortManagementInformation, "] for port",
+				report.NWTTPortNumber.PortNumberValue)
+			bridgeinfo.NWTTPortNumber = report.NWTTPortNumber.PortNumberValue
+			smContext.Nwtt_PMIC[bridgeinfo.NWTTPortNumber] = report.PortManagementInformationContainer.PortManagementInformation
+		} else if report.BridgeManagementInformationContainer != nil {
+			logger.PfcpLog.Infoln("Received UMIC: ", report.BridgeManagementInformationContainer.BridgeManagementInformation)
+			smContext.Nwtt_UMIC[pduSessionID] = report.BridgeManagementInformationContainer.BridgeManagementInformation
+
+		} else {
+			logger.PfcpLog.Errorln("TCMIReport error")
+
+		}
+	}
+
 }

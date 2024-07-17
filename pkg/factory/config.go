@@ -88,6 +88,7 @@ type Configuration struct {
 	UrrThreshold         uint64               `yaml:"urrThreshold,omitempty" valid:"optional"`
 	T3591                *TimerValue          `yaml:"t3591" valid:"required"`
 	T3592                *TimerValue          `yaml:"t3592" valid:"required"`
+	TSCserviceEnable     bool                 `yaml:"tscServiceEnable" valid:"type(bool),optional"`
 	NwInstFqdnEncoding   bool                 `yaml:"nwInstFqdnEncoding" valid:"type(bool),optional"`
 }
 

@@ -8,6 +8,7 @@ import (
 	"bitbucket.org/free5gc-team/pfcp/pfcpType"
 	"bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/pfcp/udp"
+	"bitbucket.org/free5gc-team/smf/pkg/factory"
 )
 
 func BuildPfcpAssociationSetupRequest() (pfcp.PFCPAssociationSetupRequest, error) {
@@ -366,6 +367,12 @@ func BuildPfcpSessionEstablishmentRequest(
 
 	msg.PDNType = &pfcpType.PDNType{
 		PdnType: pfcpType.PDNTypeIpv4,
+	}
+
+	if factory.SmfConfig.Configuration.TSCserviceEnable {
+		msg.CreateBridgeInfoForTSC = &pfcpType.CreateBridgeInfoForTSC{
+			BII: true,
+		}
 	}
 
 	// for _, far := range msg.CreateFAR {

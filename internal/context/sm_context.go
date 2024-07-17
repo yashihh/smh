@@ -112,6 +112,13 @@ type UsageReport struct {
 	ReportTpye models.TriggerType
 }
 
+// TSC
+type port_pair_info struct {
+	NWTTPortNumber uint32
+	DSTTPortNumber uint32
+	BridgeId       uint64
+}
+
 type SMContext struct {
 	*models.SmContextCreateData
 
@@ -202,6 +209,8 @@ type SMContext struct {
 	// NAS
 	Pti                     uint8
 	EstAcceptCause5gSMValue uint8
+	// for ethertype pdu session
+	MACAddress [6]uint8
 
 	// PCO Related
 	ProtocolConfigurationOptions *ProtocolConfigurationOptions
@@ -220,6 +229,14 @@ type SMContext struct {
 
 	// lock
 	SMLock sync.Mutex
+
+	// TSC
+	// user-plane node Information
+	BridgeInfo   map[uint8]port_pair_info // key: pdusession-id, value: dstt and nwtt
+	Dstt_portnum map[uint8]uint32
+
+	Nwtt_UMIC map[uint8][]byte  // key is pdusession-id
+	Nwtt_PMIC map[uint32][]byte // key is nwtt port number
 }
 
 func canonicalName(id string, pduSessID int32) string {
@@ -261,6 +278,11 @@ func NewSMContext(id string, pduSessID int32) *SMContext {
 	smContext.UpPathChgEarlyNotification = make(map[string]*EventExposureNotification)
 	smContext.UpPathChgLateNotification = make(map[string]*EventExposureNotification)
 	smContext.DataPathToBeRemoved = make(map[int64]*DataPath)
+	// init TSC
+	smContext.BridgeInfo = make(map[uint8]port_pair_info)
+	smContext.Dstt_portnum = make(map[uint8]uint32)
+	smContext.Nwtt_UMIC = make(map[uint8][]byte)
+	smContext.Nwtt_PMIC = make(map[uint32][]byte)
 
 	smContext.ProtocolConfigurationOptions = &ProtocolConfigurationOptions{}
 
