@@ -209,8 +209,21 @@ func HandlePDUSessionSMContextCreate(request models.PostSmContextsRequest) *http
 
 		smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
 
-		ActivateUPFSession(smContext, EstHandler)
+		ActivateUPFSession(smContext, EstHandler, 0)
 
+		// Reporting of TSN information
+		logger.PduSessLog.Infof("In Reporting of TSN information")
+		if establishmentRequest.PortManagementInformationContainer != nil {
+			if smPolicyDecisionRsp, err := consumer.
+				SendSMPolicyAssociationUpdateByReportTSNInformation(smContext, establishmentRequest,
+					m.GsmMessage.PDUSessionEstablishmentRequest.PDUSessionID.GetPDUSessionID()); err == nil {
+			} else {
+				smPolicyDecision = smPolicyDecisionRsp
+				smContext.Log.Info("Reporting of TSN information successs!")
+			}
+		} else {
+			logger.PduSessLog.Infof("do not receive TSN information")
+		}
 		smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)
 
 		smContext.PostRemoveDataPath()

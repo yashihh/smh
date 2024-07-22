@@ -49,8 +49,9 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	}
 
 	smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
-
-	ActivateUPFSession(smContext, nil)
+	// TODO
+	nwtt_portnum := uint32(0)
+	ActivateUPFSession(smContext, nil, nwtt_portnum)
 
 	smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)
 

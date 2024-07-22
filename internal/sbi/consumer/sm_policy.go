@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"regexp"
@@ -11,8 +12,10 @@ import (
 	"github.com/pkg/errors"
 
 	"bitbucket.org/free5gc-team/nas/nasConvert"
+	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/nas/nasType"
 	"bitbucket.org/free5gc-team/openapi/models"
+	"bitbucket.org/free5gc-team/pfcp"
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/util/flowdesc"
@@ -377,4 +380,139 @@ func SendSMPolicyAssociationTermination(smContext *smf_context.SMContext) error 
 		return fmt.Errorf("SM Policy termination failed: %v", err)
 	}
 	return nil
+}
+
+// SMF initiated SM Policy Association Modification
+// Npcf_SMPolicyControl_Update request
+func SendSMPolicyAssociationUpdateByReportTSNInformation(
+	smContext *smf_context.SMContext,
+	req *nasMessage.PDUSessionEstablishmentRequest,
+	pdu_session_id uint8) (*models.SmPolicyDecision, error) {
+	updateSMPolicy := models.SmPolicyUpdateContextData{}
+
+	// 29.512 "TimeSensitiveNetworking" or "TimeSensitiveCommunication" feature is supported
+	updateSMPolicy.RepPolicyCtrlReqTriggers = []models.PolicyControlRequestTrigger{
+		models.PolicyControlRequestTrigger_TSN_BRIDGE_INFO,
+	}
+
+	// 29.512 5.6.2.41 Transports TSN bridge information.
+	tsnbridgeinfo := &models.TsnBridgeInformation{}
+
+	// mac Dstt port from [6]uint8 to string
+	if smContext.SelectedPDUSessionType == nasMessage.PDUSessionTypeEthernet {
+		tsnbridgeinfo.DsttAddr = hex.EncodeToString(req.DSTTEthernetportMACaddress.Octet[:])
+	}
+
+	// TODO: UEDSTTresidencetime tpye should be Uinteger
+	if req.UEDSTTresidencetime != nil {
+		tsnbridgeinfo.DsttResidTime = req.UEDSTTresidencetime.Octet
+	}
+
+	port_pair_info, exist := smContext.BridgeInfo[pdu_session_id]
+	if !exist {
+		return nil, errors.New("Cannot find port pair information")
+	}
+	tsnbridgeinfo.DsttPortNum = port_pair_info.DSTTPortNumber
+	tsnbridgeinfo.BridgeId = port_pair_info.BridgeId
+	updateSMPolicy.TsnBridgeInfo = tsnbridgeinfo
+
+	logger.ConsumerLog.Debugf("\ntsnbridgeinfo.BridgeId: [%d]\ntsnbridgeinfo.DsttPortNum: [%d]\ntsnbridgeinfo.DsttAddr: [%s]\ntsnbridgeinfo.DsttResidTime: [%x]\n",
+		tsnbridgeinfo.BridgeId,
+		tsnbridgeinfo.DsttPortNum,
+		tsnbridgeinfo.DsttAddr,
+		tsnbridgeinfo.DsttResidTime,
+	)
+
+	// // 29.512 5.6.2.47 Transports TSC bridge management information(user plane node management information)
+	// umic, exist := smContext.Nwtt_UMIC[pdu_session_id]
+	// if exist {
+	// 	updateSMPolicy.TsnBridgeManCont = &models.BridgeManagementContainer{
+	// 		BridgeManCont: umic,
+	// 	}
+	// } else {
+	// 	logger.ConsumerLog.Debugln("No Nwtt_UMIC in smContext")
+	// }
+
+	// 29.512 5.6.2.45 Transports TSN port management information for the DS-TT port.
+	updateSMPolicy.TsnPortManContDstt = &models.PortManagementContainer{
+		PortManCont: req.PortManagementInformationContainer.Buffer,
+		PortNum:     port_pair_info.DSTTPortNumber,
+	}
+
+	// // Transports TSN port management information for the NW-TTs port.
+	// for portNum, portManCont := range smContext.Nwtt_PMIC {
+	// 	pmic := models.PortManagementContainer{
+	// 		PortManCont: portManCont,
+	// 		PortNum:     portNum,
+	// 	}
+	// 	logger.ConsumerLog.Debugf("Transport PortNum: [%d], PortManCont: [%x]\n", portNum, portManCont)
+	// 	updateSMPolicy.TsnPortManContNwtts = append(updateSMPolicy.TsnPortManContNwtts, pmic)
+	// }
+
+	var smPolicyDecision *models.SmPolicyDecision
+	if smPolicyDecisionFromPCF, _, err := smContext.SMPolicyClient.
+		DefaultApi.SmPoliciesSmPolicyIdUpdatePost(context.TODO(), smContext.SMPolicyID, updateSMPolicy); err != nil {
+		return nil, fmt.Errorf("update sm policy [%s] association failed: %s", smContext.SMPolicyID, err)
+	} else {
+		smPolicyDecision = &smPolicyDecisionFromPCF
+	}
+
+	return smPolicyDecision, nil
+}
+
+// Npcf_SMPolicyControl_Update request
+func SendSMPolicyAssociationUpdateByReportTSNInformation_NWTT(
+	smContext *smf_context.SMContext,
+	TMIReport []*pfcp.TSCManagementInformation,
+	pdu_session_id uint8) (*models.SmPolicyDecision, error) {
+	updateSMPolicy := models.SmPolicyUpdateContextData{}
+
+	updateSMPolicy.RepPolicyCtrlReqTriggers = []models.PolicyControlRequestTrigger{
+		models.PolicyControlRequestTrigger_TSN_BRIDGE_INFO,
+	}
+
+	bridgeinfo, exist := smContext.BridgeInfo[pdu_session_id]
+	if !exist {
+		logger.ConsumerLog.Errorln("bridgeinfo doesn't exist")
+		return nil, nil
+	}
+
+	for _, report := range TMIReport {
+		if report.NWTTPortNumber != nil && report.NWTTPortNumber.PortNumberValue != 0 {
+			// Transports TSN port management information for the NW-TTs port.
+			logger.ConsumerLog.Infoln("Received PMIC: [", report.PortManagementInformationContainer.PortManagementInformation, "] for port",
+				report.NWTTPortNumber.PortNumberValue)
+			bridgeinfo.NWTTPortNumber = report.NWTTPortNumber.PortNumberValue
+			smContext.Nwtt_PMIC[bridgeinfo.NWTTPortNumber] = report.PortManagementInformationContainer.PortManagementInformation
+
+			pmic := models.PortManagementContainer{
+				PortManCont: smContext.Nwtt_PMIC[bridgeinfo.NWTTPortNumber],
+				PortNum:     bridgeinfo.NWTTPortNumber,
+			}
+			updateSMPolicy.TsnPortManContNwtts = append(updateSMPolicy.TsnPortManContNwtts, pmic)
+
+		} else if report.BridgeManagementInformationContainer != nil {
+			// 29.512 5.6.2.47 Transports TSC bridge management information(user plane node management information)
+			logger.ConsumerLog.Infoln("Received UMIC: ", report.BridgeManagementInformationContainer.BridgeManagementInformation)
+			smContext.Nwtt_UMIC[pdu_session_id] = report.BridgeManagementInformationContainer.BridgeManagementInformation
+
+			updateSMPolicy.TsnBridgeManCont = &models.BridgeManagementContainer{
+				BridgeManCont: smContext.Nwtt_UMIC[pdu_session_id],
+			}
+
+		} else {
+			logger.ConsumerLog.Errorln("TMIReport error")
+			return nil, nil
+		}
+	}
+
+	var smPolicyDecision *models.SmPolicyDecision
+	if smPolicyDecisionFromPCF, _, err := smContext.SMPolicyClient.
+		DefaultApi.SmPoliciesSmPolicyIdUpdatePost(context.TODO(), smContext.SMPolicyID, updateSMPolicy); err != nil {
+		return nil, fmt.Errorf("update sm policy [%s] association failed: %s", smContext.SMPolicyID, err)
+	} else {
+		smPolicyDecision = &smPolicyDecisionFromPCF
+	}
+
+	return smPolicyDecision, nil
 }

@@ -11,6 +11,7 @@ import (
 	smf_context "bitbucket.org/free5gc-team/smf/internal/context"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	pfcp_message "bitbucket.org/free5gc-team/smf/internal/pfcp/message"
+	consumer "bitbucket.org/free5gc-team/smf/internal/sbi/consumer"
 )
 
 func HandlePfcpHeartbeatRequest(msg *pfcpUdp.Message) {
@@ -194,8 +195,8 @@ func HandlePfcpSessionReportRequest(msg *pfcpUdp.Message) {
 	}
 
 	if req.ReportType.Tmir && req.TSCManagementInformation != nil {
-		fmt.Println("uint8(smContext.PDUSessionID)", uint8(smContext.PDUSessionID))
-		HandleTMIReports(req.TSCManagementInformation, smContext, uint8(smContext.PDUSessionID))
+		// HandleTMIReports(req.TSCManagementInformation, smContext, uint8(smContext.PDUSessionID))
+		consumer.SendSMPolicyAssociationUpdateByReportTSNInformation_NWTT(smContext, req.TSCManagementInformation, uint8(smContext.PDUSessionID))
 	}
 
 	// TS 23.502 4.2.3.3 2b. Send Data Notification Ack, SMF->UPF
@@ -248,7 +249,7 @@ func HandleReports(
 }
 
 func HandleTMIReports(
-	TCMIReport []*pfcp.TSCManagementInformation,
+	TMIReport []*pfcp.TSCManagementInformation,
 	smContext *smf_context.SMContext,
 	pduSessionID uint8,
 ) {
@@ -257,7 +258,7 @@ func HandleTMIReports(
 		logger.PfcpLog.Errorln("bridgeinfo doesn't exist")
 		return
 	}
-	for _, report := range TCMIReport {
+	for _, report := range TMIReport {
 		if report.NWTTPortNumber != nil && report.NWTTPortNumber.PortNumberValue != 0 {
 			logger.PfcpLog.Infoln("Received PMIC: [", report.PortManagementInformationContainer.PortManagementInformation, "] for port",
 				report.NWTTPortNumber.PortNumberValue)
