@@ -516,3 +516,37 @@ func SendSMPolicyAssociationUpdateByReportTSNInformation_NWTT(
 
 	return smPolicyDecision, nil
 }
+
+// Npcf_SMPolicyControl_Update request
+func SendSMPolicyAssociationUpdateByReportTSNInformation_DSTT(
+	smContext *smf_context.SMContext,
+	req *nasMessage.PDUSessionModificationComplete) (*models.SmPolicyDecision, error) {
+	updateSMPolicy := models.SmPolicyUpdateContextData{}
+
+	updateSMPolicy.RepPolicyCtrlReqTriggers = []models.PolicyControlRequestTrigger{
+		models.PolicyControlRequestTrigger_TSN_BRIDGE_INFO,
+	}
+
+	portnum, exist := smContext.Dstt_portnum[uint8(req.GetPDUSessionID())]
+	if !exist {
+		return nil, errors.New("Cannot find Dstt port number")
+	}
+
+	if req.PortManagementInformationContainer == nil {
+		return nil, errors.New("Cannot find PMIC")
+	}
+	updateSMPolicy.TsnPortManContDstt = &models.PortManagementContainer{
+		PortManCont: req.PortManagementInformationContainer.Buffer,
+		PortNum:     portnum,
+	}
+
+	var smPolicyDecision *models.SmPolicyDecision
+	if smPolicyDecisionFromPCF, _, err := smContext.SMPolicyClient.
+		DefaultApi.SmPoliciesSmPolicyIdUpdatePost(context.TODO(), smContext.SMPolicyID, updateSMPolicy); err != nil {
+		return nil, fmt.Errorf("update sm policy [%s] association failed: %s", smContext.SMPolicyID, err)
+	} else {
+		smPolicyDecision = &smPolicyDecisionFromPCF
+	}
+
+	return smPolicyDecision, nil
+}

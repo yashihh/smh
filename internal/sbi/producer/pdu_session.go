@@ -389,6 +389,9 @@ func HandlePDUSessionSMContextUpdate(smContextRef string, body models.UpdateSmCo
 			}
 		case nas.MsgTypePDUSessionModificationComplete:
 			smContext.StopT3591()
+			if err := HandlePDUSessionModificationComplete(smContext, m.PDUSessionModificationComplete); err != nil {
+				smContext.Log.Errorf("reporting TSN information failed: %+v", err)
+			}
 		case nas.MsgTypePDUSessionModificationReject:
 			smContext.StopT3591()
 		}

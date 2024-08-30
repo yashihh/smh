@@ -7,6 +7,7 @@ import (
 	"bitbucket.org/free5gc-team/nas/nasConvert"
 	"bitbucket.org/free5gc-team/nas/nasMessage"
 	"bitbucket.org/free5gc-team/nas/nasType"
+	"bitbucket.org/free5gc-team/openapi/models"
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 )
 
@@ -224,7 +225,7 @@ func BuildGSMPDUSessionReleaseCommand(smContext *SMContext, cause uint8, isTrigg
 	return m.PlainNasEncode()
 }
 
-func BuildGSMPDUSessionModificationCommand(smContext *SMContext) ([]byte, error) {
+func BuildGSMPDUSessionModificationCommand(smContext *SMContext, PMIC *models.PortManagementContainer) ([]byte, error) {
 	m := nas.NewMessage()
 	m.GsmMessage = nas.NewGsmMessage()
 	m.GsmHeader.SetMessageType(nas.MsgTypePDUSessionModificationCommand)
@@ -236,6 +237,11 @@ func BuildGSMPDUSessionModificationCommand(smContext *SMContext) ([]byte, error)
 	pDUSessionModificationCommand.SetPDUSessionID(uint8(smContext.PDUSessionID))
 	pDUSessionModificationCommand.SetPTI(smContext.Pti)
 	pDUSessionModificationCommand.SetMessageType(nas.MsgTypePDUSessionModificationCommand)
+	smContext.Dstt_portnum[uint8(smContext.PDUSessionID)] = PMIC.PortNum
+	pDUSessionModificationCommand.PortManagementInformationContainer =
+		nasType.NewPortManagementInformationContainer(nasMessage.PDUSessionEstablishmentRequestPortManagementInformationContainerType)
+	pDUSessionModificationCommand.PortManagementInformationContainer.SetLen(uint16(len(PMIC.PortManCont)))
+	pDUSessionModificationCommand.PortManagementInformationContainer.SetPortManagementInformationContainer(PMIC.PortManCont)
 	// pDUSessionModificationCommand.SetQosRule()
 	// pDUSessionModificationCommand.AuthorizedQosRules.SetLen()
 	// pDUSessionModificationCommand.SessionAMBR.SetSessionAMBRForDownlink([2]uint8{0x11, 0x11})

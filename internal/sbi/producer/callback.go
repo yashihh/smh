@@ -22,6 +22,14 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 		return httpResponse
 	}
 
+	if decision.TsnPortManContDstt != nil {
+		nasPdu, _ := smf_context.BuildGSMPDUSessionModificationCommand(smContext, decision.TsnPortManContDstt)
+		if nasPdu != nil {
+			logger.PduSessLog.Debugln("pdu session modification command for pmic: ", nasPdu)
+			sendGSMPDUSessionModificationCommand(smContext, nasPdu)
+		}
+	}
+
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
 

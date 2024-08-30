@@ -277,3 +277,17 @@ func HandlePDUSessionModificationRequest(
 
 	return rsp, nil
 }
+func HandlePDUSessionModificationComplete(
+	smCtx *smf_context.SMContext, req *nasMessage.PDUSessionModificationComplete) error {
+	logger.GsmLog.Infof("Handle PduSession Modification Complete")
+
+	// Reporting of TSN information
+	logger.PduSessLog.Infoln("In Reporting of TSN information")
+	if _, err := consumer.SendSMPolicyAssociationUpdateByReportTSNInformation_DSTT(smCtx, req); err != nil {
+		return err
+	} else {
+		//smPolicyDecision = smPolicyDecisionRsp
+		logger.GsmLog.Infof("Reporting of TSN information successs!")
+	}
+	return nil
+}
