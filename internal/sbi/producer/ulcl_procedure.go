@@ -100,7 +100,7 @@ func EstablishPSA2(smContext *context.SMContext) {
 			if !exist || sessionContext.RemoteSEID == 0 {
 				go establishPfcpSession(smContext, pfcpState, resChan)
 			} else {
-				go modifyExistingPfcpSession(smContext, pfcpState, resChan)
+				go modifyExistingPfcpSession(smContext, pfcpState, resChan, 0)
 			}
 		} else {
 			if reflect.DeepEqual(node.UPF.NodeID, ulcl.NodeID) {
@@ -170,7 +170,7 @@ func EstablishULCL(smContext *context.SMContext) {
 
 			curDPNodeIP := ulcl.NodeID.ResolveNodeIdToIp().String()
 			pendingUPFs = append(pendingUPFs, curDPNodeIP)
-			go modifyExistingPfcpSession(smContext, pfcpState, resChan)
+			go modifyExistingPfcpSession(smContext, pfcpState, resChan, 0)
 			break
 		}
 	}
@@ -215,7 +215,7 @@ func UpdatePSA2DownLink(smContext *context.SMContext) {
 
 				curDPNodeIP := node.UPF.NodeID.ResolveNodeIdToIp().String()
 				pendingUPFs = append(pendingUPFs, curDPNodeIP)
-				go modifyExistingPfcpSession(smContext, pfcpState, resChan)
+				go modifyExistingPfcpSession(smContext, pfcpState, resChan, 0)
 				logger.PfcpLog.Info("[SMF] Update PSA2 downlink msg has been send")
 				break
 			}
@@ -327,7 +327,7 @@ func UpdateRANAndIUPFUpLink(smContext *context.SMContext) {
 
 			curDPNodeIP := curDPNode.UPF.NodeID.ResolveNodeIdToIp().String()
 			pendingUPFs = append(pendingUPFs, curDPNodeIP)
-			go modifyExistingPfcpSession(smContext, pfcpState, resChan)
+			go modifyExistingPfcpSession(smContext, pfcpState, resChan, 0)
 		}
 	}
 

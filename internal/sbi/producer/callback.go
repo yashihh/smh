@@ -30,6 +30,22 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 		}
 	}
 
+	nwtt_portnum := uint32(0)
+	if decision.TsnPortManContNwtts != nil {
+		nwtt_portnum = decision.TsnPortManContNwtts[0].PortNum
+		nwtt_pmic := decision.TsnPortManContNwtts[0].PortManCont
+		smContext.Nwtt_PMIC[decision.TsnPortManContNwtts[0].PortNum] = nwtt_pmic
+		smContext.Log.Info("nwtt port number : ", nwtt_portnum)
+		smContext.Log.Info(nwtt_pmic)
+	}
+
+	if decision.TsnBridgeManCont != nil {
+		umic := decision.TsnBridgeManCont.BridgeManCont
+		smContext.Nwtt_UMIC[uint8(smContext.PduSessionId)] = umic
+		smContext.Log.Info("nwtt umic : ", smContext.Nwtt_UMIC[uint8(smContext.PduSessionId)])
+
+	}
+
 	smContext.SMLock.Lock()
 	defer smContext.SMLock.Unlock()
 
@@ -57,8 +73,7 @@ func HandleSMPolicyUpdateNotify(smContextRef string, request models.SmPolicyNoti
 	}
 
 	smContext.SendUpPathChgNotification("EARLY", SendUpPathChgEventExposureNotification)
-	// TODO
-	nwtt_portnum := uint32(0)
+
 	ActivateUPFSession(smContext, nil, nwtt_portnum)
 
 	smContext.SendUpPathChgNotification("LATE", SendUpPathChgEventExposureNotification)

@@ -214,6 +214,7 @@ func SendPfcpSessionEstablishmentResponse(addr *net.UDPAddr) {
 }
 
 func SendPfcpSessionModificationRequest(
+	port_number uint32,
 	upf *context.UPF,
 	ctx *context.SMContext,
 	pdrList []*context.PDR,
@@ -227,7 +228,7 @@ func SendPfcpSessionModificationRequest(
 		return nil, fmt.Errorf("Not Associated with UPF[%s]", nodeIDtoIP.String())
 	}
 
-	pfcpMsg, err := BuildPfcpSessionModificationRequest(upf.NodeID, nodeIDtoIP.String(),
+	pfcpMsg, err := BuildPfcpSessionModificationRequest(port_number, upf.NodeID, nodeIDtoIP.String(),
 		ctx, pdrList, farList, barList, qerList, urrList)
 	if err != nil {
 		logger.PfcpLog.Errorf("Build PFCP Session Modification Request failed: %v", err)

@@ -421,6 +421,7 @@ func BuildPfcpSessionEstablishmentResponse() (pfcp.PFCPSessionEstablishmentRespo
 
 // TODO: Replace dummy value in PFCP message
 func BuildPfcpSessionModificationRequest(
+	port_number uint32,
 	upNodeID pfcpType.NodeID,
 	upN4Addr string,
 	smContext *context.SMContext,
@@ -434,6 +435,35 @@ func BuildPfcpSessionModificationRequest(
 
 	msg.UpdatePDR = make([]*pfcp.UpdatePDR, 0, 2)
 	msg.UpdateFAR = make([]*pfcp.UpdateFAR, 0, 2)
+	var tscInfo []*pfcp.TSCManagementInformation
+
+	if port_number != 0 { // pmic
+		PMIC, _ := smContext.Nwtt_PMIC[port_number]
+		smContext.Log.Info("check port number = ", port_number)
+		smContext.Log.Info("check PMIC : ", PMIC)
+
+		tscInfo = append(tscInfo, &pfcp.TSCManagementInformation{
+			PortManagementInformationContainer: &pfcpType.PortManagementInformationContainer{
+				PortManagementInformation: PMIC,
+			},
+			NWTTPortNumber: &pfcpType.NWTTPortNumber{
+				PortNumberValue: port_number,
+			},
+		})
+
+	}
+	if UMIC, exist := smContext.Nwtt_UMIC[uint8(smContext.PduSessionId)]; exist {
+		smContext.Log.Info("check UMIC : ", UMIC)
+		tscInfo = append(tscInfo, &pfcp.TSCManagementInformation{
+			BridgeManagementInformationContainer: &pfcpType.BridgeManagementInformationContainer{
+				BridgeManagementInformation: UMIC,
+			},
+		})
+
+	} else if port_number == 0 {
+		smContext.Log.Info("Hi! no information")
+	}
+	msg.TSCManagementInformation = tscInfo
 
 	nodeIDtoIP := upNodeID.ResolveNodeIdToIp().String()
 

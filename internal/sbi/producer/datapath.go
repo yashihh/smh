@@ -13,6 +13,7 @@ import (
 	"bitbucket.org/free5gc-team/smf/internal/logger"
 	"bitbucket.org/free5gc-team/smf/internal/pfcp/handler"
 	pfcp_message "bitbucket.org/free5gc-team/smf/internal/pfcp/message"
+	"bitbucket.org/free5gc-team/smf/internal/sbi/consumer"
 )
 
 type PFCPState struct {
@@ -91,8 +92,7 @@ func ActivateUPFSession(
 		if !exist || sessionContext.RemoteSEID == 0 {
 			go establishPfcpSession(smContext, pfcp, resChan)
 		} else {
-			// TODO: add port_number
-			go modifyExistingPfcpSession(smContext, pfcp, resChan)
+			go modifyExistingPfcpSession(smContext, pfcp, resChan, port_number)
 		}
 	}
 
@@ -159,11 +159,12 @@ func modifyExistingPfcpSession(
 	smContext *smf_context.SMContext,
 	state *PFCPState,
 	resCh chan<- SendPfcpResult,
+	port_number uint32,
 ) {
 	logger.PduSessLog.Infoln("Sending PFCP Session Modification Request")
 
 	rcvMsg, err := pfcp_message.SendPfcpSessionModificationRequest(
-		state.upf, smContext, state.pdrList, state.farList, state.barList, state.qerList, state.urrList)
+		port_number, state.upf, smContext, state.pdrList, state.farList, state.barList, state.qerList, state.urrList)
 	if err != nil {
 		logger.PduSessLog.Warnf("Sending PFCP Session Modification Request error: %+v", err)
 		resCh <- SendPfcpResult{
@@ -185,6 +186,16 @@ func modifyExistingPfcpSession(
 			SEID := rcvMsg.PfcpMessage.Header.SEID
 			upfNodeID := smContext.GetNodeIDByLocalSEID(SEID)
 			handler.HandleReports(nil, rsp.UsageReport, nil, smContext, upfNodeID)
+		}
+		if rsp.TSCManagementInformation != nil {
+			for _, TSCMInfoIE := range rsp.TSCManagementInformation {
+
+				logger.PduSessLog.Info("Received nwtt PMIC : %v", TSCMInfoIE)
+
+			}
+
+			consumer.SendSMPolicyAssociationUpdateByReportTSNInformation_NWTT(
+				smContext, rsp.TSCManagementInformation, uint8(smContext.PduSessionId))
 		}
 	} else {
 		resCh <- SendPfcpResult{
@@ -346,7 +357,7 @@ func updateAnUpfPfcpSession(
 	defaultPath := smContext.Tunnel.DataPathPool.GetDefaultPath()
 	ANUPF := defaultPath.FirstDPNode
 	rcvMsg, err := pfcp_message.SendPfcpSessionModificationRequest(
-		ANUPF.UPF, smContext, pdrList, farList, barList, qerList, urrList)
+		0, ANUPF.UPF, smContext, pdrList, farList, barList, qerList, urrList)
 	if err != nil {
 		logger.PduSessLog.Warnf("Sending PFCP Session Modification Request to AN UPF error: %+v", err)
 		return smf_context.SessionUpdateFailed
