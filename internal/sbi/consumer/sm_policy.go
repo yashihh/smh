@@ -463,7 +463,7 @@ func SendSMPolicyAssociationUpdateByReportTSNInformation(
 // Npcf_SMPolicyControl_Update request
 func SendSMPolicyAssociationUpdateByReportTSNInformation_NWTT(
 	smContext *smf_context.SMContext,
-	TMIReport []*pfcp.TSCManagementInformation,
+	tscInfo []*pfcp.TSCManagementInformation,
 	pdu_session_id uint8) (*models.SmPolicyDecision, error) {
 	updateSMPolicy := models.SmPolicyUpdateContextData{}
 
@@ -477,7 +477,7 @@ func SendSMPolicyAssociationUpdateByReportTSNInformation_NWTT(
 		return nil, nil
 	}
 
-	for _, report := range TMIReport {
+	for _, report := range tscInfo {
 		if report.NWTTPortNumber != nil && report.NWTTPortNumber.PortNumberValue != 0 {
 			// Transports TSN port management information for the NW-TTs port.
 			logger.ConsumerLog.Infoln("Received PMIC: [", report.PortManagementInformationContainer.PortManagementInformation, "] for port",
